@@ -1,0 +1,522 @@
+// HackVerse AI Enterprise Database Schema
+// Fully Normalized PostgreSQL Prisma Schema with 30+ Enterprise Models
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  STUDENT
+  MENTOR
+  RECRUITER
+  COMPANY
+  ADMIN
+}
+
+enum LocationType {
+  ONLINE
+  HYBRID
+  IN_PERSON
+}
+
+enum MockStatus {
+  DRAFT
+  IN_PROGRESS
+  SUBMITTED
+  EVALUATED
+}
+
+enum ApplicationStatus {
+  APPLIED
+  SHORTLISTED
+  INTERVIEWING
+  OFFERED
+  REJECTED
+}
+
+// ----------------------------------------------------
+// USER & AUTHENTICATION
+// ----------------------------------------------------
+
+model User {
+  id                    String            @id @default(uuid())
+  email                 String            @unique
+  passwordHash          String
+  role                  Role              @default(STUDENT)
+  emailVerified         Boolean           @default(false)
+  verificationToken     String?
+  resetToken            String?
+  resetTokenExpiry      DateTime?
+  refreshToken          String?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  deletedAt             DateTime?
+
+  profile               Profile?
+  auditLogs             AuditLog[]
+  bookmarks             Bookmark[]
+  learningPlans         LearningPlan[]
+  mockHackathons        MockHackathon[]
+  projects              Project[]
+  resumes               Resume[]
+  portfolio             Portfolio?
+  notifications         Notification[]
+  achievements          UserAchievement[]
+  xpLogs                XPLog[]
+  teamMemberships       TeamMember[]
+  sentMessages          Message[]         @relation("SentMessages")
+  receivedMessages      Message[]         @relation("ReceivedMessages")
+  jobApplications       JobApplication[]
+  posts                 CommunityPost[]
+  comments              Comment[]
+  aiConversations       AIConversation[]
+  interviewSessions     InterviewSession[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model Profile {
+  id              String      @id @default(uuid())
+  userId          String      @unique
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName        String
+  avatarUrl       String?
+  headline        String?
+  bio             String?     @db.Text
+  location        String?
+  githubUrl       String?
+  linkedinUrl     String?
+  websiteUrl      String?
+  xp              Int         @default(0)
+  streak          Int         @default(0)
+  level           Int         @default(1)
+  coins           Int         @default(100)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  skills          UserSkill[]
+}
+
+model Skill {
+  id          String      @id @default(uuid())
+  name        String      @unique
+  category    String
+  users       UserSkill[]
+}
+
+model UserSkill {
+  id          String      @id @default(uuid())
+  profileId   String
+  profile     Profile     @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  skillId     String
+  skill       Skill       @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  level       Int         @default(1) // 1-100 proficiency
+  
+  @@unique([profileId, skillId])
+}
+
+// ----------------------------------------------------
+// HACKATHON DISCOVERY & TEAMS
+// ----------------------------------------------------
+
+model Hackathon {
+  id                String          @id @default(uuid())
+  title             String
+  slug              String          @unique
+  tagLine           String
+  description       String          @db.Text
+  bannerUrl         String
+  organizer         String
+  locationType      LocationType    @default(ONLINE)
+  city              String?
+  country           String?
+  startDate         DateTime
+  endDate           DateTime
+  prizePool         Float
+  currency          String          @default("USD")
+  isPublished       Boolean         @default(true)
+  matchingScore     Int             @default(95)
+  tags              String[]
+  requirements      String[]
+  timeline          Json            // Array of timeline stages
+  companyId         String?
+  company           Company?        @relation(fields: [companyId], references: [id])
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  deletedAt         DateTime?
+
+  bookmarks         Bookmark[]
+  teams             Team[]
+
+  @@index([slug])
+  @@index([locationType])
+}
+
+model Bookmark {
+  id          String      @id @default(uuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hackathonId String
+  hackathon   Hackathon   @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  createdAt   DateTime    @default(now())
+
+  @@unique([userId, hackathonId])
+}
+
+model Team {
+  id          String       @id @default(uuid())
+  hackathonId String
+  hackathon   Hackathon    @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  name        String
+  code        String       @unique
+  maxMembers  Int          @default(4)
+  leaderId    String
+  createdAt   DateTime     @default(now())
+
+  members     TeamMember[]
+}
+
+model TeamMember {
+  id        String   @id @default(uuid())
+  teamId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   @default("Member")
+  joinedAt  DateTime @default(now())
+
+  @@unique([teamId, userId])
+}
+
+// ----------------------------------------------------
+// MOCK HACKATHON ENGINE & EVALUATIONS
+// ----------------------------------------------------
+
+model MockHackathon {
+  id               String          @id @default(uuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title            String
+  domain           String
+  difficulty       String          // Easy, Medium, Hard, Extreme
+  durationHours    Int             @default(24)
+  problemStatement String          @db.Text
+  requirements     String[]
+  constraints      String[]
+  rubric           Json            // Multi-criteria evaluation rubric
+  status           MockStatus      @default(IN_PROGRESS)
+  expiresAt        DateTime
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  submission       MockSubmission?
+}
+
+model MockSubmission {
+  id                String        @id @default(uuid())
+  mockHackathonId   String        @unique
+  mockHackathon     MockHackathon @relation(fields: [mockHackathonId], references: [id], onDelete: Cascade)
+  githubUrl         String?
+  demoUrl           String?
+  presentationUrl   String?
+  submittedAt       DateTime      @default(now())
+
+  evaluation        Evaluation?
+}
+
+model Evaluation {
+  id                String          @id @default(uuid())
+  mockSubmissionId  String          @unique
+  submission        MockSubmission  @relation(fields: [mockSubmissionId], references: [id], onDelete: Cascade)
+  totalScore        Float
+  innovationScore  Float
+  architectureScore Float
+  uiUxScore         Float
+  testingScore      Float
+  performanceScore  Float
+  securityScore     Float
+  strengths         String[]
+  weaknesses        String[]
+  improvementPlan   String          @db.Text
+  reportPdfUrl      String?
+  evaluatedAt       DateTime        @default(now())
+}
+
+// ----------------------------------------------------
+// RESUME, PORTFOLIO & PROJECTS
+// ----------------------------------------------------
+
+model Resume {
+  id          String        @id @default(uuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  isPrimary   Boolean       @default(false)
+  fileUrl     String?
+  contentJson Json?         // Modular resume sections
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  score       ResumeScore?
+}
+
+model ResumeScore {
+  id            String   @id @default(uuid())
+  resumeId      String   @unique
+  resume        Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  atsScore      Int      // 0-100
+  formatScore   Int
+  keywordScore  Int
+  contentScore  Int
+  feedback      Json     // Detailed recommendations
+  scannedAt     DateTime @default(now())
+}
+
+model Portfolio {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customSlug  String   @unique
+  theme       String   @default("cyberpunk")
+  isPublished Boolean  @default(true)
+  bio         String?  @db.Text
+  socials     Json?
+  views       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String   @db.Text
+  githubUrl   String?
+  liveUrl     String?
+  imageUrl    String?
+  tags        String[]
+  stars       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ----------------------------------------------------
+// AI LEARNING, ROADMAPS & CONVERSATIONS
+// ----------------------------------------------------
+
+model LearningPlan {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  domain      String
+  progress    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tasks       Task[]
+}
+
+model Task {
+  id             String       @id @default(uuid())
+  learningPlanId String
+  learningPlan   LearningPlan @relation(fields: [learningPlanId], references: [id], onDelete: Cascade)
+  title          String
+  description    String?
+  completed      Boolean      @default(false)
+  dueDate        DateTime?
+}
+
+model Course {
+  id          String   @id @default(uuid())
+  title       String
+  provider    String
+  url         String
+  category    String
+  level       String
+  xpReward    Int      @default(150)
+}
+
+model AIConversation {
+  id        String      @id @default(uuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  type      String      @default("MENTOR") // MENTOR, CAREER, CODE_REVIEW, STARTUP
+  createdAt DateTime    @default(now())
+
+  messages  AIMessage[]
+}
+
+model AIMessage {
+  id             String         @id @default(uuid())
+  conversationId String
+  conversation   AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String         // user, assistant, system
+  content        String         @db.Text
+  createdAt      DateTime       @default(now())
+}
+
+model StartupIdea {
+  id          String   @id @default(uuid())
+  title       String
+  problem     String   @db.Text
+  solution    String   @db.Text
+  targetMarket String
+  pitchDeck   Json?
+  createdAt   DateTime @default(now())
+}
+
+// ----------------------------------------------------
+// RECRUITMENT & MENTORSHIP
+// ----------------------------------------------------
+
+model Company {
+  id          String      @id @default(uuid())
+  name        String
+  logoUrl     String?
+  website     String?
+  industry    String?
+  verified    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+
+  hackathons  Hackathon[]
+  recruiters  Recruiter[]
+}
+
+model Recruiter {
+  id          String    @id @default(uuid())
+  userId      String    @unique
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id])
+  position    String
+
+  applications JobApplication[]
+}
+
+model JobApplication {
+  id          String            @id @default(uuid())
+  recruiterId String
+  recruiter   Recruiter         @relation(fields: [recruiterId], references: [id])
+  studentId   String
+  student     User              @relation(fields: [studentId], references: [id])
+  position    String
+  status      ApplicationStatus @default(APPLIED)
+  matchScore  Int               @default(88)
+  appliedAt   DateTime          @default(now())
+}
+
+model Mentor {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  company     String
+  expertise   String[]
+  rating      Float    @default(5.0)
+  hourlyRate  Float    @default(0.0)
+  bio         String   @db.Text
+}
+
+model InterviewSession {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  type        String   // MOCK_INTERVIEW, PITCH_COACH
+  feedback    Json
+  score       Int
+  createdAt   DateTime @default(now())
+}
+
+// ----------------------------------------------------
+// GAMIFICATION, NOTIFICATIONS & AUDIT LOGS
+// ----------------------------------------------------
+
+model Achievement {
+  id          String            @id @default(uuid())
+  title       String
+  description String
+  icon        String
+  xpBonus     Int               @default(100)
+  category    String
+
+  users       UserAchievement[]
+}
+
+model UserAchievement {
+  id            String      @id @default(uuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  unlockedAt    DateTime    @default(now())
+
+  @@unique([userId, achievementId])
+}
+
+model XPLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount    Int
+  source    String
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   // HACKATHON, MENTOR, ACHIEVEMENT, SYSTEM
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model CommunityPost {
+  id        String    @id @default(uuid())
+  authorId  String
+  author    User      @relation(fields: [authorId], references: [id])
+  title     String
+  content   String    @db.Text
+  likes     Int       @default(0)
+  createdAt DateTime  @default(now())
+
+  comments  Comment[]
+}
+
+model Comment {
+  id        String        @id @default(uuid())
+  postId    String
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User          @relation(fields: [authorId], references: [id])
+  content   String        @db.Text
+  createdAt DateTime      @default(now())
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  senderId   String
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiverId String
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  content    String   @db.Text
+  createdAt  DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  details   Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+}
