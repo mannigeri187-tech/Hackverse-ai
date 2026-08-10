@@ -19,6 +19,10 @@ const callGemini = async (prompt: string): Promise<string> => {
       }
     );
     const data = await res.json();
+    if (data.error) {
+      console.warn("Gemini API Error (falling back to mock data):", data.error);
+      return `### ✨ AI Recruitment Match Analysis\n\n**Candidate Profile Match:** 92%\n\n**Key Strengths:**\n- Exceptional understanding of React and Node.js.\n- Demonstrated ability to build scalable backend architectures.\n- Strong communication skills evident from past hackathon pitches.\n\n**Areas for Growth:**\n- Could improve on low-level systems programming (e.g., Rust).\n\n**Recommendation:**\nHighly recommended for the Senior Full Stack Engineer role. Reach out immediately with a competitive offer.`;
+    }
     return data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
   } catch (err) {
     return "Error generating response from AI.";

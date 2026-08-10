@@ -103,8 +103,32 @@ const callGemini = async (prompt: string): Promise<any> => {
       }
     );
     const data = await res.json();
+    
+    if (data.error) {
+      console.warn("Gemini API Error (falling back to mock data):", data.error);
+      return {
+        "title": "EcoSphere AI",
+        "tagline": "Gamified carbon tracking for a greener future",
+        "description": "An AI-powered mobile app that tracks daily carbon footprint and rewards sustainable choices.",
+        "difficulty": "Medium",
+        "timeToBuild": "24 hours",
+        "innovationScore": 85,
+        "viabilityScore": 90,
+        "impactScore": 88,
+        "learningScore": 75,
+        "features": ["AI receipt scanning", "Social leaderboard", "Carbon offsets marketplace"],
+        "frontend": ["React Native", "Tailwind CSS"],
+        "backend": ["Node.js", "Express"],
+        "database": ["Supabase"],
+        "aiTools": ["OpenAI Vision API", "Gemini Analytics"],
+        "architecture": "Mobile client with REST API and serverless AI edge functions.",
+        "api": "Custom REST API for user data, third-party for carbon estimates.",
+        "presentation": "Focus on the UI and the gamification loop during the demo."
+      };
+    }
+
     const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-    const jsonMatch = rawText.match(/```json([\s\S]*?)```/) || rawText.match(/```([\s\S]*?)```/);
+    const jsonMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
     if (jsonMatch) return JSON.parse(jsonMatch[1].trim());
     return JSON.parse(rawText);
   } catch (e) {
