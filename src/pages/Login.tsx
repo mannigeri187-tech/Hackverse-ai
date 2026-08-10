@@ -74,6 +74,49 @@ export default function Login() {
       navigate('/dashboard');
     } catch (error: any) {
       const msg = error?.message || 'Authentication failed.';
+
+      // If the backend server is offline, allow demo bypass
+      const isServerDown = msg.toLowerCase().includes('failed to fetch') ||
+        msg.toLowerCase().includes('networkerror') ||
+        msg.toLowerCase().includes('unable to connect') ||
+        msg.toLowerCase().includes('load failed');
+
+      if (isServerDown) {
+        // Demo bypass — let user in with a local session
+        const demoUser = {
+          id: 'demo-' + Date.now(),
+          name: data.email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+          email: data.email,
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(data.email)}`,
+          role: 'student' as const,
+          emailVerified: true,
+          college: 'Your College',
+          year: '3rd Year',
+          branch: 'Computer Science',
+          level: 1,
+          xp: 0,
+          streak: 0,
+          hackathonsWon: 0,
+          hackathonsJoined: 0,
+          recruiterViews: 0,
+          preparationScore: 75,
+          resumeScore: 80,
+          mockTestScore: 82,
+          skills: ['JavaScript', 'React'],
+          interests: ['AI / ML'],
+          linkedin: '',
+          github: '',
+          joinedDate: new Date().toISOString(),
+        };
+        const demoToken = 'demo-token-' + Date.now();
+        sessionStorage.setItem('hv_access_token', demoToken);
+        sessionStorage.setItem('hv_user_profile', JSON.stringify(demoUser));
+        // Use setUser from store
+        useAuthStore.getState().setUser(demoUser);
+        navigate('/dashboard');
+        return;
+      }
+
       setLoginError(msg);
 
       if (msg.toLowerCase().includes('verify your email')) {
@@ -179,6 +222,13 @@ export default function Login() {
               <ArrowRight size={18} />
             </button>
           </form>
+
+          {/* Demo hint */}
+          <div className={cn("mt-5 p-4 rounded-xl border text-xs space-y-1", isDarkMode ? "bg-indigo-500/5 border-indigo-500/20 text-indigo-300" : "bg-indigo-50 border-indigo-200 text-indigo-700")}>
+            <p className="font-bold flex items-center gap-1.5"><ShieldCheck size={13} /> Quick Access</p>
+            <p>Enter <strong>any email + any password</strong> to sign in as a demo user.</p>
+            <p className="text-[10px] opacity-70">Or create a real account with email verification.</p>
+          </div>
         </div>
       </div>
 
