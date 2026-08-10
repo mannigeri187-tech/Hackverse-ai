@@ -1,91 +1,74 @@
-import React from 'react';
-import Link from 'next/link';
-import { Sparkles, Github, Twitter, Linkedin, ShieldCheck, Cpu, Globe } from 'lucide-react';
+import { Link } from 'react-router-dom'
+import { Sparkles, Github, Twitter, Linkedin, Heart } from 'lucide-react'
 
-export const Footer: React.FC = () => {
+export default function Footer() {
   return (
-    <footer className="border-t border-white/10 bg-slate-950 text-slate-400">
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
-          
-          {/* Brand Info */}
-          <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-400 p-[1px]">
-                <div className="flex h-full w-full items-center justify-center rounded-[11px] bg-slate-950">
-                  <Sparkles className="h-5 w-5 text-cyan-400" />
-                </div>
-              </div>
-              <span className="text-xl font-bold tracking-tight text-white">
-                HackVerse <span className="text-indigo-400">AI</span>
-              </span>
+    <footer className="bg-slate-900 border-t border-white/10 text-gray-400 py-12 px-4 md:px-6">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white">
+              <Sparkles className="w-4 h-4" />
             </div>
-            <p className="text-xs leading-relaxed text-slate-400 max-w-sm">
-              The premier AI-powered hackathon preparation, portfolio building, ATS resume optimization, and developer recruitment platform. Combining Devpost, GitHub, Coursera, and ChatGPT into one platform.
-            </p>
-            <div className="flex items-center gap-4 text-slate-400 pt-2">
-              <Link href="https://github.com" className="hover:text-white transition-colors">
-                <Github className="h-5 w-5" />
-              </Link>
-              <Link href="https://twitter.com" className="hover:text-white transition-colors">
-                <Twitter className="h-5 w-5" />
-              </Link>
-              <Link href="https://linkedin.com" className="hover:text-white transition-colors">
-                <Linkedin className="h-5 w-5" />
-              </Link>
-            </div>
+            <span className="text-xl font-bold text-white">HackVerse AI</span>
           </div>
-
-          {/* Column 1: Platform */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-white">Platform</h4>
-            <ul className="space-y-2 text-xs">
-              <li><Link href="/hackathons" className="hover:text-indigo-400 transition-colors">Hackathon Discovery</Link></li>
-              <li><Link href="/mock-hackathon" className="hover:text-indigo-400 transition-colors">AI Mock Engine</Link></li>
-              <li><Link href="/resume-builder" className="hover:text-indigo-400 transition-colors">ATS Resume Builder</Link></li>
-              <li><Link href="/portfolio-builder" className="hover:text-indigo-400 transition-colors">Portfolio Generator</Link></li>
-              <li><Link href="/community" className="hover:text-indigo-400 transition-colors">Developer Teams</Link></li>
-            </ul>
+          <p className="text-sm leading-relaxed">
+            The ultimate AI-powered hackathon preparation & discovery platform for college students and developers worldwide.
+          </p>
+          <div className="flex items-center gap-3 pt-2">
+            <a href="#" className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors">
+              <Github className="w-4 h-4" />
+            </a>
+            <a href="#" className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors">
+              <Twitter className="w-4 h-4" />
+            </a>
+            <a href="#" className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors">
+              <Linkedin className="w-4 h-4" />
+            </a>
           </div>
-
-          {/* Column 2: Portals */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-white">Portals</h4>
-            <ul className="space-y-2 text-xs">
-              <li><Link href="/dashboard" className="hover:text-indigo-400 transition-colors">Student Dashboard</Link></li>
-              <li><Link href="/recruiter" className="hover:text-indigo-400 transition-colors">Recruiter Talent Hub</Link></li>
-              <li><Link href="/company" className="hover:text-indigo-400 transition-colors">Company Sponsor Portal</Link></li>
-              <li><Link href="/admin" className="hover:text-indigo-400 transition-colors">Admin Governance</Link></li>
-            </ul>
-          </div>
-
-          {/* Column 3: Enterprise */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-white">Security & API</h4>
-            <div className="flex flex-col gap-2 text-xs">
-              <div className="flex items-center gap-2 text-emerald-400">
-                <ShieldCheck className="h-4 w-4" /> SOC2 Type II Certified
-              </div>
-              <div className="flex items-center gap-2 text-cyan-400">
-                <Cpu className="h-4 w-4" /> OpenAI & Gemini Ready
-              </div>
-              <div className="flex items-center gap-2 text-indigo-400">
-                <Globe className="h-4 w-4" /> 99.99% SLA Uptime
-              </div>
-            </div>
-          </div>
-
         </div>
 
-        <div className="mt-12 border-t border-white/10 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500">
-          <p>© 2026 HackVerse AI Inc. All rights reserved. Enterprise SLA Grade.</p>
-          <div className="flex gap-6 mt-4 sm:mt-0">
-            <Link href="/privacy" className="hover:text-slate-300">Privacy Policy</Link>
-            <Link href="/terms" className="hover:text-slate-300">Terms of Service</Link>
-            <Link href="/security" className="hover:text-slate-300">Security Architecture</Link>
-          </div>
+        <div>
+          <h4 className="text-white font-semibold mb-4">Platform</h4>
+          <ul className="space-y-2 text-sm">
+            <li><Link to="/hackathons" className="hover:text-white transition-colors">Hackathon Discovery</Link></li>
+            <li><Link to="/ai-mentor" className="hover:text-white transition-colors">AI Coach & Mentor</Link></li>
+            <li><Link to="/learning" className="hover:text-white transition-colors">AI Learning Tracks</Link></li>
+            <li><Link to="/mock-hackathon" className="hover:text-white transition-colors">Mock Hackathons</Link></li>
+            <li><Link to="/skill-analysis" className="hover:text-white transition-colors">Skill Gap Analyzer</Link></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 className="text-white font-semibold mb-4">Tools & Community</h4>
+          <ul className="space-y-2 text-sm">
+            <li><Link to="/resume-builder" className="hover:text-white transition-colors">ATS Resume Builder</Link></li>
+            <li><Link to="/resume-review" className="hover:text-white transition-colors">AI Resume Reviewer</Link></li>
+            <li><Link to="/project-generator" className="hover:text-white transition-colors">AI Project Generator</Link></li>
+            <li><Link to="/team-finder" className="hover:text-white transition-colors">Team Finder</Link></li>
+            <li><Link to="/community" className="hover:text-white transition-colors">Student Community</Link></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 className="text-white font-semibold mb-4">Organizers & Admins</h4>
+          <ul className="space-y-2 text-sm">
+            <li><Link to="/organizer" className="hover:text-white transition-colors">Post a Hackathon</Link></li>
+            <li><Link to="/organizer" className="hover:text-white transition-colors">Organizer Dashboard</Link></li>
+            <li><Link to="/admin" className="hover:text-white transition-colors">Admin Panel</Link></li>
+            <li><a href="#faq" className="hover:text-white transition-colors">FAQ & Support</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto border-t border-white/10 mt-12 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs gap-4">
+        <p>© 2026 HackVerse AI. Built with <Heart className="w-3.5 h-3.5 text-red-500 inline mx-0.5 fill-red-500" /> for hackers & creators worldwide.</p>
+        <div className="flex gap-6">
+          <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
+          <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
+          <a href="#" className="hover:text-white transition-colors">Security</a>
         </div>
       </div>
     </footer>
-  );
-};
+  )
+}

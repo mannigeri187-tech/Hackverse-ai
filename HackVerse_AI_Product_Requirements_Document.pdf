@@ -1,0 +1,475 @@
+%PDF-1.3
+%ºß¬à
+3 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 4 0 R
+>>
+endobj
+4 0 obj
+<<
+/Length 6033
+>>
+stream
+0.5670000000000001 w
+0 G
+BT
+/F2 20 Tf
+23. TL
+0.118 0.161 0.231 rg
+42.5196850393700814 785.1970866141732586 Td
+(PRODUCT REQUIREMENTS DOCUMENT \(PRD\)) Tj
+ET
+BT
+/F2 14 Tf
+16.0999999999999979 TL
+0.31 0.275 0.898 rg
+42.5196850393700814 762.5199212598424765 Td
+(HackVerse AI Platform) Tj
+ET
+0.8 0.84 0.88 RG
+42.5196850393700814 751.1813385826770855 m
+552.7559055118110791 751.1813385826770855 l
+S
+BT
+/F2 10 Tf
+11.5 TL
+0.2 0.255 0.333 rg
+42.5196850393700814 728.5041732283464171 Td
+(Author:) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0.2 0.255 0.333 rg
+113.3858267716535551 728.5041732283464171 Td
+(Manjunath H Annigeri \(Founder & Lead Architect\)) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.2 0.255 0.333 rg
+42.5196850393700814 711.4962992125983874 Td
+(Version:) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0.2 0.255 0.333 rg
+113.3858267716535551 711.4962992125983874 Td
+(1.0.0 \(Approved\)) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.2 0.255 0.333 rg
+42.5196850393700814 694.4884251968503577 Td
+(Date:) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0.2 0.255 0.333 rg
+113.3858267716535551 694.4884251968503577 Td
+(August 2, 2026) Tj
+ET
+BT
+/F2 12 Tf
+13.7999999999999989 TL
+0.31 0.275 0.898 rg
+42.5196850393700814 666.1419685039369369 Td
+(1. Executive Summary & Vision) Tj
+ET
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.2 0.255 0.333 rg
+42.5196850393700814 646.2994488188976447 Td
+(HackVerse AI is an all-in-one, AI-powered developer enablement platform designed to empower students, software) Tj
+ET
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.2 0.255 0.333 rg
+42.5196850393700814 632.1262204724408775 Td
+(engineers, and hackathon participants to learn, build, simulate, and win hackathons worldwide.) Tj
+ET
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.2 0.255 0.333 rg
+42.5196850393700814 617.952992125984224 Td
+(The platform bridges the gap between theoretical computer science education and practical, high-stakes software) Tj
+ET
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.2 0.255 0.333 rg
+42.5196850393700814 603.7797637795274568 Td
+(engineering with AI mentorship, 100,000+ non-repeating procedural generators, and interactive courses.) Tj
+ET
+BT
+/F2 12 Tf
+13.7999999999999989 TL
+0.31 0.275 0.898 rg
+42.5196850393700814 578.2679527559055259 Td
+(2. Target Audience & User Personas) Tj
+ET
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.2 0.255 0.333 rg
+42.5196850393700814 558.42543307086612 Td
+(• Student Hackers & CS Students: Seeking project ideas, mentor guidance, mock interviews, and team formation.) Tj
+ET
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.2 0.255 0.333 rg
+42.5196850393700814 544.2522047244094665 Td
+(• Aspiring Software Engineers: Mastering Data Structures & Algorithms \(DSA\), system design, and web stack.) Tj
+ET
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.2 0.255 0.333 rg
+42.5196850393700814 530.0789763779526993 Td
+(• Hackathon Organizers & Recruiters: Searching for top-tier developer talent with verified scorecards.) Tj
+ET
+BT
+/F2 12 Tf
+13.7999999999999989 TL
+0.31 0.275 0.898 rg
+42.5196850393700814 504.5671653543306547 Td
+(3. Core Feature Specifications) Tj
+ET
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.2 0.255 0.333 rg
+42.5196850393700814 484.7246456692913057 Td
+(• Authentication & Onboarding: Student / Organizer / Recruiter roles + Google OAuth login modal.) Tj
+ET
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.2 0.255 0.333 rg
+42.5196850393700814 470.5514173228345953 Td
+(• AI Mentor \(ChatGPT Engine\): Multi-intent conversational guidance, error debugging, and concept definitions.) Tj
+ET
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.2 0.255 0.333 rg
+42.5196850393700814 456.378188976377885 Td
+(• Project Idea Generator: 100,000+ non-repeating ideas with persistent signature tracking.) Tj
+ET
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.2 0.255 0.333 rg
+42.5196850393700814 442.2049606299212314 Td
+(• AI Interview Simulator: 100,000+ non-repeating DSA, System Design, and Behavioral prompts.) Tj
+ET
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.2 0.255 0.333 rg
+42.5196850393700814 428.0317322834645211 Td
+(• Mock Hackathon Engine: Timed 24h/48h/72h competitions with non-repeating problem statements.) Tj
+ET
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.2 0.255 0.333 rg
+42.5196850393700814 413.8585039370078107 Td
+(• Cybersecurity & Web Defense: 4 interactive video lessons covering XSS, SQLi, Auth, and Rate Limiting.) Tj
+ET
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.2 0.255 0.333 rg
+42.5196850393700814 399.6852755905511003 Td
+(• Profile & Gamification: Editable student info, XP levels, streaks, and achievement badges.) Tj
+ET
+BT
+/F2 12 Tf
+13.7999999999999989 TL
+0.31 0.275 0.898 rg
+42.5196850393700814 374.1734645669290558 Td
+(4. Technical Architecture) Tj
+ET
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.2 0.255 0.333 rg
+42.5196850393700814 354.3309448818897067 Td
+(• Core Stack: React 18 \(TypeScript\), Vite, TailwindCSS, Vanilla CSS, Lucide React, Framer Motion.) Tj
+ET
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.2 0.255 0.333 rg
+42.5196850393700814 340.1577165354329964 Td
+(• State Management: Zustand \(authStore\), persistent localStorage signature tracking.) Tj
+ET
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.2 0.255 0.333 rg
+42.5196850393700814 325.9844881889763428 Td
+(• Quality Assurance: Strict TypeScript typechecking \(tsc --noEmit\).) Tj
+ET
+BT
+/F2 12 Tf
+13.7999999999999989 TL
+0.31 0.275 0.898 rg
+42.5196850393700814 300.4726771653542983 Td
+(5. Non-Functional Requirements & Roadmap) Tj
+ET
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.2 0.255 0.333 rg
+42.5196850393700814 280.6301574803148924 Td
+(• Performance: Sub-100ms page transitions with 60fps micro-animations.) Tj
+ET
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.2 0.255 0.333 rg
+42.5196850393700814 266.4569291338582389 Td
+(• Reliability: Zero repetition across 100,000+ procedural generation calls.) Tj
+ET
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.2 0.255 0.333 rg
+42.5196850393700814 252.2837007874014716 Td
+(• Phase 1 \(Live\): Core MVP, ChatGPT mentor, cybersecurity videos, and profile manager.) Tj
+ET
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.2 0.255 0.333 rg
+42.5196850393700814 238.1104724409448181 Td
+(• Phase 2 \(Q3 2026\): Peer-to-peer team matchmaking chat & live collaborative code editor.) Tj
+ET
+endstream
+endobj
+1 0 obj
+<</Type /Pages
+/Kids [3 0 R ]
+/Count 1
+>>
+endobj
+5 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+6 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+7 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-Oblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+8 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-BoldOblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+9 0 obj
+<<
+/Type /Font
+/BaseFont /Courier
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+10 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+11 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-Oblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+12 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-BoldOblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+13 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Roman
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+14 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+15 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Italic
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+16 0 obj
+<<
+/Type /Font
+/BaseFont /Times-BoldItalic
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+17 0 obj
+<<
+/Type /Font
+/BaseFont /ZapfDingbats
+/Subtype /Type1
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+18 0 obj
+<<
+/Type /Font
+/BaseFont /Symbol
+/Subtype /Type1
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+2 0 obj
+<<
+/ProcSet [/PDF /Text /ImageB /ImageC /ImageI]
+/Font <<
+/F1 5 0 R
+/F2 6 0 R
+/F3 7 0 R
+/F4 8 0 R
+/F5 9 0 R
+/F6 10 0 R
+/F7 11 0 R
+/F8 12 0 R
+/F9 13 0 R
+/F10 14 0 R
+/F11 15 0 R
+/F12 16 0 R
+/F13 17 0 R
+/F14 18 0 R
+>>
+/XObject <<
+>>
+>>
+endobj
+19 0 obj
+<<
+/Producer (jsPDF 4.2.1)
+/CreationDate (D:20260802190404+05'30')
+>>
+endobj
+20 0 obj
+<<
+/Type /Catalog
+/Pages 1 0 R
+/OpenAction [3 0 R /FitH null]
+/PageLayout /OneColumn
+>>
+endobj
+xref
+0 21
+0000000000 65535 f 
+0000006237 00000 n 
+0000008054 00000 n 
+0000000015 00000 n 
+0000000152 00000 n 
+0000006294 00000 n 
+0000006419 00000 n 
+0000006549 00000 n 
+0000006682 00000 n 
+0000006819 00000 n 
+0000006942 00000 n 
+0000007071 00000 n 
+0000007203 00000 n 
+0000007339 00000 n 
+0000007467 00000 n 
+0000007594 00000 n 
+0000007723 00000 n 
+0000007856 00000 n 
+0000007958 00000 n 
+0000008302 00000 n 
+0000008388 00000 n 
+trailer
+<<
+/Size 21
+/Root 20 0 R
+/Info 19 0 R
+/ID [ <B330E2FED318E58B7560F712C502BD61> <B330E2FED318E58B7560F712C502BD61> ]
+>>
+startxref
+8492
+%%EOF

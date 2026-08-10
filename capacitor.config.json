@@ -1,0 +1,8 @@
+{
+  "appId": "com.manjunath.hackverseai",
+  "appName": "HackVerse AI",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}
