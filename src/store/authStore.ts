@@ -30,6 +30,7 @@ export interface User {
 }
 
 interface SignupResponse {
+  success: boolean;
   message: string;
   email: string;
   emailVerified: boolean;
@@ -115,11 +116,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       const data = await response.json();
 
-      if (!response.ok) {
+      if (!response.ok || data.success === false) {
         if (data.requiresVerification && data.email) {
           set({ pendingEmailForVerification: data.email, isLoading: false });
         }
-        throw new Error(data.error || 'Invalid email or password.');
+        throw new Error(data.message || data.error || 'Invalid email or password.');
       }
 
       const fullUser: User = {
@@ -169,8 +170,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Account registration failed.');
+      if (!response.ok || data.success === false) {
+        throw new Error(data.message || data.error || 'Unable to send verification code. Please try again.');
       }
 
       set({
@@ -196,8 +197,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Invalid verification code.');
+      if (!response.ok || data.success === false) {
+        throw new Error(data.message || data.error || 'Invalid verification code.');
       }
 
       const fullUser: User = {
@@ -245,8 +246,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
 
       const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to resend verification code.');
+      if (!response.ok || data.success === false) {
+        throw new Error(data.message || data.error || 'Failed to resend verification code.');
       }
 
       return data.message || 'Verification code resent successfully.';
@@ -266,8 +267,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Google authentication failed.');
+      if (!response.ok || data.success === false) {
+        throw new Error(data.message || data.error || 'Google authentication failed.');
       }
 
       const fullUser: User = {

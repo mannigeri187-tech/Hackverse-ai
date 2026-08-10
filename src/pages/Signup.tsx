@@ -90,12 +90,15 @@ export default function Signup() {
         branch: data.branch
       });
 
-      // Redirect to Email Verification page
-      navigate(`/verify-email?email=${encodeURIComponent(result.email)}`, {
-        state: { email: result.email }
-      });
+      // ONLY Navigate to Email Verification page IF backend confirms successful dispatch
+      if (result && result.email) {
+        navigate(`/verify-email?email=${encodeURIComponent(result.email)}`, {
+          state: { email: result.email }
+        });
+      }
     } catch (error: any) {
-      setSignupError(error?.message || 'Account registration failed.');
+      // Show user-friendly error when email dispatch fails (Do NOT navigate to /verify-email)
+      setSignupError(error?.message || 'Unable to send verification code. Please check your email address and try again.');
     }
   };
 
@@ -308,7 +311,7 @@ export default function Signup() {
               disabled={isLoading}
               className="w-full py-3.5 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg transition-all text-sm mt-4"
             >
-              {isLoading ? 'Creating Account & Sending Verification...' : 'Create Account & Verify Email →'}
+              {isLoading ? 'Sending Verification Code...' : 'Create Account & Send Code →'}
             </button>
           </form>
         </div>
