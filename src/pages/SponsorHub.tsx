@@ -1,7 +1,29 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Briefcase, Code, Terminal, Sparkles, Search, CheckCircle, Award, ExternalLink, Download, Send, Zap, Key, Layers, DollarSign } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Briefcase, Code, Terminal, Sparkles, Search, CheckCircle, Award, ExternalLink, Download, Send, Zap, Key, Layers, DollarSign, User, Star, Copy, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+const callGemini = async (prompt: string): Promise<string> => {
+  const key = import.meta.env.VITE_GEMINI_API_KEY;
+  if (!key) return "Error: VITE_GEMINI_API_KEY is not set.";
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.7, maxOutputTokens: 1500 }
+        })
+      }
+    );
+    const data = await res.json();
+    return data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  } catch (err) {
+    return "Error generating response from AI.";
+  }
+};
 
 const TALENT_CANDIDATES = [
   {
@@ -33,7 +55,7 @@ const TALENT_CANDIDATES = [
     name: 'James Chen',
     role: 'Frontend & UI/UX Specialist',
     college: 'Stanford University',
-    atsScore: 91,
+    atsScore: 82,
     wins: 3,
     skills: ['React', 'TypeScript', 'Tailwind', 'Figma', 'Next.js'],
     github: 'https://github.com/james',
@@ -45,7 +67,7 @@ const TALENT_CANDIDATES = [
     name: 'Sarah Wilson',
     role: 'Cloud & Systems Architect',
     college: 'MIT',
-    atsScore: 89,
+    atsScore: 78,
     wins: 3,
     skills: ['AWS', 'Kubernetes', 'Go', 'Node.js', 'PostgreSQL'],
     github: 'https://github.com/sarah',
@@ -64,6 +86,8 @@ const SPONSOR_APIS = [
     docs: 'https://ai.google.dev',
     snippet: `// Test Google Gemini API Call\nfetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=SANDBOX_KEY', {\n  method: 'POST',\n  body: JSON.stringify({ contents: [{ parts: [{ text: "Hello Gemini" }] }] })\n})`,
     competingTeams: 42,
+    haveSkills: ['Python', 'Node.js'],
+    missingSkills: ['Kubernetes', 'Go'],
   },
   {
     id: 'supabase',
@@ -74,6 +98,8 @@ const SPONSOR_APIS = [
     docs: 'https://supabase.com/docs',
     snippet: `// Initialize Supabase Client\nimport { createClient } from '@supabase/supabase-js'\nconst supabase = createClient('https://xyz.supabase.co', 'SANDBOX_ANON_KEY')`,
     competingTeams: 38,
+    haveSkills: ['React', 'TypeScript', 'PostgreSQL'],
+    missingSkills: ['Deno'],
   },
   {
     id: 'twilio',
@@ -84,6 +110,8 @@ const SPONSOR_APIS = [
     docs: 'https://twilio.com/docs',
     snippet: `// Send SMS via Twilio API\nclient.messages.create({\n   body: 'Your HackVerse verification code is 8849',\n   from: '+18005550199',\n   to: '+1234567890'\n})`,
     competingTeams: 29,
+    haveSkills: ['Node.js', 'React'],
+    missingSkills: ['Java', 'C#'],
   },
 ];
 
@@ -93,6 +121,17 @@ export default function SponsorHub() {
   const [invitedIds, setInvitedIds] = useState<number[]>([]);
   const [selectedApi, setSelectedApi] = useState(SPONSOR_APIS[0]);
   const [sponsorToast, setSponsorToast] = useState<string | null>(null);
+
+  // AI Recruiter Match State
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState("");
+  const [displayedAnalysis, setDisplayedAnalysis] = useState("");
+
+  // Cover Letter Modal State
+  const [coverLetterModalOpen, setCoverLetterModalOpen] = useState(false);
+  const [generatingCompany, setGeneratingCompany] = useState<string | null>(null);
+  const [coverLetterResult, setCoverLetterResult] = useState("");
+  const [displayedCoverLetter, setDisplayedCoverLetter] = useState("");
 
   const handleInvite = (id: number, name: string) => {
     setInvitedIds(prev => [...prev, id]);
@@ -119,8 +158,107 @@ export default function SponsorHub() {
     c.role.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleAnalyzeProfile = async () => {
+    setIsAnalyzing(true);
+    setAiAnalysis("");
+    setDisplayedAnalysis("");
+    
+    const prompt = `You are an AI career counselor. A student with these skills: [React, TypeScript, Python, Node.js, PostgreSQL] and 3 hackathon wins wants to find their perfect job match. Here are the companies at this hackathon: [Google Cloud, Supabase, Twilio, OpenAI, AWS]. Generate: 1) Top 3 company matches with match percentage and specific reasoning, 2) What skills to showcase to each company, 3) A one-paragraph personalized cover letter for their #1 match, 4) Skills to develop for better matches. Be specific and actionable.`;
+    
+    const result = await callGemini(prompt);
+    setAiAnalysis(result);
+    setIsAnalyzing(false);
+  };
+
+  useEffect(() => {
+    if (aiAnalysis && displayedAnalysis.length < aiAnalysis.length) {
+      const timer = setTimeout(() => {
+        setDisplayedAnalysis(aiAnalysis.slice(0, displayedAnalysis.length + 1));
+      }, 10);
+      return () => clearTimeout(timer);
+    }
+  }, [aiAnalysis, displayedAnalysis]);
+
+  const handleGenerateCoverLetter = async (companyName: string) => {
+    setGeneratingCompany(companyName);
+    setCoverLetterModalOpen(true);
+    setCoverLetterResult("");
+    setDisplayedCoverLetter("");
+    
+    const prompt = `Write a personalized one-paragraph cover letter for a student applying to ${companyName}. The student has skills in [React, TypeScript, Python, Node.js, PostgreSQL] and 3 hackathon wins. Make it enthusiastic, professional, and tailored to the company.`;
+    
+    const result = await callGemini(prompt);
+    setCoverLetterResult(result);
+    setGeneratingCompany(null);
+  };
+
+  useEffect(() => {
+    if (coverLetterResult && displayedCoverLetter.length < coverLetterResult.length) {
+      const timer = setTimeout(() => {
+        setDisplayedCoverLetter(coverLetterResult.slice(0, displayedCoverLetter.length + 1));
+      }, 15);
+      return () => clearTimeout(timer);
+    }
+  }, [coverLetterResult, displayedCoverLetter]);
+
+  const handleCopyCoverLetter = () => {
+    navigator.clipboard.writeText(coverLetterResult);
+    setSponsorToast("Cover letter copied to clipboard!");
+    setTimeout(() => setSponsorToast(null), 3000);
+  };
+
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8">
+    <div className="p-6 max-w-7xl mx-auto space-y-8 relative">
+      {/* AI Recruiter Match Section */}
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-r from-indigo-900/80 to-purple-900/80 backdrop-blur-xl border border-white/20 p-8 rounded-3xl shadow-2xl shadow-indigo-500/20">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="space-y-4">
+            <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400 flex items-center gap-3">
+              <Sparkles className="w-8 h-8 text-purple-400" /> Find Your Perfect Job Match with AI
+            </h2>
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white/10 rounded-2xl">
+                <User className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-300">Your Skills Profile:</p>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {['React', 'TypeScript', 'Python', 'Node.js', 'PostgreSQL'].map(s => (
+                    <span key={s} className="px-2 py-1 bg-white/10 border border-white/20 text-white rounded-md text-xs font-bold">{s}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={handleAnalyzeProfile}
+            disabled={isAnalyzing}
+            className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl font-bold shadow-xl shadow-emerald-500/20 transition-all flex items-center gap-2 disabled:opacity-70"
+          >
+            {isAnalyzing ? (
+              <><Zap className="w-5 h-5 animate-pulse" /> Analyzing Profile...</>
+            ) : (
+              <><Zap className="w-5 h-5" /> Analyze My Profile</>
+            )}
+          </button>
+        </div>
+        
+        {/* AI Analysis Result */}
+        {(isAnalyzing || displayedAnalysis) && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-6 p-6 bg-slate-950/50 rounded-2xl border border-white/10">
+            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-purple-400" /> AI Career Counselor Insights
+            </h3>
+            <div className="prose prose-invert max-w-none">
+              <div className="whitespace-pre-wrap text-slate-300 text-sm leading-relaxed font-medium">
+                {displayedAnalysis}
+                {isAnalyzing && <span className="inline-block w-2 h-4 bg-purple-500 ml-1 animate-pulse"></span>}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </motion.div>
+
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-2xl">
         <div>
@@ -153,9 +291,11 @@ export default function SponsorHub() {
       </div>
 
       {sponsorToast && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="p-4 bg-purple-500/20 border border-purple-500/30 rounded-xl text-purple-300 font-bold text-sm flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-purple-400" /> {sponsorToast}
-        </motion.div>
+        <AnimatePresence>
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="p-4 bg-purple-500/20 border border-purple-500/30 rounded-xl text-purple-300 font-bold text-sm flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-purple-400" /> {sponsorToast}
+          </motion.div>
+        </AnimatePresence>
       )}
 
       {/* TAB 1: Sponsor Talent Pipeline Portal */}
@@ -183,15 +323,31 @@ export default function SponsorHub() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {filteredCandidates.map(c => (
-              <motion.div key={c.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-slate-900/80 border border-white/10 rounded-2xl p-6 shadow-xl space-y-4">
-                <div className="flex items-center gap-4">
+              <motion.div key={c.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="relative bg-slate-900/80 border border-white/10 rounded-2xl p-6 shadow-xl space-y-4">
+                
+                {/* AI Match Badge */}
+                <div className="absolute top-4 right-4 flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-950 border border-white/10">
+                    <div className={cn(
+                      "w-3 h-3 rounded-full animate-pulse",
+                      c.atsScore >= 90 ? "bg-emerald-500" :
+                      c.atsScore >= 80 ? "bg-yellow-500" : "bg-orange-500"
+                    )} />
+                    <span className={cn(
+                      "text-xs font-bold",
+                      c.atsScore >= 90 ? "text-emerald-400" :
+                      c.atsScore >= 80 ? "text-yellow-400" : "text-orange-400"
+                    )}>
+                      AI Score: {c.atsScore}%
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 pt-2">
                   <img src={c.avatar} alt={c.name} className="w-16 h-16 rounded-2xl object-cover border border-purple-500/30" />
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="text-lg font-bold text-white">{c.name}</h3>
-                      <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded text-[10px] font-extrabold">
-                        {c.atsScore} ATS
-                      </span>
                     </div>
                     <p className="text-xs text-purple-400 font-semibold">{c.role}</p>
                     <p className="text-xs text-slate-400">{c.college} | 🏆 {c.wins} Hackathon Wins</p>
@@ -261,12 +417,51 @@ export default function SponsorHub() {
             <div className="lg:col-span-2 bg-slate-900/80 border border-white/10 rounded-2xl p-6 shadow-xl space-y-6">
               <div className="flex justify-between items-start border-b border-white/10 pb-4">
                 <div>
-                  <h2 className="text-2xl font-bold text-white">{selectedApi.sponsor}</h2>
+                  <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                    {selectedApi.logo} {selectedApi.sponsor}
+                  </h2>
                   <p className="text-sm text-purple-400 font-semibold">{selectedApi.apiName}</p>
                 </div>
-                <span className="px-3.5 py-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full text-xs font-extrabold flex items-center gap-1">
-                  <DollarSign className="w-4 h-4" /> {selectedApi.prize}
-                </span>
+                <div className="flex flex-col items-end gap-2">
+                  <span className="px-3.5 py-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full text-xs font-extrabold flex items-center gap-1">
+                    <DollarSign className="w-4 h-4" /> {selectedApi.prize}
+                  </span>
+                  <button 
+                    onClick={() => handleGenerateCoverLetter(selectedApi.sponsor)}
+                    className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-400 hover:to-indigo-400 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-lg"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" /> Generate Cover Letter
+                  </button>
+                </div>
+              </div>
+
+              {/* Skill Gap Analysis */}
+              <div className="bg-slate-950 rounded-xl p-4 border border-white/5">
+                <h4 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-purple-400" /> AI Skill Gap Analysis
+                </h4>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1 space-y-1.5">
+                    <p className="text-xs text-slate-400 font-semibold">You have:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedApi.haveSkills.map(s => (
+                        <span key={s} className="flex items-center gap-1 px-2 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md text-xs font-medium">
+                          {s} <CheckCircle className="w-3 h-3" />
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex-1 space-y-1.5">
+                    <p className="text-xs text-slate-400 font-semibold">Missing (To Learn):</p>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedApi.missingSkills.map(s => (
+                        <span key={s} className="flex items-center gap-1 px-2 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-md text-xs font-medium">
+                          {s} <X className="w-3 h-3" />
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -293,6 +488,58 @@ export default function SponsorHub() {
           </div>
         </div>
       )}
+
+      {/* Cover Letter Modal */}
+      <AnimatePresence>
+        {coverLetterModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setCoverLetterModalOpen(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative bg-slate-900 border border-white/10 rounded-2xl p-6 max-w-2xl w-full shadow-2xl">
+              <button onClick={() => setCoverLetterModalOpen(false)} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+              
+              <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-purple-400" /> AI Generated Cover Letter
+              </h3>
+              <p className="text-sm text-slate-400 mb-6">Tailored for {generatingCompany || "the company"}</p>
+              
+              <div className="bg-slate-950 border border-white/10 rounded-xl p-6 min-h-[200px] mb-6">
+                {!coverLetterResult && !generatingCompany ? (
+                  <div className="flex flex-col items-center justify-center h-full text-slate-400 space-y-4 py-8">
+                    <Zap className="w-8 h-8 animate-pulse text-purple-500" />
+                    <p className="text-sm font-medium">Crafting your personalized cover letter...</p>
+                  </div>
+                ) : (
+                  <div className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap font-medium">
+                    {displayedCoverLetter}
+                    {(generatingCompany || displayedCoverLetter.length < coverLetterResult.length) && (
+                      <span className="inline-block w-2 h-4 bg-purple-500 ml-1 animate-pulse"></span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setCoverLetterModalOpen(false)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-bold transition-all"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={handleCopyCoverLetter}
+                  disabled={!coverLetterResult || displayedCoverLetter.length < coverLetterResult.length}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-sm font-bold flex items-center gap-2 transition-all disabled:opacity-50"
+                >
+                  <Copy className="w-4 h-4" /> Copy to Clipboard
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

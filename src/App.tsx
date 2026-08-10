@@ -44,6 +44,11 @@ const LiveOps = lazy(() => import('./pages/LiveOps'))
 const JudgingHub = lazy(() => import('./pages/JudgingHub'))
 const SponsorHub = lazy(() => import('./pages/SponsorHub'))
 
+// AI Tools Pages
+const PlagiarismScanner = lazy(() => import('./pages/tools/PlagiarismScanner'))
+const SponsorIntel = lazy(() => import('./pages/tools/SponsorIntel'))
+const TrendPredictor = lazy(() => import('./pages/tools/TrendPredictor'))
+
 function LoadingScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -115,6 +120,10 @@ export default function App() {
             <Route path="/live-ops" element={<LiveOps />} />
             <Route path="/judging-hub" element={<JudgingHub />} />
             <Route path="/sponsor-hub" element={<SponsorHub />} />
+            {/* AI Tools Routes */}
+            <Route path="/ai-tools/plagiarism" element={<PlagiarismScanner />} />
+            <Route path="/ai-tools/sponsor-intel" element={<SponsorIntel />} />
+            <Route path="/ai-tools/trend-predictor" element={<TrendPredictor />} />
           </Route>
 
           {/* 404 */}

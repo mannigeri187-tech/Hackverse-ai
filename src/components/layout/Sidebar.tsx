@@ -27,7 +27,10 @@ import {
   User as UserIcon,
   Wrench,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Brain,
+  ScanLine,
+  Building2
 } from 'lucide-react'
 
 interface NavItem {
@@ -63,6 +66,13 @@ const opsNavItems: NavItem[] = [
   { name: 'Team Finder', path: '/team-finder', icon: UserPlus },
 ]
 
+// AI Tools
+const aiToolNavItems: NavItem[] = [
+  { name: 'Plagiarism Scanner', path: '/ai-tools/plagiarism', icon: ScanLine, badge: 'AI' },
+  { name: 'Sponsor Intel', path: '/ai-tools/sponsor-intel', icon: Building2, badge: 'AI' },
+  { name: 'Trend Predictor', path: '/ai-tools/trend-predictor', icon: TrendingUp, badge: 'AI' },
+]
+
 // Analytics & Career
 const careerNavItems: NavItem[] = [
   { name: 'HackVerse Resume', path: '/resume-builder', icon: FileText },
@@ -82,12 +92,15 @@ export default function Sidebar() {
   const isInsideTools = toolNavItems.some(item => location.pathname === item.path)
   const [toolsOpen, setToolsOpen] = useState<boolean>(true)
 
+  // AI Tools Collapsible State
+  const isInsideAITools = aiToolNavItems.some(item => location.pathname === item.path)
+  const [aiToolsOpen, setAiToolsOpen] = useState<boolean>(true)
+
   // Auto-expand if active page is inside Tools
   useEffect(() => {
-    if (isInsideTools) {
-      setToolsOpen(true)
-    }
-  }, [location.pathname, isInsideTools])
+    if (isInsideTools) setToolsOpen(true)
+    if (isInsideAITools) setAiToolsOpen(true)
+  }, [location.pathname, isInsideTools, isInsideAITools])
 
   if (!sidebarOpen) return null
 
@@ -153,6 +166,29 @@ export default function Sidebar() {
           {toolsOpen && (
             <div className="space-y-1 pl-1 pt-1 transition-all">
               {renderNavGroup(toolNavItems)}
+            </div>
+          )}
+        </div>
+
+        {/* AI Tools Section */}
+        <div className="space-y-1 pt-2 border-t border-gray-200/50 dark:border-white/10">
+          <button
+            onClick={() => setAiToolsOpen(!aiToolsOpen)}
+            className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-[11px] font-extrabold text-purple-500 dark:text-purple-400 uppercase tracking-wider hover:bg-purple-500/10 transition-colors"
+          >
+            <span className="flex items-center gap-1.5">
+              <Brain className="w-3.5 h-3.5 text-purple-500" /> AI Tools ({aiToolNavItems.length})
+            </span>
+            {aiToolsOpen ? (
+              <ChevronDown className="w-4 h-4 text-purple-400" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-purple-400" />
+            )}
+          </button>
+          
+          {aiToolsOpen && (
+            <div className="space-y-1 pl-1 pt-1 transition-all">
+              {renderNavGroup(aiToolNavItems)}
             </div>
           )}
         </div>
