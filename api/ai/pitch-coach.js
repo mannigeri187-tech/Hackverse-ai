@@ -42,7 +42,7 @@ export default async function handler(req, res) {
       practiceAnswer
     } = req.body;
 
-    // Send Gemini ONLY the exact context required (stripping unused IDs/metadata)
+    // Send Gemini ONLY the exact context required
     const projectTitle = workspace?.project_name ? String(workspace.project_name).slice(0, 80) : 'Project';
     const problem = workspace?.problem_statement ? String(workspace.problem_statement).slice(0, 300) : 'Not specified';
     const solution = workspace?.solution ? String(workspace.solution).slice(0, 300) : 'Not specified';
@@ -61,12 +61,12 @@ PROJECT CONTEXT:
 - Hackathon: "${hackathonTitle}" ${hackathonDesc ? `(${hackathonDesc})` : ''}
 `;
 
-    // 3. Fast Flash Models prioritized for < 1.5s latency
+    // 3. Fast Flash Models prioritized for high speed and generous token headroom
     const genAI = new GoogleGenerativeAI(apiKey);
     const activeModels = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-flash-latest'];
 
-    // Helper to call Gemini with a hard 10-second timeout
-    const callGeminiWithTimeout = async (prompt, maxTokens = 1200) => {
+    // Helper to call Gemini with adequate tokens and timeout
+    const callGemini = async (prompt, maxTokens = 4096) => {
       let rawText = '';
       let lastError = null;
 
@@ -76,15 +76,14 @@ PROJECT CONTEXT:
             model: modelName,
             generationConfig: { 
               responseMimeType: "application/json",
-              maxOutputTokens: Math.max(maxTokens || 2048, 2048),
+              maxOutputTokens: maxTokens,
               temperature: 0.4
             }
           });
 
-          // 10-second timeout promise
           const result = await Promise.race([
             model.generateContent(prompt),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('AI generation timed out')), 10000))
+            new Promise((_, reject) => setTimeout(() => reject(new Error('AI generation timed out')), 12000))
           ]);
 
           const response = await result.response;
@@ -103,7 +102,7 @@ PROJECT CONTEXT:
     if (action === 'generate') {
       const cacheKey = `pitch:gen:${user.id}:${workspace?.id || projectTitle}`;
       const cached = pitchCache.get(cacheKey);
-      if (cached && Date.now() - cached.timestamp < 180000) { // 3-min cache for identical parameters
+      if (cached && Date.now() - cached.timestamp < 180000) {
         return res.status(200).json(cached.data);
       }
 
@@ -134,7 +133,7 @@ RULES:
   }
 }`;
 
-      const rawText = await callGeminiWithTimeout(prompt, 1100);
+      const rawText = await callGemini(prompt, 4096);
       const cleaned = rawText.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
       const parsed = JSON.parse(cleaned);
 
@@ -186,7 +185,7 @@ Return STRICTLY valid JSON matching schema:
   "rewritten_pitch": "Polished improved pitch version."
 }`;
 
-      const rawText = await callGeminiWithTimeout(prompt, 900);
+      const rawText = await callGemini(prompt, 3072);
       const cleaned = rawText.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
       const parsed = JSON.parse(cleaned);
       return res.status(200).json(parsed);
@@ -212,7 +211,7 @@ Return STRICTLY valid JSON matching schema:
   "improved_response": "Winning concise version of this answer"
 }`;
 
-      const rawText = await callGeminiWithTimeout(prompt, 400);
+      const rawText = await callGemini(prompt, 2048);
       const cleaned = rawText.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
       const parsed = JSON.parse(cleaned);
       return res.status(200).json(parsed);
