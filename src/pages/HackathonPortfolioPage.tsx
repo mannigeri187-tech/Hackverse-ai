@@ -79,20 +79,20 @@ export default function HackathonPortfolioPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-16">
       {/* 1. HERO PROFILE CARD */}
-      <div className="bg-gradient-to-r from-slate-900 via-primary-950 to-slate-900 text-white rounded-3xl p-6 sm:p-10 shadow-xl border border-slate-800 relative overflow-hidden">
+      <div className="bg-theme-city text-white rounded-3xl p-6 sm:p-10 shadow-xl border border-slate-800/80 relative overflow-hidden glow-blue">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative z-10">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-primary-600/30 border-2 border-primary-400 text-white font-black text-2xl flex items-center justify-center shadow-lg">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-cyan-600/30 border-2 border-cyan-400 text-white font-black text-2xl flex items-center justify-center shadow-lg">
               {profile?.name?.slice(0, 2).toUpperCase() || <User className="w-8 h-8" />}
             </div>
             <div className="space-y-1">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 text-primary-300 text-[10px] font-bold uppercase tracking-wider border border-white/10">
-                <Lock className="w-3 h-3" /> Private Portfolio
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 text-cyan-300 text-[10px] font-bold uppercase tracking-wider border border-cyan-500/30">
+                <Lock className="w-3 h-3 text-cyan-400" /> Developer Portfolio
               </div>
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight">{profile?.name}</h1>
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white drop-shadow-sm">{profile?.name}</h1>
               {profile?.college && (
                 <p className="text-xs sm:text-sm text-slate-300 flex items-center gap-1">
-                  <Building2 className="w-3.5 h-3.5 text-primary-400" /> {profile.college}
+                  <Building2 className="w-3.5 h-3.5 text-cyan-400" /> {profile.college}
                 </p>
               )}
             </div>

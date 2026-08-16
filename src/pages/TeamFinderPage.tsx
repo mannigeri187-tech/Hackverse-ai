@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { 
   Users, 
-  Sparkles, 
   Search, 
   Filter, 
   Calendar, 
@@ -231,20 +230,20 @@ export default function TeamFinderPage() {
   const completionPercent = myProfile ? calculateProfileCompletion(myProfile) : 0;
 
   return (
-    <div className="space-y-8">
-      {/* Top Hero Banner */}
-      <div className="bg-gradient-to-r from-primary-900 via-slate-900 to-slate-900 text-white rounded-3xl p-6 sm:p-8 md:p-10 shadow-lg border border-slate-800 relative overflow-hidden">
-        <div className="max-w-2xl relative z-10 space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-sm text-primary-300">
-            <Sparkles className="w-3.5 h-3.5" /> AI Team Finder
+    <div className="max-w-6xl mx-auto space-y-6 pb-12">
+      {/* 1. HERO HEADER */}
+      <div className="bg-theme-team text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-800/80 relative overflow-hidden glow-blue">
+        <div className="max-w-3xl relative z-10 space-y-3">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-md text-cyan-300 border border-cyan-500/30">
+            <Users className="w-3.5 h-3.5 text-cyan-400" /> Hackathon Team Matchmaking
           </div>
-          
-          <h1 className="text-2xl sm:text-3xl md:text-5xl font-extrabold tracking-tight leading-tight">
-            Find teammates who complement your skills.
+
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-tight text-white drop-shadow-sm">
+            Find Compatible Teammates & Build Winning Squads
           </h1>
-          
-          <p className="text-slate-300 text-sm sm:text-base md:text-lg leading-relaxed">
-            Build high-performing hackathon squads. Match with developers, designers, and pitchers with synergistic skills, filling key technical gaps for your selected hackathon.
+
+          <p className="text-slate-200 text-xs sm:text-sm md:text-base leading-relaxed">
+            Discover developers with complementary skills, target hackathons, and balanced team roles for upcoming competitions.
           </p>
 
           <div className="flex flex-wrap gap-3 pt-2">

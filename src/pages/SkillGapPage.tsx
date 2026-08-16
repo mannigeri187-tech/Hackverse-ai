@@ -233,25 +233,25 @@ export default function SkillGapPage() {
         </div>
       )}
 
-      {/* 1. PAGE HERO HEADER */}
-      <div className="bg-gradient-to-r from-slate-900 via-primary-950 to-slate-900 text-white rounded-3xl p-6 sm:p-8 md:p-10 shadow-xl border border-slate-800 relative overflow-hidden">
-        <div className="max-w-3xl relative z-10 space-y-4">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-sm text-primary-300 border border-white/10">
-            <Sparkles className="w-3.5 h-3.5" /> Skill Intelligence
+      {/* 1. HERO HEADER */}
+      <div className="bg-theme-brain text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-indigo-900/40 relative overflow-hidden glow-purple">
+        <div className="max-w-3xl relative z-10 space-y-3">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-md text-purple-300 border border-purple-500/30">
+            <Award className="w-3.5 h-3.5 text-purple-400" /> AI Skill Gap Engine
           </div>
 
-          <h1 className="text-2xl sm:text-3xl md:text-5xl font-black tracking-tight leading-tight">
-            Skill Gap Analyzer
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-tight text-white drop-shadow-sm">
+            Identify Missing Skills & Generate Daily Study Plans
           </h1>
 
-          <p className="text-slate-300 text-sm sm:text-base md:text-lg leading-relaxed">
-            See which skills you have, which skills you need, and what to focus on for your next hackathon.
+          <p className="text-slate-200 text-xs sm:text-sm md:text-base leading-relaxed">
+            Benchmark your current technical abilities against target hackathon judging requirements and generate structured study roadmaps.
           </p>
 
           <div className="flex flex-wrap gap-3 pt-2">
             <button
               onClick={() => setIsAddSkillOpen(true)}
-              className="px-4 sm:px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs sm:text-sm rounded-xl transition-all shadow-md flex items-center gap-2"
+              className="px-4 sm:px-5 py-2.5 bg-gradient-to-r from-primary-600 to-blue-600 hover:from-primary-500 hover:to-blue-500 text-white font-bold text-xs sm:text-sm rounded-xl transition-all shadow-md flex items-center gap-2"
             >
               <Plus className="w-4 h-4" /> Manage My Skills ({userSkills.length})
             </button>

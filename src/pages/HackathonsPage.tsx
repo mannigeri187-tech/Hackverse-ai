@@ -56,11 +56,25 @@ export default function HackathonsPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Discover Hackathons</h1>
-          <p className="text-slate-600">Find hackathons in Karnataka, India, and worldwide.</p>
+    <div className="space-y-6 pb-12">
+      {/* 1. HERO HEADER */}
+      <div className="bg-theme-team text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-800/80 relative overflow-hidden glow-blue">
+        <div className="max-w-3xl relative z-10 space-y-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-md text-cyan-300 border border-cyan-500/30">
+            <Globe className="w-3.5 h-3.5 text-cyan-400" /> Hackathon Discovery Engine
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white drop-shadow-sm">
+            Discover & Filter Verified Hackathons
+          </h1>
+          <p className="text-slate-200 text-xs sm:text-sm leading-relaxed">
+            Search verified competitions across Karnataka, Bengaluru, India, and Global online hackathons with real-time status tracking.
+          </p>
+        </div>
+      </div>
+
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 pt-2">
+        <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+          <span>{totalCount} Total Hackathons Found</span>
         </div>
       </div>
 

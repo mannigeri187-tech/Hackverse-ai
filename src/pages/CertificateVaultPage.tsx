@@ -147,20 +147,18 @@ export default function CertificateVaultPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-16">
+    <div className="max-w-6xl mx-auto space-y-6 pb-12">
       {/* 1. HERO HEADER */}
-      <div className="bg-gradient-to-r from-slate-900 via-primary-950 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-800 relative overflow-hidden">
-        <div className="max-w-3xl relative z-10 space-y-3">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-sm text-primary-300 border border-white/10">
-            <Award className="w-3.5 h-3.5" /> Certificate Vault
+      <div className="bg-theme-trophy text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-purple-900/40 relative overflow-hidden glow-purple">
+        <div className="max-w-3xl relative z-10 space-y-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-md text-amber-300 border border-amber-500/30">
+            <Award className="w-3.5 h-3.5 text-amber-400" /> Verified Credential Vault
           </div>
-
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-tight">
-            Keep All Your Hackathon Achievements in One Place
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-tight text-white drop-shadow-sm">
+            Store & Showcase Your Hackathon Achievements
           </h1>
-
-          <p className="text-slate-300 text-xs sm:text-sm md:text-base leading-relaxed">
-            Archive, view, and showcase verified credentials, certificates of participation, and winning awards from your competitions.
+          <p className="text-slate-200 text-xs sm:text-sm md:text-base leading-relaxed">
+            Archive winner trophies, runner-up accolades, and participation certificates with shareable verification links.
           </p>
         </div>
       </div>

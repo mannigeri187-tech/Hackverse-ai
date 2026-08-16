@@ -245,18 +245,18 @@ export default function WinningReadinessPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-16">
       {/* 1. HERO HEADER */}
-      <div className="bg-gradient-to-r from-slate-900 via-primary-950 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-800 relative overflow-hidden">
+      <div className="bg-theme-trophy text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-purple-900/40 relative overflow-hidden glow-purple">
         <div className="max-w-3xl relative z-10 space-y-3">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-sm text-primary-300 border border-white/10">
-            <Trophy className="w-3.5 h-3.5" /> Winning Readiness
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-md text-purple-300 border border-purple-500/30">
+            <Trophy className="w-3.5 h-3.5 text-amber-400" /> Winning Readiness Engine
           </div>
 
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-tight">
-            Measure Project Readiness Before Submission
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-tight text-white drop-shadow-sm">
+            Deterministic Hackathon Winning Probability
           </h1>
 
-          <p className="text-slate-300 text-xs sm:text-sm md:text-base leading-relaxed">
-            Deterministic 8-pillar evaluation across hackathon alignment, sprint completeness, team composition, GitHub quality, and pitch clarity.
+          <p className="text-slate-200 text-xs sm:text-sm md:text-base leading-relaxed">
+            Multi-dimensional mathematical evaluation of project maturity, technical depth, team role coverage, and judging readiness (0–100 score).
           </p>
         </div>
       </div>
