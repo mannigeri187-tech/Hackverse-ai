@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "crons": [
+    {
+      "path": "/api/hackathons/ingest",
+      "schedule": "0 */8 * * *"
+    },
+    {
+      "path": "/api/hackathons/validate-links",
+      "schedule": "0 0 * * *"
+    }
+  ]
+}

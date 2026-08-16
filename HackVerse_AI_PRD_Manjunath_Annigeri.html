@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HackVerse AI - Product Requirements Document (PRD)</title>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-dark: #3730a3;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --border: #e2e8f0;
+      --badge-bg: #eef2ff;
+      --badge-text: #4338ca;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: var(--text);
+      background-color: var(--bg);
+      margin: 0;
+      padding: 16px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05);
+      border: 1px solid var(--border);
+    }
+    .header {
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+    .badge {
+      display: inline-block;
+      background: var(--badge-bg);
+      color: var(--badge-text);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    h1 {
+      font-size: 26px;
+      margin: 8px 0;
+      color: var(--text);
+      line-height: 1.2;
+    }
+    .meta {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .meta strong {
+      color: var(--text);
+    }
+    h2 {
+      font-size: 18px;
+      color: var(--primary-dark);
+      margin-top: 24px;
+      margin-bottom: 12px;
+      border-left: 4px solid var(--primary);
+      padding-left: 8px;
+    }
+    h3 {
+      font-size: 15px;
+      margin-top: 16px;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+    p, li {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    ul {
+      padding-left: 20px;
+      margin: 8px 0;
+    }
+    li {
+      margin-bottom: 6px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 13px;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      text-align: left;
+    }
+    th {
+      background-color: #f1f5f9;
+      color: var(--text);
+      font-weight: 600;
+    }
+    .highlight-card {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin: 12px 0;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 32px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    @media (max-width: 600px) {
+      body { padding: 8px; }
+      .container { padding: 16px; border-radius: 12px; }
+      h1 { font-size: 22px; }
+      h2 { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div class="badge">Official Specification</div>
+    <h1>Product Requirements Document (PRD)</h1>
+    <div class="meta">
+      <strong>Project:</strong> HackVerse AI &nbsp;|&nbsp; 
+      <strong>Author:</strong> Manjunath H Annigeri &nbsp;|&nbsp; 
+      <strong>Version:</strong> 1.0.0
+    </div>
+  </div>
+
+  <h2>1. Executive Summary</h2>
+  <p><strong>HackVerse AI</strong> is an intelligent, end-to-end hackathon operating platform designed for student developers and competitive tech teams. It unifies hackathon discovery, team formation, workspace management, AI pitch coaching, GitHub code health auditing, and deterministic winning readiness calculation.</p>
+
+  <h2>2. Target Audience</h2>
+  <ul>
+    <li><strong>Student Hackers & Beginners:</strong> Seeking curated India & Karnataka hackathons, automated project ideas, and daily learning plans.</li>
+    <li><strong>Competitive Squads:</strong> Requiring structured sprint workspaces, automatic milestone tracking, pitch coaching, and judging score optimization.</li>
+    <li><strong>Graduating Developers:</strong> Managing verified hackathon portfolios and certificate vaults with public shareable URLs.</li>
+  </ul>
+
+  <h2>3. Core Modules & Specifications</h2>
+
+  <div class="highlight-card">
+    <h3>🔍 1. Real Hackathon Discovery & Search</h3>
+    <ul>
+      <li><strong>Location-Aware:</strong> First-class filters for Karnataka, Bengaluru, India, Online, and Global events.</li>
+      <li><strong>Zero-AI Database Search:</strong> Sub-10ms queries powered by PostgreSQL indexes and 2-Tier caching (RAM + Redis).</li>
+      <li><strong>Live Ingestion Pipeline:</strong> Pulls real public feeds from Unstop, Devfolio, and HackerEarth with deduplication.</li>
+      <li><strong>Link Health Verification:</strong> 5-hop redirect following, login-required page detection, and dead link removal.</li>
+    </ul>
+  </div>
+
+  <div class="highlight-card">
+    <h3>🤖 2. AI Hackathon Mentor (/mentor)</h3>
+    <ul>
+      <li>Real-time technical, code, and judging guidance grounded in active workspace tasks, skills, and hackathon rules.</li>
+      <li>Cascading multi-model fallback across Gemini 3.7 Flash, 3.6 Flash, and 3.5 Flash-Lite.</li>
+    </ul>
+  </div>
+
+  <div class="highlight-card">
+    <h3>💡 3. AI Idea Generator (/idea-generator)</h3>
+    <ul>
+      <li>Generates 3–5 realistic, buildable 24–48h MVP ideas tailored to the target hackathon's theme and team skills.</li>
+      <li>Cached in memory with 10s timeout safeguards.</li>
+    </ul>
+  </div>
+
+  <div class="highlight-card">
+    <h3>🎙️ 4. AI Pitch Coach (/pitch-coach)</h3>
+    <ul>
+      <li>Generates 3 pitch versions: <strong>30-second elevator pitch</strong>, <strong>60-second demo pitch</strong>, and <strong>2-minute final judging pitch</strong>.</li>
+      <li>Provides pitch breakdown, strength/weakness evaluations, and interactive Judge Q&A practice.</li>
+    </ul>
+  </div>
+
+  <div class="highlight-card">
+    <h3>🏆 5. Deterministic Winning Readiness (/winning-readiness)</h3>
+    <ul>
+      <li><strong>0–100 Objective Metric:</strong> Evaluated across 8 pillars (Hackathon Alignment, Completeness, Tech Depth, Team, Skills, GitHub, Pitch, and Submission Checklist).</li>
+      <li><strong>Non-Blocking:</strong> Score computes instantly in &lt;35ms; optional AI strategic explanation on-demand.</li>
+    </ul>
+  </div>
+
+  <div class="highlight-card">
+    <h3>📊 6. Additional Key Features</h3>
+    <ul>
+      <li><strong>GitHub Analyzer (/github-analyzer):</strong> Public repository health, structure, and judging criteria audit.</li>
+      <li><strong>Workspace Sprint (/workspace/:id):</strong> Task board with automated progress calculation and skill gap plans.</li>
+      <li><strong>Team Finder (/team-finder):</strong> Skill-based squad matching and teammate requests.</li>
+      <li><strong>Certificate Vault & Portfolio (/certificates, /portfolio):</strong> Verified hackathon credential storage with public shareable links.</li>
+    </ul>
+  </div>
+
+  <h2>4. Technical Stack</h2>
+  <table>
+    <tr><th>Layer</th><th>Technology</th></tr>
+    <tr><td>Frontend</td><td>React 18, TypeScript, Vite, Tailwind CSS</td></tr>
+    <tr><td>Database & Auth</td><td>Supabase (PostgreSQL 15 + RLS + JWT)</td></tr>
+    <tr><td>Serverless API</td><td>Node.js on Vercel (/api/*)</td></tr>
+    <tr><td>AI Engine</td><td>Google Gemini Generative AI (Flash models)</td></tr>
+    <tr><td>Caching</td><td>2-Tier (In-Memory RAM + Upstash Redis L2)</td></tr>
+    <tr><td>Scheduling</td><td>Vercel Cron (8-hour ingestion, 24-hour link audit)</td></tr>
+  </table>
+
+  <h2>5. Performance & Security</h2>
+  <ul>
+    <li><strong>Bundle Size:</strong> Route-level code-splitting (134 kB gzipped main chunk).</li>
+    <li><strong>Search Latency:</strong> &lt; 1ms cached / ~18ms direct database queries.</li>
+    <li><strong>Security:</strong> Zero secrets in frontend; server-only keys protected by serverless functions and Row Level Security.</li>
+  </ul>
+
+  <div class="footer">
+    © 2026 HackVerse AI • Authored by Manjunath H Annigeri • Mobile-Friendly Document
+  </div>
+</div>
+
+</body>
+</html>
