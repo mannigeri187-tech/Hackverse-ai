@@ -181,7 +181,8 @@ export default function IdeaGeneratorPage() {
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || errData.details || 'Unable to generate ideas. Please try again.');
+        const statusMsg = `(HTTP ${res.status})`;
+        throw new Error(errData.error || errData.details || `Unable to generate ideas ${statusMsg}. Please try again.`);
       }
 
       const data = await res.json();
