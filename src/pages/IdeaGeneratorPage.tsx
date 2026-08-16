@@ -190,7 +190,24 @@ export default function IdeaGeneratorPage() {
         throw new Error('No ideas were returned. Please try again.');
       }
 
-      setIdeas(data.ideas);
+      // Safe normalization of all array and string properties to guarantee zero render exceptions
+      const normalizedIdeas: GeneratedIdea[] = data.ideas.map((raw: any) => ({
+        title: raw?.title || 'Untitled Innovation Concept',
+        problem_statement: raw?.problem_statement || 'No problem statement provided.',
+        proposed_solution: raw?.proposed_solution || 'No solution description provided.',
+        target_users: Array.isArray(raw?.target_users) ? raw.target_users : [],
+        core_mvp_features: Array.isArray(raw?.core_mvp_features) ? raw.core_mvp_features : [],
+        recommended_tech_stack: Array.isArray(raw?.recommended_tech_stack) ? raw.recommended_tech_stack : [],
+        suggested_team_roles: Array.isArray(raw?.suggested_team_roles) ? raw.suggested_team_roles : [],
+        difficulty: raw?.difficulty || 'Intermediate',
+        why_it_fits_hackathon: raw?.why_it_fits_hackathon || '',
+        judging_strengths: Array.isArray(raw?.judging_strengths) ? raw.judging_strengths : [],
+        risks: Array.isArray(raw?.risks) ? raw.risks : [],
+        estimated_build_time: raw?.estimated_build_time || '24-36 Hours',
+      }));
+
+      setIdeas(normalizedIdeas);
+      setGenerateError(null);
       // Auto expand the first idea
       setExpandedCards({ 0: true });
     } catch (err: any) {
