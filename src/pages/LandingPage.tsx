@@ -153,7 +153,7 @@ export default function LandingPage() {
           <div className="lg:col-span-6 p-4 sm:p-8 flex items-center justify-center order-2 lg:order-1">
             <div className="w-full h-full max-h-[420px] rounded-2xl overflow-hidden border border-amber-500/30 shadow-2xl bg-slate-900">
               <img 
-                src="/assets/landing/feat_project_ideas.jpg" 
+                src="/assets/landing/feat_project_ideas_8k.jpg" 
                 alt="Project Ideas - 100,000+ Unique & Non-Repeating ideas with glowing lightbulb"
                 className="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-500"
                 loading="lazy"
@@ -261,7 +261,7 @@ export default function LandingPage() {
           <div className="lg:col-span-6 p-4 sm:p-8 flex items-center justify-center">
             <div className="w-full h-full max-h-[420px] rounded-2xl overflow-hidden border border-purple-500/30 shadow-2xl glow-purple bg-slate-900">
               <img 
-                src="/assets/landing/feat_mock_interviews.jpg" 
+                src="/assets/landing/feat_mock_interviews_8k.jpg" 
                 alt="Mock Interviews - AI neural brain evaluation and questions"
                 className="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-500"
                 loading="lazy"
@@ -279,7 +279,7 @@ export default function LandingPage() {
           <div className="lg:col-span-6 p-4 sm:p-8 flex items-center justify-center order-2 lg:order-1">
             <div className="w-full h-full max-h-[420px] rounded-2xl overflow-hidden border border-emerald-500/30 shadow-2xl bg-slate-900">
               <img 
-                src="/assets/landing/feat_hackathon_engine.jpg" 
+                src="/assets/landing/feat_hackathon_engine_8k.jpg" 
                 alt="Hackathon Engine - Compete, build, win with victory trophy"
                 className="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-500"
                 loading="lazy"
@@ -386,7 +386,7 @@ export default function LandingPage() {
           <div className="lg:col-span-6 p-4 sm:p-8 flex items-center justify-center">
             <div className="w-full h-full max-h-[420px] rounded-2xl overflow-hidden border border-blue-500/30 shadow-2xl glow-blue bg-slate-900">
               <img 
-                src="/assets/landing/feat_cybersecurity.jpg" 
+                src="/assets/landing/feat_cybersecurity_8k.jpg" 
                 alt="Cybersecurity Learning - Secure defense shield and encryption padlock"
                 className="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-500"
                 loading="lazy"
@@ -414,7 +414,7 @@ export default function LandingPage() {
           <div className="bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden shadow-xl hover:shadow-2xl transition-all group">
             <div className="h-48 overflow-hidden relative">
               <img 
-                src="/assets/landing/showcase_ai_learning.jpg" 
+                src="/assets/landing/showcase_ai_learning_8k.jpg" 
                 alt="AI-Powered Learning neural matrix"
                 className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                 loading="lazy"
@@ -435,7 +435,7 @@ export default function LandingPage() {
           <div className="bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden shadow-xl hover:shadow-2xl transition-all group">
             <div className="h-48 overflow-hidden relative">
               <img 
-                src="/assets/landing/showcase_build_future.jpg" 
+                src="/assets/landing/showcase_build_future_8k.jpg" 
                 alt="Build Your Future developer standing before futuristic city sunrise"
                 className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                 loading="lazy"
@@ -456,7 +456,7 @@ export default function LandingPage() {
           <div className="bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden shadow-xl hover:shadow-2xl transition-all group">
             <div className="h-48 overflow-hidden relative">
               <img 
-                src="/assets/landing/showcase_collaborate_compete.jpg" 
+                src="/assets/landing/showcase_collaborate_compete_8k.jpg" 
                 alt="Collaborate and compete hackathon team coding together"
                 className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                 loading="lazy"
@@ -477,7 +477,7 @@ export default function LandingPage() {
           <div className="bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden shadow-xl hover:shadow-2xl transition-all group">
             <div className="h-48 overflow-hidden relative">
               <img 
-                src="/assets/landing/showcase_secure_empower.jpg" 
+                src="/assets/landing/showcase_secure_empower_8k.jpg" 
                 alt="Secure, defend, empower cybersecurity matrix hacker"
                 className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                 loading="lazy"
