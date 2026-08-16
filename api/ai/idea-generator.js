@@ -1,4 +1,4 @@
-import { supabase } from '../shared/supabase.js';
+import { authenticateServerRequest } from '../shared/supabase.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // In-memory cache for generated ideas (3-minute TTL)
@@ -27,16 +27,9 @@ export default async function handler(req, res) {
 
   try {
     // 1. Authenticate user from Bearer token
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ error: 'Missing authorization header.' });
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
+    const { user, error: authError } = await authenticateServerRequest(req);
     if (authError || !user) {
-      return res.status(401).json({ error: 'Unauthorized user session.' });
+      return res.status(401).json({ error: authError || 'Unauthorized user session.' });
     }
 
     // 2. Extract and validate request payload
@@ -58,87 +51,91 @@ export default async function handler(req, res) {
       return res.status(200).json(cached.data);
     }
 
-    // 3. Assemble Minimal Sanitized Context
-    const hackathonTitle = String(hackathon.title).slice(0, 80);
-    const hackathonDesc = String(hackathon.description || 'General technology hackathon').slice(0, 400);
-    const userSkills = Array.isArray(skills) && skills.length > 0
-      ? skills.slice(0, 8).map(s => typeof s === 'string' ? s : s.name || s.skill?.name).filter(Boolean).join(', ')
-      : 'General Full-stack';
+    // 3. Assemble Prompt
+    const hackathonInfo = `
+Target Hackathon: ${hackathon.title}
+Theme / Description: ${hackathon.description || 'Open Innovation'}
+Mode: ${hackathon.mode || 'Online'}
+`;
 
-    const prompt = `You are an AI Hackathon Idea Generator.
-Target Hackathon: "${hackathonTitle}"
-Theme: "${hackathonDesc}"
-User Skills: ${userSkills}
-${workspaceContext?.project_name ? `Existing Idea Draft: "${workspaceContext.project_name}"` : ''}
+    const skillsInfo = skills && skills.length > 0
+      ? `Participant Skills: ${skills.map(s => typeof s === 'string' ? s : (s.skill?.name || s.name || '')).filter(Boolean).join(', ')}`
+      : 'Participant Skills: General Full-stack Developer';
 
-TASK:
-Generate exactly 3 practical, innovative, 24-48h hackathon project ideas.
-Difficulty: "Beginner", "Intermediate", or "Advanced".
+    const existingProject = workspaceContext
+      ? `Existing Workspace/Idea in Progress: "${workspaceContext.project_name || ''}" - ${workspaceContext.problem_statement || ''}`
+      : '';
 
-Return STRICTLY valid JSON:
+    const prompt = `You are a hackathon mentor specializing in generating winning MVP concepts.
+Based on the hackathon details and participant skills provided, generate 3 to 5 realistic, buildable 24-48h hackathon ideas.
+
+${hackathonInfo}
+${skillsInfo}
+${existingProject}
+
+Requirements:
+- Each idea must be buildable within 24 to 48 hours.
+- Clearly define the problem, solution, MVP feature set, recommended tech stack, and why it appeals to judges.
+- Categorize difficulty as 'Beginner', 'Intermediate', or 'Advanced'.
+
+Respond STRICTLY with a JSON object matching this schema:
 {
   "ideas": [
     {
-      "title": "Catchy Title",
-      "problem_statement": "2-sentence pain point",
-      "proposed_solution": "2-sentence MVP solution",
-      "target_users": ["User Group 1"],
-      "core_mvp_features": ["Feature 1", "Feature 2", "Feature 3"],
-      "recommended_tech_stack": ["React", "Node.js", "Supabase"],
-      "suggested_team_roles": ["Frontend Dev", "Backend Dev"],
+      "title": "Clear catchy title",
+      "tagline": "One sentence punchy summary",
+      "problem": "Specific problem statement being solved",
+      "solution": "Concrete solution description",
+      "mvp_features": ["Feature 1", "Feature 2", "Feature 3"],
+      "tech_stack": ["React", "Node.js", "Supabase"],
       "difficulty": "Intermediate",
-      "why_it_fits_hackathon": "Judging alignment rationale",
-      "judging_strengths": ["Novelty", "Utility", "Tech Depth"],
-      "risks": ["API quota", "Time limit"],
-      "estimated_build_time": "24 hours"
+      "winning_factor": "Why this idea stands out to hackathon judges"
     }
   ]
-}`;
+}
 
-    // 4. Generate Ideas with 10-second timeout & model fallback
+Return ONLY valid JSON. No conversational intro, no markdown formatting.`;
+
+    // 4. Generate with Gemini with active models
     const genAI = new GoogleGenerativeAI(apiKey);
     const activeModels = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-flash-latest'];
-    let rawText = '';
+    let text = '';
     let lastError = null;
 
     for (const modelName of activeModels) {
       try {
-        const model = genAI.getGenerativeModel({ 
-          model: modelName,
-          generationConfig: {
-            responseMimeType: "application/json",
-            maxOutputTokens: 1400,
-            temperature: 0.5
-          }
-        });
-
-        const result = await Promise.race([
-          model.generateContent(prompt),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Idea generation timed out')), 10000))
-        ]);
-
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(prompt);
         const response = await result.response;
-        rawText = response.text().trim();
-        if (rawText) break;
-      } catch (geminiErr) {
-        lastError = geminiErr;
+        text = response.text().trim();
+        if (text) break;
+      } catch (err) {
+        lastError = err;
       }
     }
 
-    if (!rawText) {
-      throw lastError || new Error('Failed to generate response from Gemini AI');
+    if (!text) {
+      throw lastError || new Error('Failed to generate ideas from AI model.');
     }
 
-    const cleaned = rawText.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
-    const parsedData = JSON.parse(cleaned);
+    const cleanText = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/i, '').trim();
+    const parsed = JSON.parse(cleanText);
 
-    // Save in memory cache
-    ideaCache.set(cacheKey, { data: parsedData, timestamp: Date.now() });
-    if (ideaCache.size > 200) ideaCache.delete(ideaCache.keys().next().value);
+    if (!parsed.ideas || !Array.isArray(parsed.ideas)) {
+      throw new Error('Invalid JSON format received from AI model.');
+    }
 
-    return res.status(200).json(parsedData);
+    const responsePayload = { ideas: parsed.ideas };
+
+    // Cache the result
+    ideaCache.set(cacheKey, {
+      data: responsePayload,
+      timestamp: Date.now()
+    });
+
+    return res.status(200).json(responsePayload);
   } catch (err) {
-    console.error('AI Idea Generator Error:', err?.message || err);
+    console.error('Idea Generator API Error:', err?.message || err);
     return res.status(500).json({ 
       error: 'Unable to generate ideas at this time. Please try again.',
       details: err?.message || 'Server error'

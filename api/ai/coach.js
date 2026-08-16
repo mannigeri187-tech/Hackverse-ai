@@ -1,4 +1,4 @@
-import { supabase } from '../shared/supabase.js';
+import { authenticateServerRequest, getSupabaseServerClient } from '../shared/supabase.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export default async function handler(req, res) {
@@ -14,22 +14,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ error: 'Missing authorization header' });
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
+    const { user, error: authError } = await authenticateServerRequest(req);
     if (authError || !user) {
-      return res.status(401).json({ error: 'Unauthorized session or invalid auth token' });
+      return res.status(401).json({ error: authError || 'Unauthorized session or invalid auth token' });
     }
 
+    const supabase = getSupabaseServerClient();
     const targetDate = req.query.date || new Date().toISOString().split('T')[0];
 
     if (req.method === 'GET') {
-      // Return existing tasks for the date
       const { data: tasks, error } = await supabase
         .from('daily_coach_tasks')
         .select('*')

@@ -1,4 +1,4 @@
-import { supabase } from '../shared/supabase.js';
+import { authenticateServerRequest } from '../shared/supabase.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export default async function handler(req, res) {
@@ -24,16 +24,9 @@ export default async function handler(req, res) {
 
   try {
     // 1. Verify user session from Bearer token
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ error: 'Missing authorization header' });
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
+    const { user, error: authError } = await authenticateServerRequest(req);
     if (authError || !user) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return res.status(401).json({ error: authError || 'Unauthorized user session.' });
     }
 
     // 2. Validate input text (limit size to prevent unlimited token billing)

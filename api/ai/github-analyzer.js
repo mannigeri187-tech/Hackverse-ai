@@ -1,4 +1,4 @@
-import { supabase } from '../shared/supabase.js';
+import { authenticateServerRequest } from '../shared/supabase.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Helper to safely parse GitHub Owner and Repo from various URL formats
@@ -35,16 +35,9 @@ export default async function handler(req, res) {
 
   try {
     // 1. Authenticate user from Bearer token
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ error: 'Missing authorization header.' });
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
+    const { user, error: authError } = await authenticateServerRequest(req);
     if (authError || !user) {
-      return res.status(401).json({ error: 'Unauthorized user session.' });
+      return res.status(401).json({ error: authError || 'Unauthorized user session.' });
     }
 
     // 2. Validate GitHub URL
@@ -241,7 +234,7 @@ JSON SCHEMA:
     if (!rawText) throw lastError || new Error('Failed to generate GitHub analysis from Gemini AI');
 
     const cleaned = rawText.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
-    const parsed = JSON.parse(cleaned);
+    const aiAnalysisResult = JSON.parse(cleaned);
 
     return res.status(200).json({
       repo_metadata: {
@@ -252,7 +245,7 @@ JSON SCHEMA:
         forks: repoData.forks_count,
         default_branch: repoData.default_branch,
       },
-      ...parsed
+      ...aiAnalysisResult
     });
   } catch (err) {
     console.error('GitHub Analyzer Error:', err?.message || err);
