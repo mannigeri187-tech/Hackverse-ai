@@ -12,67 +12,65 @@
   --font-sans: 'Inter', sans-serif;
 }
 
-@layer utilities {
-  /* Futuristic AI Visual System Backgrounds */
-  .bg-theme-hero {
-    background-image: linear-gradient(135deg, rgba(2, 6, 23, 0.88) 0%, rgba(15, 23, 42, 0.82) 50%, rgba(2, 6, 23, 0.94) 100%), url('/assets/themes/bg_hero_matrix.jpg');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-  }
+/* Futuristic AI Visual System Backgrounds */
+.bg-theme-hero {
+  background-image: linear-gradient(135deg, rgba(2, 6, 23, 0.88) 0%, rgba(15, 23, 42, 0.82) 50%, rgba(2, 6, 23, 0.94) 100%), url('/assets/themes/bg_hero_matrix.jpg') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
 
-  .bg-theme-brain {
-    background-image: linear-gradient(135deg, rgba(2, 6, 23, 0.90) 0%, rgba(30, 27, 75, 0.84) 50%, rgba(2, 6, 23, 0.92) 100%), url('/assets/themes/bg_ai_brain.jpg');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-  }
+.bg-theme-brain {
+  background-image: linear-gradient(135deg, rgba(2, 6, 23, 0.90) 0%, rgba(30, 27, 75, 0.84) 50%, rgba(2, 6, 23, 0.92) 100%), url('/assets/themes/bg_ai_brain.jpg') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
 
-  .bg-theme-city {
-    background-image: linear-gradient(135deg, rgba(2, 6, 23, 0.88) 0%, rgba(15, 23, 42, 0.80) 50%, rgba(30, 27, 75, 0.92) 100%), url('/assets/themes/bg_builder_city.jpg');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-  }
+.bg-theme-city {
+  background-image: linear-gradient(135deg, rgba(2, 6, 23, 0.88) 0%, rgba(15, 23, 42, 0.80) 50%, rgba(30, 27, 75, 0.92) 100%), url('/assets/themes/bg_builder_city.jpg') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
 
-  .bg-theme-team {
-    background-image: linear-gradient(135deg, rgba(2, 6, 23, 0.90) 0%, rgba(15, 23, 42, 0.82) 50%, rgba(2, 6, 23, 0.94) 100%), url('/assets/themes/bg_hackathon_team.jpg');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-  }
+.bg-theme-team {
+  background-image: linear-gradient(135deg, rgba(2, 6, 23, 0.90) 0%, rgba(15, 23, 42, 0.82) 50%, rgba(2, 6, 23, 0.94) 100%), url('/assets/themes/bg_hackathon_team.jpg') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
 
-  .bg-theme-shield {
-    background-image: linear-gradient(135deg, rgba(2, 6, 23, 0.90) 0%, rgba(8, 47, 73, 0.82) 50%, rgba(2, 6, 23, 0.94) 100%), url('/assets/themes/bg_cyber_shield.jpg');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-  }
+.bg-theme-shield {
+  background-image: linear-gradient(135deg, rgba(2, 6, 23, 0.90) 0%, rgba(8, 47, 73, 0.82) 50%, rgba(2, 6, 23, 0.94) 100%), url('/assets/themes/bg_cyber_shield.jpg') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
 
-  .bg-theme-bulb {
-    background-image: linear-gradient(135deg, rgba(2, 6, 23, 0.88) 0%, rgba(15, 23, 42, 0.82) 50%, rgba(30, 27, 75, 0.92) 100%), url('/assets/themes/bg_idea_bulb.jpg');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-  }
+.bg-theme-bulb {
+  background-image: linear-gradient(135deg, rgba(2, 6, 23, 0.88) 0%, rgba(15, 23, 42, 0.82) 50%, rgba(30, 27, 75, 0.92) 100%), url('/assets/themes/bg_idea_bulb.jpg') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
 
-  .bg-theme-trophy {
-    background-image: linear-gradient(135deg, rgba(2, 6, 23, 0.88) 0%, rgba(49, 46, 129, 0.82) 50%, rgba(2, 6, 23, 0.94) 100%), url('/assets/themes/bg_trophy_victory.jpg');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-  }
+.bg-theme-trophy {
+  background-image: linear-gradient(135deg, rgba(2, 6, 23, 0.88) 0%, rgba(49, 46, 129, 0.82) 50%, rgba(2, 6, 23, 0.94) 100%), url('/assets/themes/bg_trophy_victory.jpg') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
 
-  /* Cyber Glows & Accents */
-  .glow-cyan {
-    box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.25);
-  }
+/* Cyber Glows & Accents */
+.glow-cyan {
+  box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.25);
+}
 
-  .glow-purple {
-    box-shadow: 0 0 25px -5px rgba(168, 85, 247, 0.25);
-  }
+.glow-purple {
+  box-shadow: 0 0 25px -5px rgba(168, 85, 247, 0.25);
+}
 
-  .glow-blue {
-    box-shadow: 0 0 25px -5px rgba(59, 130, 246, 0.25);
-  }
+.glow-blue {
+  box-shadow: 0 0 25px -5px rgba(59, 130, 246, 0.25);
 }
