@@ -1,4 +1,4 @@
-import { authenticateServerRequest, getSupabaseServerClient } from '../shared/supabase.js';
+import { authenticateServerRequest, getSupabaseServerClient, sanitizeEnvString } from '../shared/supabase.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export default async function handler(req, res) {
@@ -35,7 +35,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const apiKey = process.env.GEMINI_API_KEY;
+      const apiKey = sanitizeEnvString(process.env.GEMINI_API_KEY);
 
       // 1. Check if tasks already exist to prevent duplicate Gemini calls
       const { data: existingTasks } = await supabase

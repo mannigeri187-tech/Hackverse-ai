@@ -1,4 +1,4 @@
-import { authenticateServerRequest } from '../shared/supabase.js';
+import { authenticateServerRequest, sanitizeEnvString } from '../shared/supabase.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // In-Memory cache for AI strategic explanations (keyed by user and workspace)
@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = sanitizeEnvString(process.env.GEMINI_API_KEY);
   if (!apiKey) {
     return res.status(500).json({ error: 'AI key not configured on server.' });
   }

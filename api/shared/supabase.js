@@ -1,11 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Dedicated server-side Supabase configuration
+export function sanitizeEnvString(val) {
+  if (!val) return '';
+  const lines = String(val).split(/\r?\n/).map(l => l.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+  return lines[0] || '';
+}
+
 const rawUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const rawKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
-const supabaseUrl = rawUrl ? String(rawUrl).trim().replace(/^["']|["']$/g, '') : '';
-const supabaseKey = rawKey ? String(rawKey).trim().replace(/^["']|["']$/g, '') : '';
+const supabaseUrl = sanitizeEnvString(rawUrl);
+const supabaseKey = sanitizeEnvString(rawKey);
 
 export function getSupabaseServerClient() {
   if (!supabaseUrl || !supabaseUrl.startsWith('https://')) {

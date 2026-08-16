@@ -1,4 +1,4 @@
-import { authenticateServerRequest } from '../shared/supabase.js';
+import { authenticateServerRequest, sanitizeEnvString } from '../shared/supabase.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // In-memory cache for generated ideas (3-minute TTL)
@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = sanitizeEnvString(process.env.GEMINI_API_KEY);
   if (!apiKey) {
     return res.status(500).json({ error: 'Gemini API key is not configured on server.' });
   }
