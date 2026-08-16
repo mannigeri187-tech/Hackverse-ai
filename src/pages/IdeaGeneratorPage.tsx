@@ -263,15 +263,22 @@ export default function IdeaGeneratorPage() {
     setProcessingIndex(index);
     setActionError(null);
 
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
     try {
-      console.log('[WORKSPACE-TRACE-01] "Use This Idea" clicked for index:', index);
-      console.log('[WORKSPACE-TRACE-02] Idea title:', idea.title);
+      console.log('[WORKSPACE-TRACE-01] handleUseIdea entered for index:', index);
+      console.log('[WORKSPACE-TRACE-02] idea received:', idea.title);
+      console.log('[WORKSPACE-TRACE-03] hackathon ID:', selectedHackathon.id);
 
       // If workspace already exists for this hackathon, navigate directly to it
       if (existingWorkspace?.id) {
-        console.log('[WORKSPACE-TRACE-03] Existing workspace found. Navigating to:', existingWorkspace.id);
-        navigate(`/workspace/${existingWorkspace.id}`);
-        return;
+        const existingId = String(existingWorkspace.id).trim();
+        console.log('[WORKSPACE-TRACE-03-EXISTING] Existing workspace found. ID:', existingId);
+        if (UUID_REGEX.test(existingId)) {
+          console.log('[WORKSPACE-TRACE-09] final navigation URL: /workspace/' + existingId);
+          navigate(`/workspace/${existingId}`);
+          return;
+        }
       }
 
       const creationPayload = {
@@ -282,19 +289,25 @@ export default function IdeaGeneratorPage() {
         tech_stack: idea.recommended_tech_stack,
       };
 
-      console.log('[WORKSPACE-TRACE-04] Creating workspace with payload:', creationPayload);
+      console.log('[WORKSPACE-TRACE-04] inserting workspace with payload:', creationPayload);
 
-      // If workspace does not exist, create it populated with the chosen idea
+      // Insert or fetch workspace row populated with the chosen idea
       const newWs = await createWorkspace(creationPayload);
 
-      if (newWs && newWs.id && typeof newWs.id === 'string' && newWs.id.trim()) {
-        const workspaceUUID = newWs.id.trim();
-        console.log('[WORKSPACE-TRACE-05] Workspace created successfully with UUID:', workspaceUUID);
-        navigate(`/workspace/${workspaceUUID}`);
-      } else {
-        console.error('[WORKSPACE-TRACE-05-ERR] Workspace was created but returned invalid or missing ID:', newWs);
-        throw new Error('Workspace was created but no valid workspace ID was returned.');
+      console.log('[WORKSPACE-TRACE-05] Supabase response object:', newWs);
+      console.log('[WORKSPACE-TRACE-07] returned workspace ID:', newWs?.id);
+
+      const workspaceId = newWs?.id ? String(newWs.id).trim() : '';
+
+      if (!workspaceId || !UUID_REGEX.test(workspaceId)) {
+        console.error('[WORKSPACE-TRACE-08] Invalid workspace UUID returned:', workspaceId);
+        throw new Error('Invalid workspace ID returned from database. Please try again.');
       }
+
+      console.log('[WORKSPACE-TRACE-08] UUID validation result: PASS (', workspaceId, ')');
+      console.log('[WORKSPACE-TRACE-09] final navigation URL: /workspace/' + workspaceId);
+
+      navigate(`/workspace/${workspaceId}`);
     } catch (err: any) {
       console.error('[WORKSPACE-TRACE-CATCH] Use Idea error:', err);
       setActionError(err.message || 'Unable to create workspace. Please try again.');
