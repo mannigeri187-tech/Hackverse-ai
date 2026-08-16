@@ -152,69 +152,107 @@ export default function IdeaGeneratorPage() {
 
   // 3. Generate Ideas Handler
   const handleGenerateIdeas = async () => {
-    if (!selectedHackathon || isGenerating || !user) return;
+    console.log('[IDEA-TRACE-01] Function entered. selectedHackathon:', selectedHackathon?.title, 'user:', user?.id, 'isGenerating:', isGenerating);
+    if (!selectedHackathon || isGenerating || !user) {
+      console.warn('[IDEA-TRACE-01-EARLY-EXIT] Missing selectedHackathon, user, or already generating.');
+      return;
+    }
 
     setIsGenerating(true);
     setGenerateError(null);
     setActionError(null);
 
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
+      console.log('[IDEA-TRACE-02] Requesting Supabase session...');
+      const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
+      if (sessionErr) console.error('[IDEA-TRACE-02-ERR] Session error:', sessionErr);
+
       const token = sessionData.session?.access_token;
+      console.log('[IDEA-TRACE-03] Session exists:', Boolean(sessionData?.session), 'Token exists:', Boolean(token), 'Token length:', token?.length);
 
       if (!token) {
         throw new Error('Authentication session expired. Please sign in again.');
       }
 
-      const res = await fetch('/api/ai/idea-generator', {
+      const requestUrl = '/api/ai/idea-generator';
+      const requestPayload = {
+        hackathon: selectedHackathon,
+        skills: userSkills,
+        workspaceContext: existingWorkspace,
+      };
+
+      console.log('[IDEA-TRACE-04] Dispatching fetch to:', requestUrl);
+      console.log('[IDEA-TRACE-05] Request Payload:', requestPayload);
+
+      const res = await fetch(requestUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          hackathon: selectedHackathon,
-          skills: userSkills,
-          workspaceContext: existingWorkspace,
-        }),
+        body: JSON.stringify(requestPayload),
       });
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        const statusMsg = `(HTTP ${res.status})`;
-        throw new Error(errData.error || errData.details || `Unable to generate ideas ${statusMsg}. Please try again.`);
+      console.log('[IDEA-TRACE-06] Response received. Status:', res.status, 'OK:', res.ok);
+
+      const rawText = await res.text();
+      console.log('[IDEA-TRACE-07] Raw Response text length:', rawText.length, 'Preview:', rawText.slice(0, 150));
+
+      let data: any = {};
+      try {
+        data = JSON.parse(rawText);
+        console.log('[IDEA-TRACE-08] JSON parsed successfully. Keys:', Object.keys(data));
+      } catch (parseErr: any) {
+        console.error('[IDEA-TRACE-08-ERR] JSON parse failed:', parseErr.message);
+        throw new Error(`Invalid JSON response from server (HTTP ${res.status}): ${rawText.slice(0, 80)}`);
       }
 
-      const data = await res.json();
+      if (!res.ok) {
+        const statusMsg = `(HTTP ${res.status})`;
+        throw new Error(data.error || data.details || `Unable to generate ideas ${statusMsg}. Please try again.`);
+      }
+
       if (!data.ideas || !Array.isArray(data.ideas) || data.ideas.length === 0) {
+        console.error('[IDEA-TRACE-09-ERR] Invalid ideas format:', data);
         throw new Error('No ideas were returned. Please try again.');
       }
 
+      console.log('[IDEA-TRACE-10] data.ideas is valid array. Count:', data.ideas.length);
+
       // Safe normalization of all array and string properties to guarantee zero render exceptions
-      const normalizedIdeas: GeneratedIdea[] = data.ideas.map((raw: any) => ({
-        title: raw?.title || 'Untitled Innovation Concept',
-        problem_statement: raw?.problem_statement || 'No problem statement provided.',
-        proposed_solution: raw?.proposed_solution || 'No solution description provided.',
-        target_users: Array.isArray(raw?.target_users) ? raw.target_users : [],
-        core_mvp_features: Array.isArray(raw?.core_mvp_features) ? raw.core_mvp_features : [],
-        recommended_tech_stack: Array.isArray(raw?.recommended_tech_stack) ? raw.recommended_tech_stack : [],
-        suggested_team_roles: Array.isArray(raw?.suggested_team_roles) ? raw.suggested_team_roles : [],
-        difficulty: raw?.difficulty || 'Intermediate',
-        why_it_fits_hackathon: raw?.why_it_fits_hackathon || '',
-        judging_strengths: Array.isArray(raw?.judging_strengths) ? raw.judging_strengths : [],
-        risks: Array.isArray(raw?.risks) ? raw.risks : [],
-        estimated_build_time: raw?.estimated_build_time || '24-36 Hours',
-      }));
+      const normalizedIdeas: GeneratedIdea[] = data.ideas.map((raw: any, index: number) => {
+        const norm = {
+          title: raw?.title || `Concept #${index + 1}`,
+          problem_statement: raw?.problem_statement || 'No problem statement provided.',
+          proposed_solution: raw?.proposed_solution || 'No solution description provided.',
+          target_users: Array.isArray(raw?.target_users) ? raw.target_users : [],
+          core_mvp_features: Array.isArray(raw?.core_mvp_features) ? raw.core_mvp_features : [],
+          recommended_tech_stack: Array.isArray(raw?.recommended_tech_stack) ? raw.recommended_tech_stack : [],
+          suggested_team_roles: Array.isArray(raw?.suggested_team_roles) ? raw.suggested_team_roles : [],
+          difficulty: raw?.difficulty || 'Intermediate',
+          why_it_fits_hackathon: raw?.why_it_fits_hackathon || '',
+          judging_strengths: Array.isArray(raw?.judging_strengths) ? raw.judging_strengths : [],
+          risks: Array.isArray(raw?.risks) ? raw.risks : [],
+          estimated_build_time: raw?.estimated_build_time || '24-36 Hours',
+        };
+        return norm;
+      });
+
+      console.log('[IDEA-TRACE-11] Normalization completed successfully. Sample title:', normalizedIdeas[0]?.title);
 
       setIdeas(normalizedIdeas);
       setGenerateError(null);
+      console.log('[IDEA-TRACE-12] setIdeas called with normalized array.');
+
       // Auto expand the first idea
       setExpandedCards({ 0: true });
+      console.log('[IDEA-TRACE-13] setExpandedCards set for index 0.');
     } catch (err: any) {
-      console.error('Error generating ideas:', err);
+      console.error('[IDEA-TRACE-CATCH] Error generating ideas:', err);
       setGenerateError(err.message || 'Unable to generate ideas. Please try again.');
     } finally {
       setIsGenerating(false);
+      console.log('[IDEA-TRACE-FINALLY] Generation cycle completed.');
     }
   };
 
