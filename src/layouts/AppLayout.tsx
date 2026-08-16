@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Terminal, 
@@ -28,6 +28,40 @@ export default function AppLayout() {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toolsDropdownOpen, setToolsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click or Escape key
+  useEffect(() => {
+    function handlePointerDown(event: MouseEvent | TouchEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setToolsDropdownOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setToolsDropdownOpen(false);
+      }
+    }
+
+    if (toolsDropdownOpen) {
+      document.addEventListener('mousedown', handlePointerDown);
+      document.addEventListener('touchstart', handlePointerDown);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [toolsDropdownOpen]);
+
+  // Automatically close mobile menu and dropdown when route changes
+  useEffect(() => {
+    setToolsDropdownOpen(false);
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
 
   const handleSignOut = async () => {
     setMobileMenuOpen(false);
@@ -102,18 +136,20 @@ export default function AppLayout() {
                   })}
 
                   {/* More Tools Dropdown */}
-                  <div className="relative">
+                  <div className="relative" ref={dropdownRef}>
                     <button
+                      type="button"
                       onClick={() => setToolsDropdownOpen(!toolsDropdownOpen)}
-                      onBlur={() => setTimeout(() => setToolsDropdownOpen(false), 200)}
                       className={`px-2.5 py-1.5 rounded-lg font-semibold text-xs xl:text-sm transition-all flex items-center gap-1 ${
                         isToolActive 
                           ? 'bg-slate-100 text-slate-900 font-bold' 
                           : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                       }`}
+                      aria-expanded={toolsDropdownOpen}
+                      aria-haspopup="true"
                     >
                       <span>More</span>
-                      <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                      <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${toolsDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
 
                     {toolsDropdownOpen && (
