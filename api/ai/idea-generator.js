@@ -5,11 +5,14 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 const ideaCache = new Map();
 
 export default async function handler(req, res) {
-  // Setup CORS
+  // Setup CORS & anti-caching headers
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cache-Control, Pragma');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
@@ -37,25 +40,19 @@ export default async function handler(req, res) {
       hackathon, 
       skills = [], 
       workspaceContext, 
-      teamContext 
+      teamContext,
+      generationNonce
     } = req.body;
 
     if (!hackathon || !hackathon.title) {
       return res.status(400).json({ error: 'Selected hackathon details are required.' });
     }
 
-    // Check user-isolated idea cache
-    const cacheKey = `idea:${user.id}:${hackathon.id || hackathon.title}`;
-    const cached = ideaCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < 180000) {
-      return res.status(200).json(cached.data);
-    }
-
     // 3. Assemble Prompt
     const hackathonInfo = `
-Target Hackathon: ${hackathon.title}
-Theme / Description: ${hackathon.description || 'Open Innovation'}
-Mode: ${hackathon.mode || 'Online'}
+Target Hackathon: "${hackathon.title}"
+Theme / Description: "${hackathon.description || 'Open Innovation & Technical Excellence'}"
+Mode: "${hackathon.mode || 'Online'}"
 `;
 
     const skillsInfo = skills && skills.length > 0
@@ -67,15 +64,25 @@ Mode: ${hackathon.mode || 'Online'}
       : '';
 
     const prompt = `You are an elite hackathon mentor and technical judge specializing in generating winning MVP project concepts.
-Based on the hackathon details and participant skills provided, generate 3 to 4 comprehensive, buildable 24-48h hackathon ideas.
 
+You are generating a fresh set of hackathon project ideas.
+Session Nonce / Request Seed: ${generationNonce || `${Date.now()}-${Math.random()}`}
+
+Generate exactly 3 genuinely different, novel, and high-impact ideas.
+Do NOT reuse, repeat, paraphrase, or slightly modify previous ideas.
+Avoid cliché or generic concepts.
+
+Each idea must have a distinct:
+- problem domain & target audience
+- technical architecture & novel solution approach
+- concrete MVP scope achievable in a 24-48 hour hackathon
+- distinct technology combination
+- clear judging advantage / winning factor
+
+CONTEXT:
 ${hackathonInfo}
 ${skillsInfo}
 ${existingProject}
-
-Requirements:
-- Each idea must be feasible to build during a 24-48 hour hackathon.
-- Provide all required fields accurately.
 
 Respond STRICTLY with a JSON object matching this schema:
 {
@@ -98,6 +105,7 @@ Respond STRICTLY with a JSON object matching this schema:
 }
 
 Difficulty must be one of: "Beginner", "Intermediate", "Advanced".
+Return exactly 3 ideas in the "ideas" array.
 Return ONLY valid JSON. No markdown formatting, no conversational text.`;
 
     // 4. Generate with Gemini with active models
@@ -112,7 +120,7 @@ Return ONLY valid JSON. No markdown formatting, no conversational text.`;
           model: modelName,
           generationConfig: {
             responseMimeType: "application/json",
-            temperature: 0.4
+            temperature: 0.85
           }
         });
         const result = await model.generateContent(prompt);
@@ -136,7 +144,7 @@ Return ONLY valid JSON. No markdown formatting, no conversational text.`;
     }
 
     // Normalize each idea object to guarantee all UI fields exist safely
-    const normalizedIdeas = parsed.ideas.map((item, idx) => ({
+    const normalizedIdeas = parsed.ideas.slice(0, 3).map((item, idx) => ({
       title: String(item.title || `Hackathon Project Concept #${idx + 1}`),
       problem_statement: String(item.problem_statement || item.problem || 'Specific hackathon problem statement being addressed.'),
       proposed_solution: String(item.proposed_solution || item.solution || 'Practical MVP solution designed for hackathon judging.'),
@@ -151,15 +159,7 @@ Return ONLY valid JSON. No markdown formatting, no conversational text.`;
       estimated_build_time: String(item.estimated_build_time || '20-28 hours')
     }));
 
-    const responsePayload = { ideas: normalizedIdeas };
-
-    // Cache the result
-    ideaCache.set(cacheKey, {
-      data: responsePayload,
-      timestamp: Date.now()
-    });
-
-    return res.status(200).json(responsePayload);
+    return res.status(200).json({ ideas: normalizedIdeas });
   } catch (err) {
     console.error('Idea Generator API Error:', err?.message || err);
     return res.status(500).json({ 
