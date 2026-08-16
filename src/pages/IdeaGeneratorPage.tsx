@@ -329,17 +329,17 @@ export default function IdeaGeneratorPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-16">
       {/* 1. HERO BANNER */}
-      <div className="bg-theme-bulb text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-blue-900/40 relative overflow-hidden glow-cyan">
-        <div className="max-w-3xl relative z-10 space-y-3">
+      <div className="bg-theme-idea-lab text-white rounded-3xl p-7 sm:p-10 shadow-2xl border border-amber-900/40 relative overflow-hidden glow-cyan">
+        <div className="max-w-2xl relative z-10 space-y-3">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-md text-amber-300 border border-amber-500/30">
             <Lightbulb className="w-3.5 h-3.5 text-amber-400" /> AI Hackathon Idea Generator
           </div>
 
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-tight text-white drop-shadow-sm">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-tight text-white drop-shadow-md">
             Turn Hackathon Challenges Into Winning Projects
           </h1>
 
-          <p className="text-slate-200 text-xs sm:text-sm md:text-base leading-relaxed">
+          <p className="text-slate-200 text-xs sm:text-sm md:text-base leading-relaxed max-w-xl">
             Generate tailored, technically buildable MVP project concepts with defined architectures, team roles, judging strengths, and build timelines.
           </p>
         </div>
