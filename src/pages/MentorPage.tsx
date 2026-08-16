@@ -281,27 +281,33 @@ export default function MentorPage() {
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || errorData.details || 'AI Mentor is temporarily unavailable.');
+        const statusMsg = `(HTTP ${res.status})`;
+        throw new Error(errorData.error || errorData.details || `AI Mentor is temporarily unavailable ${statusMsg}. Please try again.`);
       }
 
       const data = await res.json();
+      if (!data || !data.reply) {
+        throw new Error('Empty response received from AI Mentor.');
+      }
+
       const aiReply: ChatMessage = {
         id: `ai-${Date.now()}`,
         sender: 'ai',
-        text: data.reply || "I didn't receive a response. Please try again.",
+        text: data.reply,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
 
       setMessages((prev) => [...prev, aiReply]);
     } catch (err: any) {
       console.error('Error contacting AI Mentor:', err);
-      setChatError(err.message || 'AI Mentor is temporarily unavailable.');
+      const displayError = err.message || 'AI Mentor is temporarily unavailable. Please try again.';
+      setChatError(displayError);
       setMessages((prev) => [
         ...prev,
         {
           id: `ai-err-${Date.now()}`,
           sender: 'ai',
-          text: `⚠️ **Error:** ${err.message || 'AI Mentor is temporarily unavailable. Please try again.'}`,
+          text: `⚠️ **Notice:** ${displayError}`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
