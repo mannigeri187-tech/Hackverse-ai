@@ -1,24 +1,34 @@
 import { useState, useEffect } from 'react';
+import { 
+  CheckCircle2, 
+  Circle, 
+  Sparkles, 
+  Clock, 
+  Flame, 
+  RefreshCw, 
+  AlertCircle,
+  Trophy,
+  Loader2
+} from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { DailyCoachTask, CoachGenerationResponse } from '../types/coach';
-import { CheckCircle2, Circle, Flame, Sparkles, BookOpen, Code, Terminal, Users, Briefcase, FileText, Loader2, AlertCircle } from 'lucide-react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 
-function cn(...inputs: (string | undefined | null | false)[]) {
-  return twMerge(clsx(inputs));
-}
+const CATEGORY_COLORS: Record<string, { bg: string, text: string, border: string }> = {
+  learning: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+  hackathon: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
+  resume: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+  coding: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
+  github: { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-300' },
+  team: { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200' },
+  project: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
+  career: { bg: 'bg-cyan-50', text: 'text-cyan-700', border: 'border-cyan-200' }
+};
 
-const CATEGORY_ICONS = {
-  learning: BookOpen,
-  hackathon: Flame,
-  resume: FileText,
-  coding: Code,
-  github: Terminal,
-  team: Users,
-  project: Briefcase,
-  career: Sparkles
+const PRIORITY_BADGES: Record<string, { label: string, color: string }> = {
+  high: { label: 'High', color: 'bg-red-100 text-red-700' },
+  medium: { label: 'Medium', color: 'bg-amber-100 text-amber-700' },
+  low: { label: 'Low', color: 'bg-slate-100 text-slate-600' }
 };
 
 export function DailyCoach() {
@@ -27,15 +37,10 @@ export function DailyCoach() {
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [streak, setStreak] = useState(0);
+  const [streak, setStreak] = useState<number>(0);
 
-  // We use the local date string "YYYY-MM-DD"
   const getTodayDateString = () => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return new Date().toISOString().split('T')[0];
   };
 
   useEffect(() => {
@@ -47,48 +52,54 @@ export function DailyCoach() {
 
   const calculateStreak = async () => {
     try {
-      // Find all distinct dates where ALL tasks for that date are completed
-      // A simple approximation for this requirement: count distinct completed task dates
-      const { data, error } = await supabase
+      if (!user) return;
+      const { data } = await supabase
         .from('daily_coach_tasks')
-        .select('task_date')
-        .eq('user_id', user!.id)
+        .select('task_date, completed')
+        .eq('user_id', user.id)
         .eq('completed', true)
         .order('task_date', { ascending: false });
 
-      if (error) throw error;
-      
       if (!data || data.length === 0) {
         setStreak(0);
         return;
       }
-      
-      const distinctDates = [...new Set(data.map(d => d.task_date))];
+
+      // Find unique completed dates
+      const completedDates = Array.from(new Set(data.map(d => d.task_date)));
       let currentStreak = 0;
       let checkDate = new Date();
-      
-      for (let i = 0; i < distinctDates.length; i++) {
-        const dStr = checkDate.toISOString().split('T')[0];
-        if (distinctDates.includes(dStr)) {
+
+      // Check if today or yesterday is completed
+      const todayStr = checkDate.toISOString().split('T')[0];
+      checkDate.setDate(checkDate.getDate() - 1);
+      const yesterdayStr = checkDate.toISOString().split('T')[0];
+
+      let startDate = completedDates.includes(todayStr) 
+        ? new Date() 
+        : completedDates.includes(yesterdayStr) 
+          ? checkDate 
+          : null;
+
+      if (!startDate) {
+        setStreak(0);
+        return;
+      }
+
+      let curr = new Date(startDate);
+      while (true) {
+        const dStr = curr.toISOString().split('T')[0];
+        if (completedDates.includes(dStr)) {
           currentStreak++;
-          checkDate.setDate(checkDate.getDate() - 1); // move back one day
+          curr.setDate(curr.getDate() - 1);
         } else {
-          // If we missed today, allow yesterday to continue the streak
-          if (i === 0) {
-            checkDate.setDate(checkDate.getDate() - 1);
-            const yStr = checkDate.toISOString().split('T')[0];
-            if (distinctDates.includes(yStr)) {
-              currentStreak++;
-              checkDate.setDate(checkDate.getDate() - 1);
-              continue;
-            }
-          }
           break;
         }
       }
+
       setStreak(currentStreak);
-    } catch (e) {
-      console.error('Failed to calculate streak', e);
+    } catch (err) {
+      console.error('Streak calculation error:', err);
     }
   };
 
@@ -106,7 +117,9 @@ export function DailyCoach() {
         .eq('task_date', todayStr)
         .order('created_at', { ascending: true });
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.warn('Supabase local fetch error:', fetchError.message);
+      }
 
       if (existingTasks && existingTasks.length > 0) {
         setTasks(existingTasks as DailyCoachTask[]);
@@ -117,7 +130,11 @@ export function DailyCoach() {
       // 2. If no tasks, call the serverless generation endpoint
       setIsGenerating(true);
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("No active session");
+      if (!session) {
+        setIsLoading(false);
+        setIsGenerating(false);
+        return;
+      }
 
       const response = await fetch(`/api/ai/coach?date=${todayStr}`, {
         method: 'POST',
@@ -128,16 +145,22 @@ export function DailyCoach() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate daily tasks');
+        const errorJson = await response.json().catch(() => ({ error: 'Request failed' }));
+        console.error('Daily tasks generation failed:', {
+          status: response.status,
+          endpoint: '/api/ai/coach',
+          message: errorJson.error || response.statusText
+        });
+        throw new Error(errorJson.error || 'Failed to generate daily tasks');
       }
 
       const responseData: CoachGenerationResponse = await response.json();
-      if (responseData.tasks) {
+      if (responseData.tasks && responseData.tasks.length > 0) {
         setTasks(responseData.tasks);
       }
     } catch (err: any) {
       console.error('Daily Coach Error:', err);
-      setError(err.message || 'Failed to load daily tasks');
+      setError(err?.message || 'Failed to load daily tasks');
     } finally {
       setIsLoading(false);
       setIsGenerating(false);
@@ -160,133 +183,177 @@ export function DailyCoach() {
         .eq('user_id', user!.id);
 
       if (error) {
-        // Revert on error
-        setTasks(tasks);
-        throw error;
+        console.error('Toggle task error:', error);
+        // Revert
+        setTasks(tasks.map(t => t.id === task.id ? { ...t, completed: !newStatus } : t));
+      } else {
+        calculateStreak();
       }
-      
-      // Recalculate streak in background
-      calculateStreak();
     } catch (err) {
-      console.error('Failed to update task:', err);
+      console.error('Error toggling task:', err);
     }
   };
 
   const completedCount = tasks.filter(t => t.completed).length;
   const progressPercent = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
 
-  if (isLoading && !isGenerating) {
-    return (
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 animate-pulse">
-        <div className="h-6 w-48 bg-slate-200 rounded mb-4"></div>
-        <div className="space-y-3">
-          {[1, 2, 3].map(i => <div key={i} className="h-16 bg-slate-100 rounded border border-slate-100"></div>)}
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col md:flex-row">
-      
-      {/* Left Sidebar - Progress */}
-      <div className="md:w-1/3 bg-slate-50 border-b md:border-b-0 md:border-r border-slate-200 p-6 flex flex-col justify-between">
-        <div>
-          <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">GOOD MORNING 👋</h2>
-          <h3 className="text-2xl font-bold text-slate-900 mb-6">Your goals for today</h3>
-          
-          <div className="mb-4">
-            <div className="flex justify-between items-end mb-2">
-              <span className="text-sm font-medium text-slate-600">Today's Progress</span>
-              <span className="text-sm font-bold text-slate-900">{completedCount} / {tasks.length} completed</span>
-            </div>
-            <div className="w-full bg-slate-200 rounded-full h-2.5">
-              <div 
-                className="bg-primary-600 h-2.5 rounded-full transition-all duration-500" 
-                style={{ width: `${progressPercent}%` }}
-              ></div>
-            </div>
+    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 overflow-hidden relative">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-slate-100 pb-5">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-primary-50 rounded-xl text-primary-600">
+            <Sparkles className="w-5 h-5" />
           </div>
-        </div>
-
-        <div className="mt-8 flex items-center space-x-3 p-4 bg-orange-50 text-orange-600 rounded-lg border border-orange-100">
-          <Flame className="w-8 h-8" />
           <div>
-            <div className="text-xs font-bold uppercase tracking-wide opacity-80">Streak</div>
-            <div className="text-xl font-bold">{streak} {streak === 1 ? 'day' : 'days'}</div>
+            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+              Daily AI Coach
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                Action Plan
+              </span>
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Personalized tasks tailored to your skills & hackathons
+            </p>
           </div>
+        </div>
+
+        <div className="flex items-center gap-3 self-end sm:self-auto">
+          {/* Streak Badge */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200/80 rounded-xl text-amber-800 text-xs font-bold">
+            <Flame className="w-4 h-4 text-amber-500 fill-amber-500" />
+            <span>{streak} Day Streak</span>
+          </div>
+
+          {/* Regenerate Button */}
+          <button
+            onClick={() => loadOrCreateTasks()}
+            disabled={isLoading || isGenerating}
+            title="Refresh action plan"
+            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-50 rounded-xl border border-slate-200 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${isGenerating ? 'animate-spin text-primary-600' : ''}`} />
+          </button>
         </div>
       </div>
 
-      {/* Right Content - Tasks */}
-      <div className="md:w-2/3 p-6">
-        {error ? (
-          <div className="flex items-center text-red-500 p-4 bg-red-50 rounded-lg">
-            <AlertCircle className="w-5 h-5 mr-2" />
-            {error}
-          </div>
-        ) : isGenerating ? (
-          <div className="flex flex-col items-center justify-center h-full space-y-4 py-8">
-            <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
-            <p className="text-slate-500 font-medium animate-pulse">Generating your personalized daily plan...</p>
-          </div>
-        ) : tasks.length === 0 ? (
-          <div className="text-center py-8 text-slate-500">
-            No tasks generated for today.
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {tasks.map((task) => {
-              const Icon = CATEGORY_ICONS[task.category] || Sparkles;
-              return (
-                <div 
-                  key={task.id}
-                  onClick={() => toggleTask(task)}
-                  className={cn(
-                    "flex items-start p-4 border rounded-lg cursor-pointer transition-all hover:shadow-sm",
-                    task.completed 
-                      ? "bg-slate-50 border-slate-200 opacity-60" 
-                      : "bg-white border-slate-200 hover:border-primary-300"
-                  )}
-                >
-                  <button className="flex-shrink-0 mt-0.5 mr-4 focus:outline-none">
-                    {task.completed ? (
-                      <CheckCircle2 className="w-6 h-6 text-green-500" />
-                    ) : (
-                      <Circle className="w-6 h-6 text-slate-300 hover:text-primary-400" />
-                    )}
-                  </button>
-                  <div className="flex-grow">
-                    <h4 className={cn("font-bold text-slate-900 mb-1", task.completed && "line-through text-slate-500")}>
-                      {task.title}
-                    </h4>
-                    {task.description && (
-                      <p className="text-sm text-slate-500 mb-2">{task.description}</p>
-                    )}
-                    <div className="flex items-center space-x-3 text-xs font-medium">
-                      <span className="flex items-center text-slate-500">
-                        <Icon className="w-3.5 h-3.5 mr-1" />
-                        <span className="capitalize">{task.category}</span>
-                      </span>
-                      <span className="text-slate-300">•</span>
-                      <span className="text-slate-500">{task.estimated_minutes} min</span>
-                      <span className="text-slate-300">•</span>
-                      <span className={cn(
-                        "uppercase text-[10px] tracking-wider px-2 py-0.5 rounded-full",
-                        task.priority === 'high' ? "bg-red-100 text-red-700" :
-                        task.priority === 'medium' ? "bg-orange-100 text-orange-700" :
-                        "bg-blue-100 text-blue-700"
-                      )}>
-                        {task.priority}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+      {/* Progress Bar */}
+      <div className="mb-6">
+        <div className="flex justify-between items-center text-xs font-semibold mb-1.5">
+          <span className="text-slate-600">Today's Progress ({completedCount}/{tasks.length})</span>
+          <span className="text-primary-600">{progressPercent}%</span>
+        </div>
+        <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+          <div 
+            className="bg-primary-600 h-full rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${progressPercent}%` }}
+          ></div>
+        </div>
       </div>
+
+      {/* Error state */}
+      {error && !isLoading && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+          <button 
+            onClick={() => loadOrCreateTasks()} 
+            className="text-xs font-bold underline hover:no-underline ml-3"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Loading state */}
+      {isLoading ? (
+        <div className="py-12 flex flex-col items-center justify-center text-slate-400 gap-3">
+          <Loader2 className="w-6 h-6 animate-spin text-primary-600" />
+          <p className="text-xs font-medium">Crafting your personalized hackathon action plan...</p>
+        </div>
+      ) : tasks.length === 0 ? (
+        <div className="py-8 text-center text-slate-500">
+          <Trophy className="w-10 h-10 mx-auto text-slate-300 mb-2" />
+          <p className="text-sm font-medium">No tasks scheduled for today.</p>
+          <button
+            onClick={() => loadOrCreateTasks()}
+            className="mt-3 px-4 py-2 bg-primary-50 text-primary-700 rounded-xl text-xs font-bold hover:bg-primary-100 transition-colors"
+          >
+            Generate Today's Plan
+          </button>
+        </div>
+      ) : (
+        /* Task List */
+        <div className="space-y-3">
+          {tasks.map((task) => {
+            const categoryStyle = CATEGORY_COLORS[task.category] || CATEGORY_COLORS.learning;
+            const priorityStyle = PRIORITY_BADGES[task.priority] || PRIORITY_BADGES.medium;
+
+            return (
+              <div
+                key={task.id}
+                onClick={() => toggleTask(task)}
+                className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-start gap-3.5 group select-none ${
+                  task.completed 
+                    ? 'bg-slate-50/80 border-slate-200 opacity-60' 
+                    : 'bg-white border-slate-200/90 hover:border-primary-300 hover:shadow-sm'
+                }`}
+              >
+                <button
+                  type="button"
+                  className="mt-0.5 flex-shrink-0 text-slate-400 group-hover:text-primary-600 transition-colors"
+                  aria-label={task.completed ? "Mark incomplete" : "Mark complete"}
+                >
+                  {task.completed ? (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 fill-emerald-100" />
+                  ) : (
+                    <Circle className="w-5 h-5" />
+                  )}
+                </button>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${categoryStyle.bg} ${categoryStyle.text} ${categoryStyle.border}`}>
+                      {task.category}
+                    </span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${priorityStyle.color}`}>
+                      {priorityStyle.label}
+                    </span>
+                    <span className="text-[11px] font-medium text-slate-400 flex items-center gap-1 ml-auto">
+                      <Clock className="w-3 h-3" />
+                      {task.estimated_minutes} min
+                    </span>
+                  </div>
+
+                  <h3 className={`text-sm font-semibold text-slate-800 leading-snug ${task.completed ? 'line-through text-slate-500' : ''}`}>
+                    {task.title}
+                  </h3>
+
+                  {task.description && (
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed line-clamp-2">
+                      {task.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Footer encouragement */}
+      {!isLoading && tasks.length > 0 && completedCount === tasks.length && (
+        <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs font-medium text-emerald-800">
+          <span className="flex items-center gap-2">
+            <Trophy className="w-4 h-4 text-emerald-600" />
+            All goals completed for today! Keep up the momentum.
+          </span>
+        </div>
+      )}
     </div>
   );
 }
+
+export default DailyCoach;
