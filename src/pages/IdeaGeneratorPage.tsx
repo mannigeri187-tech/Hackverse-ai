@@ -258,34 +258,45 @@ export default function IdeaGeneratorPage() {
 
   // 4. "Use This Idea" Action Handler
   const handleUseIdea = async (idea: GeneratedIdea, index: number) => {
-    if (!user || !selectedHackathon) return;
+    if (!user || !selectedHackathon || processingIndex !== null) return;
 
     setProcessingIndex(index);
     setActionError(null);
 
     try {
+      console.log('[WORKSPACE-TRACE-01] "Use This Idea" clicked for index:', index);
+      console.log('[WORKSPACE-TRACE-02] Idea title:', idea.title);
+
       // If workspace already exists for this hackathon, navigate directly to it
       if (existingWorkspace?.id) {
+        console.log('[WORKSPACE-TRACE-03] Existing workspace found. Navigating to:', existingWorkspace.id);
         navigate(`/workspace/${existingWorkspace.id}`);
         return;
       }
 
-      // If workspace does not exist, create it populated with the chosen idea
-      const newWs = await createWorkspace({
+      const creationPayload = {
         hackathon_id: selectedHackathon.id,
         project_name: idea.title,
         problem_statement: idea.problem_statement,
         solution: idea.proposed_solution,
         tech_stack: idea.recommended_tech_stack,
-      });
+      };
 
-      if (newWs && newWs.id) {
-        navigate(`/workspace/${newWs.id}`);
+      console.log('[WORKSPACE-TRACE-04] Creating workspace with payload:', creationPayload);
+
+      // If workspace does not exist, create it populated with the chosen idea
+      const newWs = await createWorkspace(creationPayload);
+
+      if (newWs && newWs.id && typeof newWs.id === 'string' && newWs.id.trim()) {
+        const workspaceUUID = newWs.id.trim();
+        console.log('[WORKSPACE-TRACE-05] Workspace created successfully with UUID:', workspaceUUID);
+        navigate(`/workspace/${workspaceUUID}`);
       } else {
-        throw new Error('Unable to create workspace. Please try again.');
+        console.error('[WORKSPACE-TRACE-05-ERR] Workspace was created but returned invalid or missing ID:', newWs);
+        throw new Error('Workspace was created but no valid workspace ID was returned.');
       }
     } catch (err: any) {
-      console.error('Use Idea error:', err);
+      console.error('[WORKSPACE-TRACE-CATCH] Use Idea error:', err);
       setActionError(err.message || 'Unable to create workspace. Please try again.');
     } finally {
       setProcessingIndex(null);
