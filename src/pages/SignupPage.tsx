@@ -15,22 +15,32 @@ export default function SignupPage() {
     setLoading(true);
     setError(null);
 
-    const { error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-        },
-      },
-    });
+    try {
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanPassword = password;
 
-    if (signUpError) {
-      setError(signUpError.message);
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password: cleanPassword,
+        options: {
+          data: {
+            full_name: fullName.trim(),
+          },
+        },
+      });
+
+      if (signUpError) {
+        setError(signUpError.message || 'Signup failed. Please try again.');
+        setLoading(false);
+      } else if (data?.user) {
+        navigate('/verify-email', { state: { email: cleanEmail } });
+      } else {
+        navigate('/login');
+      }
+    } catch (err: any) {
+      console.error('Signup error:', err);
+      setError(err?.message || 'Network error connecting to authentication service.');
       setLoading(false);
-    } else {
-      // Redirect to email verification page regardless of confirm settings
-      navigate('/verify-email', { state: { email } });
     }
   };
 
@@ -70,6 +80,7 @@ export default function SignupPage() {
           <input 
             type="password" 
             required
+            minLength={6}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" 
@@ -79,13 +90,13 @@ export default function SignupPage() {
         <button 
           type="submit" 
           disabled={loading}
-          className="w-full py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+          className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
         >
-          {loading ? 'Signing up...' : 'Sign Up'}
+          {loading ? 'Creating account...' : 'Sign Up'}
         </button>
       </form>
       <p className="mt-4 text-center text-sm text-slate-600">
-        Already have an account? <Link to="/login" className="text-primary-600 font-medium hover:underline">Log in</Link>
+        Already have an account? <Link to="/login" className="text-primary-600 hover:underline">Log in</Link>
       </p>
     </div>
   );

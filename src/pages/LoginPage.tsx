@@ -17,19 +17,30 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanPassword = password;
 
-    if (signInError) {
-      setError(signInError.message);
-      if (signInError.message.includes('Email not confirmed')) {
-        navigate('/verify-email', { state: { email } });
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password: cleanPassword,
+      });
+
+      if (signInError) {
+        setError(signInError.message || 'Invalid email or password.');
+        if (signInError.message?.includes('Email not confirmed')) {
+          navigate('/verify-email', { state: { email: cleanEmail } });
+        }
+        setLoading(false);
+      } else if (data?.user) {
+        navigate(from, { replace: true });
+      } else {
+        setLoading(false);
       }
+    } catch (err: any) {
+      console.error('Login error:', err);
+      setError(err?.message || 'Network error connecting to authentication service.');
       setLoading(false);
-    } else {
-      navigate(from, { replace: true });
     }
   };
 
@@ -70,13 +81,13 @@ export default function LoginPage() {
         <button 
           type="submit" 
           disabled={loading}
-          className="w-full py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+          className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
         >
           {loading ? 'Logging in...' : 'Log In'}
         </button>
       </form>
       <p className="mt-4 text-center text-sm text-slate-600">
-        Don't have an account? <Link to="/signup" className="text-primary-600 font-medium hover:underline">Sign up</Link>
+        Don't have an account? <Link to="/signup" className="text-primary-600 hover:underline">Sign up</Link>
       </p>
     </div>
   );
