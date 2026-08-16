@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Sparkles, Plus, Trash2 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import type { ResumeContent, Education, Experience, Project } from '../types/resume';
 
 interface ResumeFormProps {
@@ -19,20 +20,34 @@ export default function ResumeForm({ content, onChange }: ResumeFormProps) {
     if (!text.trim()) return;
     setIsImproving(section);
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const res = await fetch('/api/ai/improve', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ section, text })
       });
+
+      if (!res.ok) {
+        const errorJson = await res.json().catch(() => ({}));
+        throw new Error(errorJson.error || `AI improvement failed (${res.status})`);
+      }
+
       const data = await res.json();
       if (data.improved) {
         onUpdate(data.improved);
       } else {
-        alert('Failed to generate improvement. Ensure AI API key is set.');
+        alert('Failed to generate improvement. Please try again.');
       }
-    } catch (err) {
-      console.error(err);
-      alert('An error occurred during AI improvement.');
+    } catch (err: any) {
+      console.error('AI Improvement error:', err);
+      alert(err.message || 'An error occurred during AI improvement.');
     } finally {
       setIsImproving(null);
     }
