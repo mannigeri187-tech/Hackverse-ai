@@ -18,15 +18,16 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 pb-12">
-      <div className="bg-theme-city text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-800/80 relative overflow-hidden glow-blue">
-        <div className="max-w-3xl relative z-10 space-y-2">
+      {/* 1. HERO COMMAND HEADER */}
+      <div className="bg-theme-dashboard-8k text-white rounded-3xl p-7 sm:p-10 shadow-2xl border border-cyan-900/40 relative overflow-hidden glow-blue">
+        <div className="max-w-2xl relative z-10 space-y-3">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-md text-cyan-300 border border-cyan-500/30">
-            <Activity className="w-3.5 h-3.5 text-cyan-400" /> Command Dashboard
+            <Activity className="w-3.5 h-3.5 text-cyan-400" /> Command Dashboard &amp; Mission Control
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white drop-shadow-sm">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-tight text-white drop-shadow-md">
             Welcome back, {userName}! 🚀
           </h1>
-          <p className="text-slate-200 text-xs sm:text-sm leading-relaxed">
+          <p className="text-slate-200 text-xs sm:text-sm md:text-base leading-relaxed max-w-xl">
             Here's an overview of your hackathon sprint, active registrations, and strategic AI tools.
           </p>
         </div>
