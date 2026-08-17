@@ -137,18 +137,18 @@ export default function GitHubAnalyzerPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-16">
       {/* 1. HERO HEADER */}
-      <div className="bg-theme-shield text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-cyan-900/40 relative overflow-hidden glow-cyan">
-        <div className="max-w-3xl relative z-10 space-y-3">
+      <div className="bg-theme-cybersecurity-8k text-white rounded-3xl p-7 sm:p-10 shadow-2xl border border-cyan-900/40 relative overflow-hidden glow-cyan">
+        <div className="max-w-2xl relative z-10 space-y-3">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-md text-cyan-300 border border-cyan-500/30">
-            <GitBranch className="w-3.5 h-3.5 text-cyan-400" /> AI GitHub Repository Health Analyzer
+            <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" /> AI Code Security &amp; Repo Health SOC
           </div>
 
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-tight text-white drop-shadow-sm">
-            Audit Code Quality, Structure & Demo Readiness
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-tight text-white drop-shadow-md">
+            Audit Code Quality, Security &amp; Demo Readiness
           </h1>
 
-          <p className="text-slate-200 text-xs sm:text-sm md:text-base leading-relaxed">
-            Inspect public repository architecture, README clarity, file modularity, demo readiness, and judge evaluation rubrics in seconds.
+          <p className="text-slate-200 text-xs sm:text-sm md:text-base leading-relaxed max-w-xl">
+            Inspect public repository architecture, README clarity, file modularity, demo readiness, and security defense rubrics in seconds.
           </p>
         </div>
       </div>
