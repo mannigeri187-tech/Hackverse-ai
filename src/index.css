@@ -27,6 +27,13 @@
   background-repeat: no-repeat !important;
 }
 
+.bg-theme-dsa-8k {
+  background-image: linear-gradient(105deg, rgba(2, 6, 23, 0.95) 0%, rgba(2, 6, 23, 0.84) 45%, rgba(15, 23, 42, 0.48) 75%, rgba(2, 6, 23, 0.90) 100%), url('/assets/themes/bg_dsa_practice_8k.jpg') !important;
+  background-size: cover !important;
+  background-position: right center !important;
+  background-repeat: no-repeat !important;
+}
+
 .bg-theme-mentor-8k {
   background-image: linear-gradient(105deg, rgba(2, 6, 23, 0.94) 0%, rgba(2, 6, 23, 0.82) 45%, rgba(15, 23, 42, 0.45) 75%, rgba(2, 6, 23, 0.88) 100%), url('/assets/themes/bg_ai_mentor_8k.jpg') !important;
   background-size: cover !important;
