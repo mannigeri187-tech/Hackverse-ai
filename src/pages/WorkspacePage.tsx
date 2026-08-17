@@ -300,19 +300,19 @@ export default function WorkspacePage() {
       </div>
 
       {/* 1. WORKSPACE HERO HEADER */}
-      <div className="bg-gradient-to-r from-slate-900 via-primary-950 to-slate-900 text-white rounded-3xl p-6 sm:p-8 md:p-10 shadow-xl border border-slate-800 relative overflow-hidden">
+      <div className="bg-theme-workspace-8k text-white rounded-3xl p-7 sm:p-10 shadow-2xl border border-cyan-900/40 relative overflow-hidden glow-blue">
         <div className="relative z-10 space-y-4 max-w-3xl">
           <div className="flex flex-wrap items-center gap-2.5">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-sm text-primary-300 border border-white/10">
-              <Rocket className="w-3.5 h-3.5" /> Workspace Active
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-sm text-cyan-300 border border-white/10">
+              <Rocket className="w-3.5 h-3.5 text-cyan-400" /> Hackathon Command Center Active
             </span>
             <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/20 text-amber-300 rounded-full text-xs font-bold uppercase tracking-wider border border-amber-500/30">
-              <Clock className="w-3.5 h-3.5" /> {getDeadlineText()}
+              <Clock className="w-3.5 h-3.5 text-amber-400" /> {getDeadlineText()}
             </span>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-tight">
-            {currentWorkspace.hackathon?.title || 'Hackathon Workspace'}
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-tight text-white drop-shadow-md">
+            {currentWorkspace.hackathon?.title || 'Hackathon Command Workspace'}
           </h1>
 
           <div className="flex flex-wrap items-center gap-4 text-sm text-slate-300">
