@@ -137,10 +137,15 @@ export default function VerifyResetCodePage() {
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isComplete || loading) return;
+    const token = code.trim();
+
+    if (!isComplete || !/^[0-9]{6}$/.test(token) || loading) {
+      setErrorMsg('Please enter the 6-digit verification code.');
+      return;
+    }
 
     if (expiresIn <= 0) {
-      setErrorMsg('This verification code has expired. Please request a new code.');
+      setErrorMsg('Your verification code has expired. Please request a new code.');
       return;
     }
 
@@ -149,18 +154,18 @@ export default function VerifyResetCodePage() {
     setSuccessMsg(null);
 
     try {
-      // Verify email OTP token using Supabase Auth
+      // Verify email OTP token using Supabase Auth (passing strict 6-digit numeric string)
       const { data, error } = await supabase.auth.verifyOtp({
-        email,
-        token: code,
+        email: email.trim().toLowerCase(),
+        token: token,
         type: 'email',
       });
 
       if (error || !data.session) {
         if (error?.message?.toLowerCase().includes('expired')) {
-          setErrorMsg('This verification code has expired. Please request a new code.');
+          setErrorMsg('Your verification code has expired. Please request a new code.');
         } else {
-          setErrorMsg('Invalid verification code. Please try again.');
+          setErrorMsg('Invalid verification code. Please check your email and try again.');
         }
         setLoading(false);
         return;
