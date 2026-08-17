@@ -118,6 +118,13 @@
   background-repeat: no-repeat !important;
 }
 
+.bg-theme-vault-8k {
+  background-image: linear-gradient(105deg, rgba(2, 6, 23, 0.95) 0%, rgba(2, 6, 23, 0.84) 45%, rgba(30, 27, 75, 0.48) 75%, rgba(2, 6, 23, 0.90) 100%), url('/assets/themes/bg_vault_trophy_8k.jpg') !important;
+  background-size: cover !important;
+  background-position: right center !important;
+  background-repeat: no-repeat !important;
+}
+
 /* Cyber Glows & Accents */
 .glow-cyan {
   box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.25);
