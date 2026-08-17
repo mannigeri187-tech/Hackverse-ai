@@ -31,6 +31,11 @@ export default function ForgotPasswordPage() {
 
     const trimmedEmail = email.trim().toLowerCase();
 
+    // Safe diagnostic trace
+    if (import.meta.env.DEV) {
+      console.log('[AUTH-TRACE] signInWithOtp initiated for email reset');
+    }
+
     // Request 6-digit email OTP for existing accounts only
     const { error } = await supabase.auth.signInWithOtp({
       email: trimmedEmail,
@@ -42,6 +47,12 @@ export default function ForgotPasswordPage() {
     if (error) {
       const msg = error.message.toLowerCase();
       const code = (error as any).code || '';
+
+      console.warn('[AUTH-TRACE] signInWithOtp result:', {
+        status: error.status,
+        name: error.name,
+        message: error.message,
+      });
 
       // Check for rate limit
       if (error.status === 429 || code === 'over_email_send_rate_limit' || msg.includes('rate limit') || msg.includes('rate')) {
@@ -58,6 +69,13 @@ export default function ForgotPasswordPage() {
           text: 'No account exists with this email address.' 
         });
       } 
+      // Check for SMTP / Email delivery error from Supabase
+      else if (msg.includes('error sending') || msg.includes('magic link') || msg.includes('smtp') || msg.includes('email')) {
+        setMessage({
+          type: 'error',
+          text: 'Unable to send verification email. Please ensure your Supabase custom SMTP/Resend settings and sender domain are configured in the Supabase Dashboard.'
+        });
+      }
       // Other errors
       else {
         setMessage({ type: 'error', text: error.message });
