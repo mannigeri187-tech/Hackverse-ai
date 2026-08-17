@@ -31,10 +31,9 @@ export default function ForgotPasswordPage() {
 
     const trimmedEmail = email.trim().toLowerCase();
 
-    // Safe diagnostic trace
-    if (import.meta.env.DEV) {
-      console.log('[AUTH-TRACE] signInWithOtp initiated for email reset');
-    }
+    console.log('[AUTH-DEBUG] Request started');
+    console.log('[AUTH-DEBUG] Email exists:', Boolean(trimmedEmail));
+    console.log('[AUTH-DEBUG] Supabase URL configured:', Boolean(import.meta.env.VITE_SUPABASE_URL || 'https://updhbkmjgzighnifabsd.supabase.co'));
 
     // Request 6-digit email OTP for existing accounts only
     const { error } = await supabase.auth.signInWithOtp({
@@ -44,11 +43,17 @@ export default function ForgotPasswordPage() {
       }
     });
 
+    console.log('[AUTH-DEBUG] Request completed');
+    console.log('[AUTH-DEBUG] Error:', Boolean(error));
+
     if (error) {
-      const msg = error.message.toLowerCase();
+      const msg = error.message ? error.message.toLowerCase() : '';
       const code = (error as any).code || '';
 
-      console.warn('[AUTH-TRACE] signInWithOtp result:', {
+      console.warn('[AUTH-DEBUG] Supabase error message:', error.message);
+      console.warn('[AUTH-DEBUG] Supabase error status:', error.status);
+      console.warn('[AUTH-DEBUG] Supabase error name:', error.name);
+      console.warn('[AUTH-DEBUG] Full safe error object:', {
         status: error.status,
         name: error.name,
         message: error.message,

@@ -190,21 +190,30 @@ export default function VerifyResetCodePage() {
     setSuccessMsg(null);
 
     try {
+      console.log('[AUTH-DEBUG] Resend OTP request started for:', email);
+
       const { error } = await supabase.auth.signInWithOtp({
-        email,
+        email: email.trim().toLowerCase(),
         options: {
           shouldCreateUser: false,
         }
       });
 
       if (error) {
+        console.warn('[AUTH-DEBUG] Supabase error message:', error.message);
+        console.warn('[AUTH-DEBUG] Supabase error status:', error.status);
+        console.warn('[AUTH-DEBUG] Supabase error name:', error.name);
+
         const msg = error.message.toLowerCase();
         if (error.status === 429 || msg.includes('rate')) {
           setErrorMsg('Email rate limit reached. Please wait a moment before requesting another code.');
+        } else if (msg.includes('error sending') || msg.includes('magic link') || msg.includes('smtp') || msg.includes('email')) {
+          setErrorMsg('Unable to send email. Please check your Supabase Dashboard SMTP/Email settings.');
         } else {
           setErrorMsg(error.message || 'Failed to resend code. Please try again later.');
         }
       } else {
+        console.log('[AUTH-DEBUG] Resend OTP request completed successfully');
         setSuccessMsg('A new 6-digit verification code has been sent to your email!');
         setDigits(['', '', '', '', '', '']);
         setResendCooldown(60);
@@ -212,6 +221,7 @@ export default function VerifyResetCodePage() {
         inputRefs.current[0]?.focus();
       }
     } catch (err: any) {
+      console.error('[AUTH-DEBUG] Resend exception:', err?.message);
       setErrorMsg('Failed to resend verification code.');
     } finally {
       setResending(false);
