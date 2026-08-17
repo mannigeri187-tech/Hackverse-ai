@@ -275,10 +275,10 @@ export default function PitchCoachPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-16">
       {/* 1. HERO HEADER */}
-      <div className="bg-theme-interview-8k text-white rounded-3xl p-7 sm:p-10 shadow-2xl border border-cyan-900/40 relative overflow-hidden glow-cyan">
+      <div className="bg-theme-pitch-stage-8k text-white rounded-3xl p-7 sm:p-10 shadow-2xl border border-indigo-900/40 relative overflow-hidden glow-cyan">
         <div className="max-w-2xl relative z-10 space-y-3">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-md text-cyan-300 border border-cyan-500/30">
-            <Mic className="w-3.5 h-3.5 text-cyan-400" /> AI Pitch Coach &amp; Mock Defense
+            <Mic className="w-3.5 h-3.5 text-cyan-400" /> AI Pitch Coach &amp; Demo Stage
           </div>
 
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-tight text-white drop-shadow-md">
@@ -286,7 +286,7 @@ export default function PitchCoachPage() {
           </h1>
 
           <p className="text-slate-200 text-xs sm:text-sm md:text-base leading-relaxed max-w-xl">
-            Generate tailored 30s, 60s, and 2-minute elevator pitches, get multi-criteria judging scores (0–100), and practice tough judge Q&amp;A defense.
+            Generate tailored 30s, 60s, and 2-minute elevator pitches, get multi-criteria judging scores (0–100), and practice tough judge Q&amp;A defense on the virtual stage.
           </p>
         </div>
       </div>
