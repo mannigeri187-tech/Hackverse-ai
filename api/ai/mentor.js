@@ -122,7 +122,53 @@ GUIDELINES FOR YOUR RESPONSES:
     const fullPrompt = `${systemPrompt}\n${historySnippet}\nUSER MESSAGE:\n${userMessage.trim()}\n\nMENTOR RESPONSE:`;
     const contextDuration = performance.now() - tContextStart;
 
-    // 6. Generate Response using fastest low-latency model first with reliable fallbacks
+    // 6. Streaming SSE response handler if requested by client
+    if (req.body.stream === true || req.headers.accept?.includes('text/event-stream')) {
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform, no-store',
+        'Connection': 'keep-alive',
+      });
+
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const activeModels = ['gemini-3.5-flash-lite', 'gemini-3.7-flash', 'gemini-3.6-flash'];
+      let streamedSuccess = false;
+      let lastStreamError = null;
+      let selectedModel = '';
+
+      const tStreamStart = performance.now();
+
+      for (const modelName of activeModels) {
+        try {
+          const model = genAI.getGenerativeModel({ model: modelName });
+          const streamResult = await model.generateContentStream(fullPrompt);
+          selectedModel = modelName;
+
+          for await (const chunk of streamResult.stream) {
+            const chunkText = chunk.text();
+            if (chunkText) {
+              res.write(`data: ${JSON.stringify({ chunk: chunkText })}\n\n`);
+            }
+          }
+
+          streamedSuccess = true;
+          const totalStreamDuration = performance.now() - reqStart;
+          res.write(`data: ${JSON.stringify({ done: true, perf: { totalMs: Math.round(totalStreamDuration), model: selectedModel } })}\n\n`);
+          res.end();
+          break;
+        } catch (streamErr) {
+          lastStreamError = streamErr;
+        }
+      }
+
+      if (!streamedSuccess) {
+        res.write(`data: ${JSON.stringify({ error: lastStreamError?.message || 'Streaming generation failed' })}\n\n`);
+        res.end();
+      }
+      return;
+    }
+
+    // 7. Fast JSON Response using verified active Gemini models with fallback
     const genAI = new GoogleGenerativeAI(apiKey);
     const activeModels = ['gemini-3.5-flash-lite', 'gemini-3.7-flash', 'gemini-3.6-flash'];
     let responseText = '';

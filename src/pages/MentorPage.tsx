@@ -374,6 +374,7 @@ export default function MentorPage() {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
+          Accept: 'text/event-stream, application/json',
         },
         body: JSON.stringify({
           hackathon: selectedHackathon,
@@ -384,6 +385,7 @@ export default function MentorPage() {
           team: teamMembers,
           userMessage: textToSend,
           chatHistory: messages.slice(-4),
+          stream: true,
         }),
         signal: abortController.signal,
       });
@@ -396,26 +398,77 @@ export default function MentorPage() {
         throw new Error(errorData.error || errorData.details || `AI Mentor is temporarily unavailable ${statusMsg}. Please try again.`);
       }
 
-      const data = await res.json();
-      const clientDuration = performance.now() - clientReqStart;
-      console.log(`[AI-MENTOR-PERF] Client Roundtrip: ${clientDuration.toFixed(1)}ms | Server Reported: ${data?.perf?.totalMs || 0}ms (Model: ${data?.perf?.model || 'default'})`);
+      const contentType = res.headers.get('content-type') || '';
+      let completeReply = '';
+      const aiReplyId = `ai-${Date.now()}`;
 
-      if (!data || !data.reply) {
+      if (contentType.includes('text/event-stream') && res.body) {
+        const initialAiReply: ChatMessage = {
+          id: aiReplyId,
+          sender: 'ai',
+          text: '',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+        setMessages((prev) => [...prev, initialAiReply]);
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith('data:')) {
+              try {
+                const dataJson = JSON.parse(trimmed.slice(5).trim());
+                if (dataJson.chunk) {
+                  completeReply += dataJson.chunk;
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === aiReplyId ? { ...msg, text: completeReply } : msg
+                    )
+                  );
+                }
+              } catch {}
+            }
+          }
+        }
+      } else {
+        const data = await res.json();
+        completeReply = data.reply || '';
+        const aiReply: ChatMessage = {
+          id: aiReplyId,
+          sender: 'ai',
+          text: completeReply,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+        setMessages((prev) => [...prev, aiReply]);
+      }
+
+      const clientDuration = performance.now() - clientReqStart;
+      console.log(`[AI-MENTOR-PERF] Stream complete. Total roundtrip: ${clientDuration.toFixed(1)}ms`);
+
+      if (!completeReply) {
         throw new Error('Empty response received from AI Mentor.');
       }
 
-      const aiReply: ChatMessage = {
-        id: `ai-${Date.now()}`,
+      const finalAiReply: ChatMessage = {
+        id: aiReplyId,
         sender: 'ai',
-        text: data.reply,
+        text: completeReply,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
 
-      const updatedWithAi = [...updatedWithUser, aiReply];
-      setMessages(updatedWithAi);
-
-      // Persist AI response
-      persistMessage(user.id, selectedHackathonId, aiReply, updatedWithAi);
+      const finalAllMessages = [...updatedWithUser, finalAiReply];
+      // Persist completed conversation
+      persistMessage(user.id, selectedHackathonId, finalAiReply, finalAllMessages);
     } catch (err: any) {
       clearTimeout(timeoutId);
       console.error('Error contacting AI Mentor:', err);
