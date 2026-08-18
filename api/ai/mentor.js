@@ -122,13 +122,21 @@ GUIDELINES FOR YOUR RESPONSES:
     const fullPrompt = `${systemPrompt}\n${historySnippet}\nUSER MESSAGE:\n${userMessage.trim()}\n\nMENTOR RESPONSE:`;
     const contextDuration = performance.now() - tContextStart;
 
-    // 6. Streaming SSE response handler if requested by client
+    // 6. Streaming SSE response handler for ultra-low latency on Vercel
     if (req.body.stream === true || req.headers.accept?.includes('text/event-stream')) {
       res.writeHead(200, {
         'Content-Type': 'text/event-stream; charset=utf-8',
-        'Cache-Control': 'no-cache, no-transform, no-store',
+        'Cache-Control': 'no-cache, no-transform, no-store, must-revalidate',
         'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no',
+        'Content-Encoding': 'none',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Credentials': 'true',
       });
+
+      if (typeof res.flushHeaders === 'function') {
+        res.flushHeaders();
+      }
 
       const genAI = new GoogleGenerativeAI(apiKey);
       const activeModels = ['gemini-3.5-flash-lite', 'gemini-3.7-flash', 'gemini-3.6-flash'];
@@ -136,11 +144,15 @@ GUIDELINES FOR YOUR RESPONSES:
       let lastStreamError = null;
       let selectedModel = '';
 
-      const tStreamStart = performance.now();
-
       for (const modelName of activeModels) {
         try {
-          const model = genAI.getGenerativeModel({ model: modelName });
+          const model = genAI.getGenerativeModel({ 
+            model: modelName,
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 1024,
+            }
+          });
           const streamResult = await model.generateContentStream(fullPrompt);
           selectedModel = modelName;
 
@@ -148,12 +160,18 @@ GUIDELINES FOR YOUR RESPONSES:
             const chunkText = chunk.text();
             if (chunkText) {
               res.write(`data: ${JSON.stringify({ chunk: chunkText })}\n\n`);
+              if (typeof res.flush === 'function') {
+                res.flush();
+              }
             }
           }
 
           streamedSuccess = true;
           const totalStreamDuration = performance.now() - reqStart;
           res.write(`data: ${JSON.stringify({ done: true, perf: { totalMs: Math.round(totalStreamDuration), model: selectedModel } })}\n\n`);
+          if (typeof res.flush === 'function') {
+            res.flush();
+          }
           res.end();
           break;
         } catch (streamErr) {
@@ -163,6 +181,9 @@ GUIDELINES FOR YOUR RESPONSES:
 
       if (!streamedSuccess) {
         res.write(`data: ${JSON.stringify({ error: lastStreamError?.message || 'Streaming generation failed' })}\n\n`);
+        if (typeof res.flush === 'function') {
+          res.flush();
+        }
         res.end();
       }
       return;
