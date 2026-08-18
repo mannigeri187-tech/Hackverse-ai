@@ -36,6 +36,107 @@ const QUICK_QUESTIONS = [
   'Help us prepare our pitch',
 ];
 
+// Helpers for user-isolated persistent AI Mentor conversation history
+const getLocalHistoryKey = (userId: string, hackathonId: string) => 
+  `hackverse_mentor_history_${userId}_${hackathonId || 'general'}`;
+
+async function loadPersistentMessages(userId: string, hackathonId: string, hackathonTitle?: string): Promise<ChatMessage[]> {
+  // 1. Try loading from Supabase mentor_messages
+  try {
+    const { data: dbRows, error: dbError } = await supabase
+      .from('mentor_messages')
+      .select('id, sender, text, created_at')
+      .eq('user_id', userId)
+      .eq('hackathon_id', hackathonId)
+      .order('created_at', { ascending: true })
+      .limit(100);
+
+    if (!dbError && dbRows && dbRows.length > 0) {
+      return dbRows.map(r => ({
+        id: r.id,
+        sender: r.sender as 'user' | 'ai',
+        text: r.text,
+        timestamp: new Date(r.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }));
+    }
+  } catch (err) {
+    console.warn('Supabase mentor messages fetch notice, using user-scoped storage:', err);
+  }
+
+  // 2. Fallback to user-scoped localStorage
+  try {
+    const raw = localStorage.getItem(getLocalHistoryKey(userId, hackathonId));
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.error('Error reading local mentor history:', e);
+  }
+
+  // 3. Default Welcome Greeting
+  return [
+    {
+      id: 'welcome-reset',
+      sender: 'ai',
+      text: `👋 Hey! I'm your AI Hackathon Mentor for **${hackathonTitle || 'your Hackathon'}**.\n\nI'm connected to your project workspace, tasks, and team data. Ask me anything, or choose a quick evaluation question below to begin!`,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    },
+  ];
+}
+
+async function persistMessage(userId: string, hackathonId: string, message: ChatMessage, allMessages: ChatMessage[]) {
+  // 1. Save to user-scoped localStorage immediately for zero-latency recovery
+  try {
+    localStorage.setItem(getLocalHistoryKey(userId, hackathonId), JSON.stringify(allMessages));
+  } catch (e) {
+    console.error('Error saving local mentor history:', e);
+  }
+
+  // 2. Save asynchronously to Supabase mentor_messages
+  try {
+    if (message.id !== 'welcome-reset') {
+      await supabase.from('mentor_messages').insert({
+        user_id: userId,
+        hackathon_id: hackathonId,
+        sender: message.sender,
+        text: message.text,
+      });
+    }
+  } catch (err) {
+    console.warn('Could not persist to Supabase mentor_messages (using user-scoped store):', err);
+  }
+}
+
+async function clearPersistentMessages(userId: string, hackathonId: string, hackathonTitle?: string): Promise<ChatMessage[]> {
+  try {
+    localStorage.removeItem(getLocalHistoryKey(userId, hackathonId));
+  } catch (e) {
+    console.error('Error removing local mentor history:', e);
+  }
+
+  try {
+    await supabase
+      .from('mentor_messages')
+      .delete()
+      .eq('user_id', userId)
+      .eq('hackathon_id', hackathonId);
+  } catch (err) {
+    console.warn('Could not delete from Supabase mentor_messages:', err);
+  }
+
+  return [
+    {
+      id: 'welcome-reset',
+      sender: 'ai',
+      text: `Chat cleared. How can I help you with **${hackathonTitle || 'your Hackathon'}**?`,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    },
+  ];
+}
+
 export default function MentorPage() {
   const { user } = useAuth();
 
@@ -135,7 +236,7 @@ export default function MentorPage() {
     };
   }, [user]);
 
-  // 2. Load context in Parallel (Promise.all) when selectedHackathonId changes
+  // 2. Load context and persistent messages when selectedHackathonId changes
   useEffect(() => {
     let isCancelled = false;
 
@@ -172,10 +273,13 @@ export default function MentorPage() {
           .eq('status', 'accepted')
           .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
 
-        const [wsRes, profRes, requestsRes] = await Promise.all([
+        const historyPromise = loadPersistentMessages(user.id, selectedHackathonId, chosen?.title);
+
+        const [wsRes, profRes, requestsRes, persistentHistory] = await Promise.all([
           wsPromise,
           profPromise,
-          requestsPromise
+          requestsPromise,
+          historyPromise
         ]);
 
         if (isCancelled) return;
@@ -213,16 +317,9 @@ export default function MentorPage() {
           setTeamMembers([]);
         }
 
-        // Welcome greeting for this hackathon
-        if (chosen && !isCancelled) {
-          setMessages([
-            {
-              id: 'welcome-reset',
-              sender: 'ai',
-              text: `👋 Hey! I'm your AI Hackathon Mentor for **${chosen.title}**.\n\nI'm connected to your project workspace, tasks, and team data. Ask me anything, or choose a quick evaluation question below to begin!`,
-              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            },
-          ]);
+        // Restore user's persistent messages for this hackathon
+        if (!isCancelled && persistentHistory) {
+          setMessages(persistentHistory);
         }
       } catch (err) {
         console.error('Error loading mentor context:', err);
@@ -236,10 +333,10 @@ export default function MentorPage() {
     };
   }, [selectedHackathonId, user, activeHackathons]);
 
-  // 3. Send Message to AI Mentor Handler with Atomic Lock & Timeout
+  // 3. Send Message to AI Mentor Handler with Persistence
   const handleSendMessage = useCallback(async (customText?: string) => {
     const textToSend = (customText || inputMessage).trim();
-    if (!textToSend || isSendingRef.current) return;
+    if (!textToSend || isSendingRef.current || !user) return;
 
     isSendingRef.current = true;
     setIsSending(true);
@@ -255,7 +352,11 @@ export default function MentorPage() {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
-    setMessages((prev) => [...prev, userMsg]);
+    const updatedWithUser = [...messages, userMsg];
+    setMessages(updatedWithUser);
+
+    // Persist user message immediately
+    persistMessage(user.id, selectedHackathonId, userMsg, updatedWithUser);
 
     const abortController = new AbortController();
     const timeoutId = setTimeout(() => abortController.abort(), 25000);
@@ -310,7 +411,11 @@ export default function MentorPage() {
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
 
-      setMessages((prev) => [...prev, aiReply]);
+      const updatedWithAi = [...updatedWithUser, aiReply];
+      setMessages(updatedWithAi);
+
+      // Persist AI response
+      persistMessage(user.id, selectedHackathonId, aiReply, updatedWithAi);
     } catch (err: any) {
       clearTimeout(timeoutId);
       console.error('Error contacting AI Mentor:', err);
@@ -332,21 +437,12 @@ export default function MentorPage() {
       isSendingRef.current = false;
       setIsSending(false);
     }
-  }, [inputMessage, selectedHackathon, currentWorkspace, tasks, userSkillsData, teamMembers, messages]);
+  }, [inputMessage, selectedHackathon, selectedHackathonId, currentWorkspace, tasks, userSkillsData, teamMembers, messages, user]);
 
-  const clearChat = () => {
-    if (selectedHackathon) {
-      setMessages([
-        {
-          id: 'welcome-reset',
-          sender: 'ai',
-          text: `Chat cleared. How can I help you with **${selectedHackathon.title}**?`,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        },
-      ]);
-    } else {
-      setMessages([]);
-    }
+  const clearChat = async () => {
+    if (!user) return;
+    const freshMessages = await clearPersistentMessages(user.id, selectedHackathonId, selectedHackathon?.title);
+    setMessages(freshMessages);
   };
 
   return (
