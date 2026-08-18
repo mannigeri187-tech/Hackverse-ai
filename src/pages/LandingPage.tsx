@@ -205,7 +205,7 @@ export default function LandingPage() {
             <div className="w-full h-full max-h-[420px] rounded-2xl overflow-hidden border border-purple-500/30 shadow-2xl glow-purple bg-slate-900">
               <img 
                 src="/assets/landing/feat_mock_interviews_8k.jpg" 
-                alt="Mock Interviews - AI neural brain evaluation and questions"
+                alt="AI Interview Simulator - DSA, System Design, and Behavioral interview modes with performance analytics"
                 className="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-500"
                 loading="lazy"
               />
