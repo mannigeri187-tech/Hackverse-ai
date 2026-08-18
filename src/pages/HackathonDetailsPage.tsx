@@ -14,6 +14,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspaces } from '../hooks/useWorkspaces';
+import { parseHackathonDate, getHackathonNormalizedStatus } from '../utils/hackathonDate';
 
 interface HackathonDetail {
   id: string;
@@ -170,9 +171,14 @@ export default function HackathonDetailsPage() {
   }
 
   const regStatus = hackathon.registration_url_status || 'VALID';
-  const isRegistrationClosed = hackathon.status === 'completed' || regStatus === 'REGISTRATION_CLOSED' || (hackathon.registration_deadline && new Date() > new Date(hackathon.registration_deadline));
+  const normStatus = getHackathonNormalizedStatus(hackathon);
+  const isRegistrationClosed = normStatus === 'CLOSED' || normStatus === 'ENDED';
   const isBrokenOrUnreachable = regStatus === 'BROKEN' || regStatus === 'UNREACHABLE' || (!hackathon.registration_url && regStatus !== 'UNKNOWN');
   const isUnknown = regStatus === 'UNKNOWN' && !hackathon.registration_url;
+
+  const startDate = parseHackathonDate(hackathon.start_date);
+  const endDate = parseHackathonDate(hackathon.end_date);
+  const deadlineDate = parseHackathonDate(hackathon.registration_deadline);
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -186,10 +192,10 @@ export default function HackathonDetailsPage() {
           <div className="flex items-center gap-3 mb-2">
             <span className={`px-2.5 py-1 text-xs font-bold uppercase tracking-wider rounded-md ${
               isRegistrationClosed ? 'bg-slate-100 text-slate-700' :
-              hackathon.status === 'upcoming' ? 'bg-green-100 text-green-700' :
+              normStatus === 'UPCOMING' || normStatus === 'OPEN' ? 'bg-green-100 text-green-700' :
               'bg-blue-100 text-blue-700'
             }`}>
-              {isRegistrationClosed ? 'Registration Closed' : hackathon.status}
+              {isRegistrationClosed ? (normStatus === 'ENDED' ? 'Event Ended' : 'Registration Closed') : normStatus}
             </span>
             <span className="bg-primary-50 text-primary-700 px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider">
               {hackathon.mode}
@@ -197,11 +203,11 @@ export default function HackathonDetailsPage() {
           </div>
           <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-2 leading-tight">{hackathon.title}</h1>
           <p className="text-lg font-medium text-slate-600 mb-4">{hackathon.organizer}</p>
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-slate-600 font-medium">
-            <span className="flex items-center"><Calendar className="w-4 h-4 mr-2 text-slate-400" /> {new Date(hackathon.start_date).toLocaleDateString()}</span>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-slate-600 font-medium text-sm">
+            <span className="flex items-center"><Calendar className="w-4 h-4 mr-2 text-slate-400" /> {startDate ? startDate.toLocaleDateString() : 'TBA'}{endDate ? ` - ${endDate.toLocaleDateString()}` : ''}</span>
             <span className="flex items-center"><MapPin className="w-4 h-4 mr-2 text-slate-400" /> {hackathon.location || 'Online'}</span>
-            {hackathon.registration_deadline && (
-              <span className="flex items-center"><Clock className="w-4 h-4 mr-2 text-amber-500" /> Deadline: {new Date(hackathon.registration_deadline).toLocaleDateString()}</span>
+            {deadlineDate && (
+              <span className="flex items-center"><Clock className="w-4 h-4 mr-2 text-amber-500" /> Deadline: {deadlineDate.toLocaleDateString()}</span>
             )}
           </div>
         </div>

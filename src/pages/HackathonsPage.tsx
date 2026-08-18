@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, MapPin, Calendar, Globe, Building2 } from 'lucide-react';
+import { Search, MapPin, Calendar, Globe, Building2, Clock, ExternalLink } from 'lucide-react';
 import { useHackathons } from '../hooks/useHackathons';
+import { parseHackathonDate, isUpcomingHackathon, getHackathonNormalizedStatus } from '../utils/hackathonDate';
 
 export default function HackathonsPage() {
   const [searchInput, setSearchInput] = useState('');
@@ -33,7 +34,7 @@ export default function HackathonsPage() {
     return () => clearTimeout(handler);
   }, [locationInput]);
 
-  const { hackathons, totalCount, isLoading, isError, responseTime, dataSource } = useHackathons({
+  const { hackathons: rawHackathons, totalCount, isLoading, isError, responseTime, dataSource } = useHackathons({
     query: debouncedQuery,
     location: debouncedLocation,
     regionFilter,
@@ -42,6 +43,17 @@ export default function HackathonsPage() {
     page,
     limit
   });
+
+  // Strict Upcoming Date Filtering: Never display expired/closed events in upcoming lists
+  const displayHackathons = useMemo(() => {
+    return (rawHackathons || []).filter(h => {
+      if (status === 'completed') {
+        return !isUpcomingHackathon(h);
+      }
+      // Default / 'upcoming' / 'active' / 'all' -> ONLY show upcoming and active competitions
+      return isUpcomingHackathon(h);
+    });
+  }, [rawHackathons, status]);
 
   const totalPages = Math.ceil(totalCount / limit);
 
@@ -74,7 +86,7 @@ export default function HackathonsPage() {
 
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 pt-2">
         <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
-          <span>{totalCount} Total Hackathons Found</span>
+          <span>{displayHackathons.length} Active / Upcoming Hackathons</span>
         </div>
       </div>
 
@@ -149,9 +161,9 @@ export default function HackathonsPage() {
             onChange={(e) => { setStatus(e.target.value); setPage(1); }}
             className="px-4 py-2 border border-slate-300 rounded-lg w-full focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-xs sm:text-sm font-medium"
           >
-            <option value="all">All Statuses</option>
+            <option value="all">Upcoming &amp; Open</option>
             <option value="upcoming">Upcoming</option>
-            <option value="active">Active</option>
+            <option value="active">Active Now</option>
             <option value="completed">Completed</option>
           </select>
         </div>
@@ -160,8 +172,8 @@ export default function HackathonsPage() {
       {/* 3. Search Metadata & Performance Bar */}
       <div className="flex justify-between items-center text-xs text-slate-500">
         <div>
-          {totalCount > 0 && !isLoading && (
-            <span>Showing {(page - 1) * limit + 1}-{Math.min(page * limit, totalCount)} of {totalCount} results</span>
+          {displayHackathons.length > 0 && !isLoading && (
+            <span>Showing {(page - 1) * limit + 1}-{Math.min(page * limit, displayHackathons.length)} of {displayHackathons.length} results</span>
           )}
         </div>
         <div className="flex gap-3 items-center">
@@ -191,20 +203,20 @@ export default function HackathonsPage() {
             <div key={i} className="bg-slate-100 rounded-xl border border-slate-200 h-64 shadow-sm"></div>
           ))}
         </div>
-      ) : hackathons.length === 0 ? (
+      ) : displayHackathons.length === 0 ? (
         <div className="text-center py-12 bg-slate-50 rounded-2xl border border-slate-200 p-8 space-y-3">
           <Search className="w-10 h-10 text-slate-400 mx-auto" />
           <h3 className="text-base font-bold text-slate-900">
             {regionFilter === 'karnataka' 
-              ? 'No Karnataka hackathons available right now.' 
+              ? 'No upcoming Karnataka hackathons available right now.' 
               : regionFilter === 'bengaluru'
-              ? 'No Bengaluru hackathons available right now.'
+              ? 'No upcoming Bengaluru hackathons available right now.'
               : regionFilter === 'india'
-              ? 'No India hackathons available right now.'
-              : 'No hackathons found matching your criteria.'}
+              ? 'No upcoming India hackathons available right now.'
+              : 'No upcoming hackathons found matching your criteria.'}
           </h3>
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
-            Try switching region filters or clearing search keywords to explore all hackathon listings.
+            Try switching region filters or clearing search keywords to explore all active hackathon listings.
           </p>
           <button 
             onClick={() => { 
@@ -223,40 +235,93 @@ export default function HackathonsPage() {
       ) : (
         <>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {hackathons.map((hackathon) => (
-              <div key={hackathon.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
-                <div 
-                  className="h-32 bg-slate-200 bg-cover bg-center" 
-                  style={hackathon.image_url ? { backgroundImage: `url(${hackathon.image_url})` } : {}}
-                ></div>
-                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                  <div className="space-y-2">
-                    <h3 className="font-bold text-base text-slate-900 line-clamp-2 leading-snug">{hackathon.title}</h3>
-                    <p className="text-xs text-slate-600 font-medium">{hackathon.organizer}</p>
-                    
-                    <div className="space-y-1.5 text-xs text-slate-500 pt-1">
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{new Date(hackathon.start_date).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                        <span className="line-clamp-1">{hackathon.location || hackathon.mode}</span>
+            {displayHackathons.map((hackathon) => {
+              const startDate = parseHackathonDate(hackathon.start_date);
+              const deadlineDate = parseHackathonDate(hackathon.registration_deadline);
+              const normStatus = getHackathonNormalizedStatus(hackathon);
+
+              return (
+                <div key={hackathon.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group">
+                  {/* Card Image Banner - Click stays inside HackVerse AI */}
+                  <Link to={`/hackathons/${hackathon.id}`} className="block relative overflow-hidden">
+                    <div 
+                      className="h-32 bg-slate-200 bg-cover bg-center group-hover:scale-105 transition-transform duration-300" 
+                      style={hackathon.image_url ? { backgroundImage: `url(${hackathon.image_url})` } : {}}
+                    ></div>
+                    <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider shadow-sm ${
+                        normStatus === 'OPEN' || normStatus === 'UPCOMING'
+                          ? 'bg-emerald-500 text-white'
+                          : normStatus === 'ACTIVE'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-slate-700 text-white'
+                      }`}>
+                        {normStatus}
+                      </span>
+                    </div>
+                  </Link>
+
+                  <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                    <div className="space-y-2">
+                      <Link to={`/hackathons/${hackathon.id}`} className="block">
+                        <h3 className="font-bold text-base text-slate-900 line-clamp-2 leading-snug hover:text-primary-600 transition-colors">
+                          {hackathon.title}
+                        </h3>
+                      </Link>
+                      <p className="text-xs text-slate-600 font-medium">{hackathon.organizer}</p>
+                      
+                      <div className="space-y-1.5 text-xs text-slate-500 pt-1">
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                          <span>{startDate ? startDate.toLocaleDateString() : 'TBA'}</span>
+                        </div>
+                        {deadlineDate && (
+                          <div className="flex items-center gap-1.5 text-amber-700 font-medium">
+                            <Clock className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                            <span>Deadline: {deadlineDate.toLocaleDateString()}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                          <span className="line-clamp-1">{hackathon.location || hackathon.mode}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex justify-between items-center pt-3 border-t border-slate-100">
-                    <span className="bg-primary-50 text-primary-700 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border border-primary-200">
-                      {hackathon.mode}
-                    </span>
-                    <Link to={`/hackathons/${hackathon.id}`} className="text-primary-600 hover:text-primary-800 font-bold text-xs">
-                      View Details →
-                    </Link>
+                    {/* Distinct Action Buttons: View Details (Internal) vs Apply Now (External) */}
+                    <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
+                      {/* 1. Internal View Details Button */}
+                      <Link 
+                        to={`/hackathons/${hackathon.id}`} 
+                        className="flex-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl text-center transition-colors shadow-sm"
+                      >
+                        View Details
+                      </Link>
+
+                      {/* 2. External Apply Now Button */}
+                      {hackathon.registration_url ? (
+                        <a 
+                          href={hackathon.registration_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex-1 px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl text-center transition-colors flex items-center justify-center gap-1 shadow-sm"
+                        >
+                          <span>Apply Now</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      ) : (
+                        <Link 
+                          to={`/hackathons/${hackathon.id}`}
+                          className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 text-slate-400 font-bold text-xs rounded-xl text-center"
+                        >
+                          Details Only
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Pagination */}
@@ -284,3 +349,4 @@ export default function HackathonsPage() {
     </div>
   );
 }
+

@@ -1,20 +1,26 @@
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, MapPin, ArrowRight, Activity, Award, FileText } from 'lucide-react';
 import { useHackathons } from '../hooks/useHackathons';
 import { useAuth } from '../contexts/AuthContext';
 import { DailyCoach } from '../components/DailyCoach';
 import { TrackerSummaryWidget } from '../components/TrackerSummaryWidget';
+import { parseHackathonDate, isUpcomingHackathon } from '../utils/hackathonDate';
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const userName = user?.email?.split('@')[0] || 'Hacker';
 
-  // Fetch only 3 upcoming hackathons for the preview
-  const { hackathons, isLoading, isError } = useHackathons({
+  // Fetch upcoming hackathons for the preview
+  const { hackathons: rawHackathons, isLoading, isError } = useHackathons({
     status: 'upcoming',
     page: 1,
-    limit: 3
+    limit: 6
   });
+
+  const upcomingHackathons = useMemo(() => {
+    return (rawHackathons || []).filter(isUpcomingHackathon).slice(0, 3);
+  }, [rawHackathons]);
 
   return (
     <div className="space-y-8 pb-12">
@@ -93,35 +99,38 @@ export default function DashboardPage() {
             </div>
           ) : isError ? (
             <div className="text-center py-8 text-red-500">Failed to load preview.</div>
-          ) : hackathons.length === 0 ? (
+          ) : upcomingHackathons.length === 0 ? (
             <div className="text-center py-8 text-slate-500">No upcoming hackathons found.</div>
           ) : (
             <div className="grid md:grid-cols-3 gap-6">
-              {hackathons.map((hackathon) => (
-                <Link key={hackathon.id} to={`/hackathons/${hackathon.id}`} className="block group">
-                  <div className="h-full border border-slate-200 rounded-xl overflow-hidden hover:border-primary-300 hover:shadow-md transition-all">
-                    <div 
-                      className="h-24 bg-slate-200 bg-cover bg-center"
-                      style={hackathon.image_url ? { backgroundImage: `url(${hackathon.image_url})` } : {}}
-                    ></div>
-                    <div className="p-4">
-                      <h3 className="font-bold text-slate-900 mb-2 line-clamp-1 group-hover:text-primary-600 transition-colors">
-                        {hackathon.title}
-                      </h3>
-                      <div className="space-y-1.5 text-xs text-slate-500 font-medium">
-                        <div className="flex items-center">
-                          <Calendar className="w-3.5 h-3.5 mr-2" />
-                          <span>{new Date(hackathon.start_date).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <MapPin className="w-3.5 h-3.5 mr-2" />
-                          <span className="line-clamp-1">{hackathon.location || hackathon.mode}</span>
+              {upcomingHackathons.map((hackathon) => {
+                const startDate = parseHackathonDate(hackathon.start_date);
+                return (
+                  <Link key={hackathon.id} to={`/hackathons/${hackathon.id}`} className="block group">
+                    <div className="h-full border border-slate-200 rounded-xl overflow-hidden hover:border-primary-300 hover:shadow-md transition-all">
+                      <div 
+                        className="h-24 bg-slate-200 bg-cover bg-center"
+                        style={hackathon.image_url ? { backgroundImage: `url(${hackathon.image_url})` } : {}}
+                      ></div>
+                      <div className="p-4">
+                        <h3 className="font-bold text-slate-900 mb-2 line-clamp-1 group-hover:text-primary-600 transition-colors">
+                          {hackathon.title}
+                        </h3>
+                        <div className="space-y-1.5 text-xs text-slate-500 font-medium">
+                          <div className="flex items-center">
+                            <Calendar className="w-3.5 h-3.5 mr-2 text-slate-400" />
+                            <span>{startDate ? startDate.toLocaleDateString() : 'TBA'}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <MapPin className="w-3.5 h-3.5 mr-2 text-slate-400" />
+                            <span className="line-clamp-1">{hackathon.location || hackathon.mode}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                );
+              })}
             </div>
           )}
         </div>
@@ -129,3 +138,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

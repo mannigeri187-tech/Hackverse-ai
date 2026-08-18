@@ -134,28 +134,86 @@ export function normalizeMode(rawMode = '', rawLocation = '') {
 export function parseSafeIsoDate(dateString) {
   if (!dateString) return null;
   try {
-    const cleaned = String(dateString).replace(/GMT\+0530/g, '+05:30').trim();
+    const raw = String(dateString).trim();
+    if (!raw) return null;
+
+    // 1. Direct parsing
+    const cleaned = raw.replace(/GMT\+0530/g, '+05:30');
     const d = new Date(cleaned);
-    return isNaN(d.getTime()) ? null : d.toISOString();
+    if (!isNaN(d.getTime())) {
+      return d.toISOString();
+    }
+
+    // 2. Slash parsing MM/DD/YYYY or DD/MM/YYYY
+    const slashMatch = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (slashMatch) {
+      const p1 = parseInt(slashMatch[1], 10);
+      const p2 = parseInt(slashMatch[2], 10);
+      const yr = parseInt(slashMatch[3], 10);
+      if (p1 <= 12) {
+        const testD = new Date(yr, p1 - 1, p2);
+        if (!isNaN(testD.getTime())) return testD.toISOString();
+      }
+      if (p2 <= 12) {
+        const testD = new Date(yr, p2 - 1, p1);
+        if (!isNaN(testD.getTime())) return testD.toISOString();
+      }
+    }
+
+    return null;
   } catch {
     return null;
   }
 }
 
+export function isUpcomingEvent(startDateStr, endDateStr, regDeadlineStr, rawStatus) {
+  const now = new Date();
+  const nowMs = now.getTime();
+  const statusStr = String(rawStatus || '').toLowerCase().trim();
+
+  if (statusStr === 'completed' || statusStr === 'ended' || statusStr === 'closed' || statusStr === 'registration closed') {
+    return false;
+  }
+
+  const startIso = parseSafeIsoDate(startDateStr);
+  const endIso = parseSafeIsoDate(endDateStr);
+  const deadlineIso = parseSafeIsoDate(regDeadlineStr);
+
+  const start = startIso ? new Date(startIso) : null;
+  const end = endIso ? new Date(endIso) : null;
+  const deadline = deadlineIso ? new Date(deadlineIso) : null;
+
+  if (end && end.getTime() < nowMs) return false;
+  if (deadline && deadline.getTime() < nowMs) return false;
+  if (!end && !deadline && start && (nowMs - start.getTime() > 24 * 60 * 60 * 1000)) return false;
+
+  const hasFuture = (start && start.getTime() >= nowMs) ||
+                    (end && end.getTime() >= nowMs) ||
+                    (deadline && deadline.getTime() >= nowMs);
+
+  return Boolean(hasFuture);
+}
+
 export function calculateEventStatus(startDateStr, endDateStr, regDeadlineStr) {
   const now = new Date();
-  const start = startDateStr ? new Date(startDateStr) : null;
-  const end = endDateStr ? new Date(endDateStr) : null;
-  const deadline = regDeadlineStr ? new Date(regDeadlineStr) : null;
+  const nowMs = now.getTime();
 
-  if (end && now > end) {
+  const startIso = parseSafeIsoDate(startDateStr);
+  const endIso = parseSafeIsoDate(endDateStr);
+  const deadlineIso = parseSafeIsoDate(regDeadlineStr);
+
+  const start = startIso ? new Date(startIso) : null;
+  const end = endIso ? new Date(endIso) : null;
+  const deadline = deadlineIso ? new Date(deadlineIso) : null;
+
+  if (end && nowMs > end.getTime()) {
     return 'completed';
   }
-  if (start && end && now >= start && now <= end) {
-    return 'active';
+  if (deadline && nowMs > deadline.getTime()) {
+    return 'completed';
   }
-  if (deadline && now > deadline && start && now < start) {
-    return 'upcoming';
+  if (start && end && nowMs >= start.getTime() && nowMs <= end.getTime()) {
+    return 'active';
   }
   return 'upcoming';
 }

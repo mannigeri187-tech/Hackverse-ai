@@ -1,8 +1,9 @@
 import crypto from 'crypto';
 import { supabase } from '../shared/supabase.js';
 import { getFromCache, setToCache } from '../shared/redis.js';
+import { isUpcomingEvent } from '../shared/normalizer.js';
 
-const CACHE_TTL_SEARCH = 300; // 5 minutes cache
+const CACHE_TTL_SEARCH = 120; // 2 minutes cache
 
 function generateSearchCacheKey(params) {
   const normalizedParams = {
@@ -17,7 +18,7 @@ function generateSearchCacheKey(params) {
   };
   const stringified = JSON.stringify(normalizedParams);
   const hash = crypto.createHash('md5').update(stringified).digest('hex');
-  return `hackathons:search:v3:${hash}`;
+  return `hackathons:search:v5:${hash}`;
 }
 
 export default async function handler(req, res) {
@@ -61,7 +62,7 @@ export default async function handler(req, res) {
 
     let q = supabase
       .from('hackathons')
-      .select('id, title, organizer, start_date, location, mode, image_url, status', { count: 'exact' });
+      .select('id, title, organizer, start_date, end_date, registration_deadline, location, mode, image_url, status, registration_url');
 
     // Comprehensive text search across title, organizer, and location
     if (query) {
@@ -90,23 +91,37 @@ export default async function handler(req, res) {
     }
 
     if (mode && mode !== 'all') q = q.eq('mode', mode);
-    if (status && status !== 'all') q = q.eq('status', status);
     if (date) q = q.gte('start_date', date);
 
-    // Order by date
+    // Order by start_date ascending
     q = q.order('start_date', { ascending: true });
 
-    const from = (page - 1) * limit;
-    const to = from + parseInt(limit) - 1;
-    q = q.range(from, to);
-
-    const { data, count, error } = await q;
+    const { data: rawData, error } = await q;
 
     if (error) throw error;
 
-    const responsePayload = { data: data || [], count: count || 0 };
+    // 3. Dynamic Date & Status Normalization
+    let filteredList = (rawData || []).filter(item => {
+      if (status === 'completed') {
+        return item.status === 'completed' || !isUpcomingEvent(item.start_date, item.end_date, item.registration_deadline, item.status);
+      }
+      if (status === 'active') {
+        const now = new Date();
+        const start = item.start_date ? new Date(item.start_date) : null;
+        const end = item.end_date ? new Date(item.end_date) : null;
+        return start && end && now >= start && now <= end;
+      }
+      // Default: Only UPCOMING/OPEN active events (filters out past deadlines and ended events like Reverie Hacks)
+      return isUpcomingEvent(item.start_date, item.end_date, item.registration_deadline, item.status);
+    });
 
-    // 3. Store in Redis cache
+    const totalCount = filteredList.length;
+    const from = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    const paginatedData = filteredList.slice(from, from + parseInt(limit, 10));
+
+    const responsePayload = { data: paginatedData, count: totalCount };
+
+    // 4. Store in Redis cache
     await setToCache(cacheKey, responsePayload, CACHE_TTL_SEARCH);
 
     return res.status(200).json({
@@ -120,3 +135,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to search hackathons' });
   }
 }
+

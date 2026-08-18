@@ -1,15 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
+import { isUpcomingHackathon } from '../utils/hackathonDate';
 
 export type Hackathon = {
   id: string;
   title: string;
   organizer: string;
   start_date: string;
+  end_date?: string;
+  registration_deadline?: string;
   location: string;
   mode: string;
   image_url: string;
   status: string;
   registration_url?: string;
+  registration_url_status?: string;
   description?: string;
 };
 
@@ -26,7 +30,7 @@ export type SearchParams = {
 
 // Client-Side In-Memory Cache Map for instant back-navigation and filter toggles (0ms)
 const clientCache = new Map<string, { data: Hackathon[]; count: number; responseTime: number; source: string; timestamp: number }>();
-const CLIENT_CACHE_TTL = 120000; // 2 minutes
+const CLIENT_CACHE_TTL = 60000; // 1 minute
 
 export function useHackathons(params: SearchParams) {
   const [hackathons, setHackathons] = useState<Hackathon[]>([]);
@@ -87,15 +91,18 @@ export function useHackathons(params: SearchParams) {
         const result = await res.json();
         const clientLatency = performance.now() - fetchStartTime;
 
-        setHackathons(result.data || []);
-        setTotalCount(result.count || 0);
+        const rawList = (result.data || []) as Hackathon[];
+        const validList = params.status === 'completed' ? rawList : rawList.filter(isUpcomingHackathon);
+
+        setHackathons(validList);
+        setTotalCount(params.status === 'completed' ? (result.count || validList.length) : validList.length);
         setResponseTime(result.responseTime || clientLatency);
         setDataSource(result.source || 'postgres');
 
         // Store in client cache
         clientCache.set(cacheKey, {
-          data: result.data || [],
-          count: result.count || 0,
+          data: validList,
+          count: validList.length,
           responseTime: result.responseTime || clientLatency,
           source: result.source || 'postgres',
           timestamp: Date.now()

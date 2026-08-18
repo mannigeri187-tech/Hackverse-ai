@@ -1,3 +1,5 @@
+import { parseHackathonDate } from './hackathonDate';
+
 export interface DeadlineInfo {
   text: string;
   daysRemaining: number | null;
@@ -19,8 +21,8 @@ export function calculateDeadline(hackathon: {
     };
   }
 
-  const target = new Date(dateStr);
-  if (isNaN(target.getTime())) {
+  const target = parseHackathonDate(dateStr);
+  if (!target || isNaN(target.getTime())) {
     return {
       text: 'Deadline unavailable',
       daysRemaining: null,
