@@ -134,15 +134,12 @@ export default function LandingPage() {
 
           <div className="lg:col-span-6 p-4 sm:p-8 flex items-center justify-center">
             <div className="w-full h-full max-h-[420px] rounded-2xl overflow-hidden border border-cyan-500/30 shadow-2xl glow-cyan bg-slate-900">
-              <picture>
-                <source srcSet="/assets/landing/hackverse-ai-mentor-hero-hd.webp?v=hero8k" type="image/webp" />
-                <img 
-                  src="/assets/landing/hackverse-ai-mentor-hero-hd.jpg?v=hero8k" 
-                  alt="AI Mentor - 24/7 Developer Guide robot coding at workstation"
-                  className="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-500"
-                  loading="eager"
-                />
-              </picture>
+              <img 
+                src="/ai-mentor-hd.jpg" 
+                alt="AI Mentor - 24/7 Developer Guide robot coding at workstation"
+                className="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-500"
+                loading="eager"
+              />
             </div>
           </div>
         </div>
