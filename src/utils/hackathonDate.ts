@@ -65,10 +65,53 @@ export type HackathonStatus = 'UPCOMING' | 'OPEN' | 'ACTIVE' | 'CLOSED' | 'ENDED
 
 export interface HackathonDateFields {
   start_date?: string | number | Date | null;
+  startDate?: string | number | Date | null;
+  eventStartDate?: string | number | Date | null;
+  event_start_date?: string | number | Date | null;
+  start?: string | number | Date | null;
+  date?: string | number | Date | null;
+
   end_date?: string | number | Date | null;
+  endDate?: string | number | Date | null;
+  eventEndDate?: string | number | Date | null;
+  event_end_date?: string | number | Date | null;
+  end?: string | number | Date | null;
+
   registration_deadline?: string | number | Date | null;
+  registrationDeadline?: string | number | Date | null;
+  deadline?: string | number | Date | null;
+  reg_deadline?: string | number | Date | null;
+  end_regn_dt?: string | number | Date | null;
+
   status?: string | null;
+  event_status?: string | null;
   registration_url_status?: string | null;
+}
+
+/**
+ * Extracts and parses all possible date fields from any hackathon object representation.
+ */
+export function extractHackathonDates(item: any): {
+  start: Date | null;
+  end: Date | null;
+  deadline: Date | null;
+  status: string;
+} {
+  if (!item || typeof item !== 'object') {
+    return { start: null, end: null, deadline: null, status: '' };
+  }
+
+  const rawStart = item.startDate || item.start_date || item.eventStartDate || item.event_start_date || item.start || item.date || null;
+  const rawEnd = item.endDate || item.end_date || item.eventEndDate || item.event_end_date || item.end || null;
+  const rawDeadline = item.deadline || item.registrationDeadline || item.registration_deadline || item.reg_deadline || item.end_regn_dt || null;
+  const rawStatus = String(item.status || item.event_status || item.registration_url_status || '').toLowerCase().trim();
+
+  return {
+    start: parseHackathonDate(rawStart),
+    end: parseHackathonDate(rawEnd),
+    deadline: parseHackathonDate(rawDeadline),
+    status: rawStatus,
+  };
 }
 
 /**
@@ -79,37 +122,33 @@ export interface HackathonDateFields {
  * - OPEN: Registration is active and event is in the future
  * - UPCOMING: Event is in the future
  */
-export function getHackathonNormalizedStatus(item: HackathonDateFields): HackathonStatus {
+export function getHackathonNormalizedStatus(item: any): HackathonStatus {
   const now = new Date();
-  const rawStatus = String(item.status || '').toLowerCase().trim();
-  const regStatus = String(item.registration_url_status || '').toUpperCase().trim();
-
-  const end = parseHackathonDate(item.end_date);
-  const deadline = parseHackathonDate(item.registration_deadline);
-  const start = parseHackathonDate(item.start_date);
+  const nowMs = now.getTime();
+  const { start, end, deadline, status } = extractHackathonDates(item);
 
   // 1. Check if event has ended
-  if (rawStatus === 'completed' || rawStatus === 'ended' || (end && end.getTime() < now.getTime())) {
+  if (status === 'completed' || status === 'ended' || status === 'expired' || (end && end.getTime() < nowMs)) {
     return 'ENDED';
   }
 
   // 2. Check if registration is closed
   if (
-    rawStatus === 'registration closed' || 
-    rawStatus === 'closed' || 
-    regStatus === 'REGISTRATION_CLOSED' ||
-    (deadline && deadline.getTime() < now.getTime())
+    status === 'registration closed' || 
+    status === 'registration_closed' || 
+    status === 'closed' || 
+    (deadline && deadline.getTime() < nowMs)
   ) {
     return 'CLOSED';
   }
 
   // 3. Check if currently active / ongoing
-  if (start && end && now.getTime() >= start.getTime() && now.getTime() <= end.getTime()) {
+  if (start && end && nowMs >= start.getTime() && nowMs <= end.getTime()) {
     return 'ACTIVE';
   }
 
   // 4. If start is in the future and registration is open
-  if (deadline && deadline.getTime() >= now.getTime()) {
+  if (deadline && deadline.getTime() >= nowMs) {
     return 'OPEN';
   }
 
@@ -120,45 +159,46 @@ export function getHackathonNormalizedStatus(item: HackathonDateFields): Hackath
  * Determines whether a hackathon should be displayed in the upcoming / active discovery list.
  * Only returns true if the hackathon is still open or upcoming in the future.
  */
-export function isUpcomingHackathon(item: HackathonDateFields): boolean {
+export function isUpcomingHackathon(item: any): boolean {
+  if (!item || typeof item !== 'object') return false;
+
+  const { start, end, deadline, status } = extractHackathonDates(item);
   const now = new Date();
   const nowMs = now.getTime();
 
-  // 1. Explicit status check
-  const rawStatus = String(item.status || '').toLowerCase().trim();
-  const regStatus = String(item.registration_url_status || '').toUpperCase().trim();
+  // 1. Explicit status check: Reject closed/ended/completed events
   if (
-    rawStatus === 'completed' || 
-    rawStatus === 'ended' || 
-    rawStatus === 'closed' || 
-    rawStatus === 'registration closed' ||
-    regStatus === 'REGISTRATION_CLOSED'
+    status === 'completed' || 
+    status === 'ended' || 
+    status === 'closed' || 
+    status === 'registration closed' ||
+    status === 'registration_closed' ||
+    status === 'expired'
   ) {
     return false;
   }
 
-  const end = parseHackathonDate(item.end_date);
-  const deadline = parseHackathonDate(item.registration_deadline);
-  const start = parseHackathonDate(item.start_date);
-
-  // 2. If event has already ended
+  // 2. DATE PRIORITY 1: Prefer event END date
+  // If the event has an end date, and the end date is in the past -> REJECT (Event ended)
   if (end && end.getTime() < nowMs) {
     return false;
   }
 
-  // 3. If registration deadline has strictly passed
+  // 3. Registration Deadline check
+  // If registration deadline has strictly passed -> REJECT (Registration closed)
   if (deadline && deadline.getTime() < nowMs) {
     return false;
   }
 
-  // 4. If no end_date or deadline, but start_date is more than 24 hours in the past
-  if (!end && !deadline && start && (nowMs - start.getTime() > 24 * 60 * 60 * 1000)) {
+  // 4. DATE PRIORITY 2: If no end date or deadline exists, check START date
+  // If start date is in the past -> REJECT (Event already started/passed)
+  if (!end && !deadline && start && start.getTime() < nowMs) {
     return false;
   }
 
-  // 5. Must have at least one valid future date
-  const hasFutureDate = (start && start.getTime() >= nowMs) ||
-                        (end && end.getTime() >= nowMs) ||
+  // 5. Must have at least one valid future date (start, end, or deadline)
+  const hasFutureDate = (end && end.getTime() >= nowMs) ||
+                        (start && start.getTime() >= nowMs) ||
                         (deadline && deadline.getTime() >= nowMs);
 
   return Boolean(hasFutureDate);

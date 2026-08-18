@@ -237,8 +237,10 @@ export default function HackathonsPage() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {displayHackathons.map((hackathon) => {
               const startDate = parseHackathonDate(hackathon.start_date);
+              const endDate = parseHackathonDate(hackathon.end_date);
               const deadlineDate = parseHackathonDate(hackathon.registration_deadline);
               const normStatus = getHackathonNormalizedStatus(hackathon);
+              const now = new Date();
 
               return (
                 <div key={hackathon.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group">
@@ -273,9 +275,15 @@ export default function HackathonsPage() {
                       <div className="space-y-1.5 text-xs text-slate-500 pt-1">
                         <div className="flex items-center gap-1.5">
                           <Calendar className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                          <span>{startDate ? startDate.toLocaleDateString() : 'TBA'}</span>
+                          <span>
+                            {startDate && startDate.getTime() >= now.getTime()
+                              ? `Starts: ${startDate.toLocaleDateString()}`
+                              : endDate && endDate.getTime() >= now.getTime()
+                              ? `Ends: ${endDate.toLocaleDateString()}`
+                              : startDate ? startDate.toLocaleDateString() : 'TBA'}
+                          </span>
                         </div>
-                        {deadlineDate && (
+                        {deadlineDate && deadlineDate.getTime() >= now.getTime() && (
                           <div className="flex items-center gap-1.5 text-amber-700 font-medium">
                             <Clock className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
                             <span>Deadline: {deadlineDate.toLocaleDateString()}</span>
