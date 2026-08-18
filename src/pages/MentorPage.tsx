@@ -95,18 +95,18 @@ async function persistMessage(userId: string, hackathonId: string, message: Chat
     console.error('Error saving local mentor history:', e);
   }
 
-  // 2. Save asynchronously to Supabase mentor_messages
-  try {
-    if (message.id !== 'welcome-reset') {
-      await supabase.from('mentor_messages').insert({
+  // 2. Save asynchronously to Supabase mentor_messages (non-blocking)
+  if (message.id !== 'welcome-reset') {
+    void Promise.resolve(
+      supabase.from('mentor_messages').insert({
         user_id: userId,
         hackathon_id: hackathonId,
         sender: message.sender,
         text: message.text,
-      });
-    }
-  } catch (err) {
-    console.warn('Could not persist to Supabase mentor_messages (using user-scoped store):', err);
+      })
+    ).catch((err: any) => {
+      console.warn('Could not persist to Supabase mentor_messages (using user-scoped store):', err);
+    });
   }
 }
 

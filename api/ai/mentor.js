@@ -139,7 +139,7 @@ GUIDELINES FOR YOUR RESPONSES:
       }
 
       const genAI = new GoogleGenerativeAI(apiKey);
-      const activeModels = ['gemini-3.5-flash-lite', 'gemini-3.7-flash', 'gemini-3.6-flash'];
+      const activeModels = ['gemini-3.5-flash-lite'];
       let streamedSuccess = false;
       let lastStreamError = null;
       let selectedModel = '';
@@ -191,7 +191,7 @@ GUIDELINES FOR YOUR RESPONSES:
 
     // 7. Fast JSON Response using verified active Gemini models with fallback
     const genAI = new GoogleGenerativeAI(apiKey);
-    const activeModels = ['gemini-3.5-flash-lite', 'gemini-3.7-flash', 'gemini-3.6-flash'];
+    const activeModels = ['gemini-3.5-flash-lite'];
     let responseText = '';
     let lastError = null;
     let selectedModel = '';
@@ -200,7 +200,13 @@ GUIDELINES FOR YOUR RESPONSES:
 
     for (const modelName of activeModels) {
       try {
-        const model = genAI.getGenerativeModel({ model: modelName });
+        const model = genAI.getGenerativeModel({ 
+          model: modelName,
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 1024,
+          }
+        });
         const result = await model.generateContent(fullPrompt);
         const response = await result.response;
         responseText = response.text().trim();

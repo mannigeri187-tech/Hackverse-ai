@@ -119,9 +119,9 @@ Requirements:
     const contextDuration = performance.now() - tContextStart;
     console.log(`[IDEA-SPEED] prompt construction completed in ${contextDuration.toFixed(1)}ms`);
 
-    // 4. Generate with Gemini using fastest flash-lite model first with reliable fallbacks
+    // 4. Generate with Gemini using fastest flash-lite model
     const genAI = new GoogleGenerativeAI(apiKey);
-    const activeModels = ['gemini-3.5-flash-lite', 'gemini-3.7-flash', 'gemini-3.6-flash'];
+    const activeModels = ['gemini-3.5-flash-lite'];
     let text = '';
     let lastError = null;
     let selectedModel = '';
