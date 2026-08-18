@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
   Lightbulb, 
@@ -59,6 +59,8 @@ export default function IdeaGeneratorPage() {
   const [ideas, setIdeas] = useState<GeneratedIdea[]>([]);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
+
+  const isGeneratingRef = useRef<boolean>(false);
 
   // Expandable Idea cards state
   const [expandedCards, setExpandedCards] = useState<Record<number, boolean>>({});
@@ -152,18 +154,24 @@ export default function IdeaGeneratorPage() {
 
   // 3. Generate Ideas Handler
   const handleGenerateIdeas = async () => {
-    console.log('[IDEA-REGEN] Generation started. Selected hackathon:', selectedHackathon?.title, 'user:', user?.id);
-    if (!selectedHackathon || isGenerating || !user) {
-      console.warn('[IDEA-REGEN] Early exit: Missing selectedHackathon, user, or generation already in progress.');
+    if (!selectedHackathon || isGeneratingRef.current || !user) {
       return;
     }
 
+    isGeneratingRef.current = true;
     setIsGenerating(true);
     setGenerateError(null);
     setActionError(null);
+
+    const clientReqStart = performance.now();
+    const previousTitles = ideas.map(i => i.title);
+
     // Atomically reset expanded cards and clear previous ideas
     setExpandedCards({});
     setIdeas([]);
+
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), 25000);
 
     try {
       const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
@@ -175,17 +183,15 @@ export default function IdeaGeneratorPage() {
       }
 
       const generationNonce = `${Date.now()}-${Math.random()}`;
-      console.log('[IDEA-REGEN] Nonce created:', generationNonce);
 
       const requestUrl = '/api/ai/idea-generator';
       const requestPayload = {
         hackathon: selectedHackathon,
         skills: userSkills,
         workspaceContext: existingWorkspace,
+        previousIdeaTitles: previousTitles,
         generationNonce,
       };
-
-      console.log('[IDEA-REGEN] Request sent to:', requestUrl);
 
       const res = await fetch(requestUrl, {
         method: 'POST',
@@ -197,16 +203,17 @@ export default function IdeaGeneratorPage() {
           Pragma: 'no-cache',
         },
         body: JSON.stringify(requestPayload),
+        signal: abortController.signal,
       });
 
-      console.log('[IDEA-REGEN] Response received. Status:', res.status);
+      clearTimeout(timeoutId);
 
       const rawText = await res.text();
       let data: any = {};
       try {
         data = JSON.parse(rawText);
       } catch (parseErr: any) {
-        console.error('[IDEA-REGEN] JSON parse failed:', parseErr.message);
+        console.error('[IDEA-GEN-PERF] JSON parse failed:', parseErr.message);
         throw new Error(`Invalid response from server (HTTP ${res.status}): ${rawText.slice(0, 80)}`);
       }
 
@@ -219,8 +226,8 @@ export default function IdeaGeneratorPage() {
         throw new Error('No ideas were returned. Please try again.');
       }
 
-      console.log('[IDEA-REGEN] Ideas returned:', data.ideas.length);
-      console.log('[IDEA-REGEN] First idea title:', data.ideas[0]?.title);
+      const clientDuration = performance.now() - clientReqStart;
+      console.log(`[IDEA-GEN-PERF] Client Roundtrip: ${clientDuration.toFixed(1)}ms | Server Reported: ${data?.perf?.totalMs || 0}ms (Model: ${data?.perf?.model || 'default'})`);
 
       // Safe normalization of all array and string properties to guarantee zero render exceptions
       const normalizedIdeas: GeneratedIdea[] = data.ideas.map((raw: any, index: number) => {
@@ -245,11 +252,16 @@ export default function IdeaGeneratorPage() {
       setIdeas(normalizedIdeas);
       setGenerateError(null);
       setExpandedCards({ 0: true });
-      console.log('[IDEA-REGEN] State replaced with new ideas.');
     } catch (err: any) {
-      console.error('[IDEA-REGEN] Error generating ideas:', err);
-      setGenerateError(err.message || 'Unable to generate ideas. Please try again.');
+      clearTimeout(timeoutId);
+      console.error('[IDEA-GEN-PERF] Error generating ideas:', err);
+      const isTimeout = err.name === 'AbortError';
+      const displayMsg = isTimeout 
+        ? 'Idea generation timed out. Please try again.' 
+        : (err.message || 'Unable to generate ideas. Please try again.');
+      setGenerateError(displayMsg);
     } finally {
+      isGeneratingRef.current = false;
       setIsGenerating(false);
     }
   };

@@ -1,11 +1,10 @@
 import { authenticateServerRequest, sanitizeEnvString } from '../shared/supabase.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// In-memory cache for generated ideas (3-minute TTL)
-const ideaCache = new Map();
-
 export default async function handler(req, res) {
-  // Setup CORS & anti-caching headers
+  const reqStart = performance.now();
+
+  // Setup CORS & strict anti-caching headers (NEVER cache idea generations)
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
@@ -30,7 +29,10 @@ export default async function handler(req, res) {
 
   try {
     // 1. Authenticate user from Bearer token
+    const tAuthStart = performance.now();
     const { user, error: authError } = await authenticateServerRequest(req);
+    const authDuration = performance.now() - tAuthStart;
+
     if (authError || !user) {
       return res.status(401).json({ error: authError || 'Unauthorized user session.' });
     }
@@ -40,7 +42,7 @@ export default async function handler(req, res) {
       hackathon, 
       skills = [], 
       workspaceContext, 
-      teamContext,
+      previousIdeaTitles = [],
       generationNonce
     } = req.body;
 
@@ -48,19 +50,25 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Selected hackathon details are required.' });
     }
 
+    const tContextStart = performance.now();
+
     // 3. Assemble Prompt
     const hackathonInfo = `
 Target Hackathon: "${hackathon.title}"
-Theme / Description: "${hackathon.description || 'Open Innovation & Technical Excellence'}"
+Theme / Description: "${(hackathon.description || 'Open Innovation & Technical Excellence').slice(0, 500)}"
 Mode: "${hackathon.mode || 'Online'}"
 `;
 
     const skillsInfo = skills && skills.length > 0
-      ? `Participant Skills: ${skills.map(s => typeof s === 'string' ? s : (s.skill?.name || s.name || '')).filter(Boolean).join(', ')}`
+      ? `Participant Skills: ${skills.map(s => typeof s === 'string' ? s : (s.skill?.name || s.name || '')).filter(Boolean).slice(0, 10).join(', ')}`
       : 'Participant Skills: Full-Stack Web Development, React, Node.js, AI/ML, Cloud';
 
     const existingProject = workspaceContext
       ? `Existing Workspace/Idea in Progress: "${workspaceContext.project_name || ''}" - ${workspaceContext.problem_statement || ''}`
+      : '';
+
+    const previousExclusions = Array.isArray(previousIdeaTitles) && previousIdeaTitles.length > 0
+      ? `\nPREVIOUSLY GENERATED TITLES TO EXCLUDE (DO NOT REUSE OR GENERATE SIMILAR CONCEPTS):\n${previousIdeaTitles.map(t => `- ${t}`).join('\n')}\n`
       : '';
 
     const prompt = `You are an elite hackathon mentor and technical judge specializing in generating winning MVP project concepts.
@@ -71,7 +79,7 @@ Session Nonce / Request Seed: ${generationNonce || `${Date.now()}-${Math.random(
 Generate exactly 3 genuinely different, novel, and high-impact ideas.
 Do NOT reuse, repeat, paraphrase, or slightly modify previous ideas.
 Avoid cliché or generic concepts.
-
+${previousExclusions}
 Each idea must have a distinct:
 - problem domain & target audience
 - technical architecture & novel solution approach
@@ -108,11 +116,16 @@ Difficulty must be one of: "Beginner", "Intermediate", "Advanced".
 Return exactly 3 ideas in the "ideas" array.
 Return ONLY valid JSON. No markdown formatting, no conversational text.`;
 
-    // 4. Generate with Gemini with active models
+    const contextDuration = performance.now() - tContextStart;
+
+    // 4. Generate with Gemini using fastest flash-lite model first with reliable fallbacks
     const genAI = new GoogleGenerativeAI(apiKey);
-    const activeModels = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-flash-latest'];
+    const activeModels = ['gemini-3.5-flash-lite', 'gemini-3.7-flash', 'gemini-3.6-flash'];
     let text = '';
     let lastError = null;
+    let selectedModel = '';
+
+    const tGeminiStart = performance.now();
 
     for (const modelName of activeModels) {
       try {
@@ -126,11 +139,19 @@ Return ONLY valid JSON. No markdown formatting, no conversational text.`;
         const result = await model.generateContent(prompt);
         const response = await result.response;
         text = response.text().trim();
-        if (text) break;
+        if (text) {
+          selectedModel = modelName;
+          break;
+        }
       } catch (err) {
         lastError = err;
       }
     }
+
+    const geminiDuration = performance.now() - tGeminiStart;
+    const totalDuration = performance.now() - reqStart;
+
+    console.log(`[IDEA-GEN-PERF] total: ${totalDuration.toFixed(1)}ms | auth: ${authDuration.toFixed(1)}ms | context: ${contextDuration.toFixed(1)}ms | gemini (${selectedModel}): ${geminiDuration.toFixed(1)}ms`);
 
     if (!text) {
       throw lastError || new Error('Failed to generate ideas from AI model.');
@@ -159,7 +180,14 @@ Return ONLY valid JSON. No markdown formatting, no conversational text.`;
       estimated_build_time: String(item.estimated_build_time || '20-28 hours')
     }));
 
-    return res.status(200).json({ ideas: normalizedIdeas });
+    return res.status(200).json({ 
+      ideas: normalizedIdeas,
+      perf: {
+        totalMs: Math.round(totalDuration),
+        geminiMs: Math.round(geminiDuration),
+        model: selectedModel
+      }
+    });
   } catch (err) {
     console.error('Idea Generator API Error:', err?.message || err);
     return res.status(500).json({ 
@@ -168,3 +196,4 @@ Return ONLY valid JSON. No markdown formatting, no conversational text.`;
     });
   }
 }
+
