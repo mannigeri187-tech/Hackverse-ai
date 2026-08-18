@@ -662,7 +662,16 @@ export default function MentorPage() {
                       : 'bg-slate-50 border border-slate-200 text-slate-800 rounded-tl-sm whitespace-pre-wrap font-medium'
                   }`}
                 >
-                  <div>{msg.text}</div>
+                  <div>
+                    {msg.text ? (
+                      msg.text
+                    ) : (
+                      <span className="flex items-center gap-1.5 text-slate-400 py-0.5">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-primary-600 inline flex-shrink-0" />
+                        <span className="text-xs font-medium">AI Mentor is thinking...</span>
+                      </span>
+                    )}
+                  </div>
                   <div
                     className={`text-[10px] ${
                       msg.sender === 'user' ? 'text-primary-200 text-right' : 'text-slate-400'
@@ -673,18 +682,6 @@ export default function MentorPage() {
                 </div>
               </div>
             ))}
-
-            {isSending && (
-              <div className="flex gap-3 justify-start items-center">
-                <div className="w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
-                  <Bot className="w-4 h-4" />
-                </div>
-                <div className="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-xs text-slate-500 font-medium flex items-center gap-2">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-primary-600" />
-                  <span>AI Mentor is strategizing...</span>
-                </div>
-              </div>
-            )}
 
             <div ref={messagesEndRef} />
           </div>
