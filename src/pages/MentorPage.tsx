@@ -60,6 +60,7 @@ export default function MentorPage() {
   const [chatError, setChatError] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const isSendingRef = useRef<boolean>(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -235,13 +236,17 @@ export default function MentorPage() {
     };
   }, [selectedHackathonId, user, activeHackathons]);
 
-  // 3. Send Message to AI Mentor Handler
+  // 3. Send Message to AI Mentor Handler with Atomic Lock & Timeout
   const handleSendMessage = useCallback(async (customText?: string) => {
     const textToSend = (customText || inputMessage).trim();
-    if (!textToSend || isSending) return;
+    if (!textToSend || isSendingRef.current) return;
 
+    isSendingRef.current = true;
+    setIsSending(true);
     setInputMessage('');
     setChatError(null);
+
+    const clientReqStart = performance.now();
 
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -251,7 +256,9 @@ export default function MentorPage() {
     };
 
     setMessages((prev) => [...prev, userMsg]);
-    setIsSending(true);
+
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), 25000);
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -277,7 +284,10 @@ export default function MentorPage() {
           userMessage: textToSend,
           chatHistory: messages.slice(-4),
         }),
+        signal: abortController.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
@@ -286,6 +296,9 @@ export default function MentorPage() {
       }
 
       const data = await res.json();
+      const clientDuration = performance.now() - clientReqStart;
+      console.log(`[AI-MENTOR-PERF] Client Roundtrip: ${clientDuration.toFixed(1)}ms | Server Reported: ${data?.perf?.totalMs || 0}ms (Model: ${data?.perf?.model || 'default'})`);
+
       if (!data || !data.reply) {
         throw new Error('Empty response received from AI Mentor.');
       }
@@ -299,8 +312,12 @@ export default function MentorPage() {
 
       setMessages((prev) => [...prev, aiReply]);
     } catch (err: any) {
+      clearTimeout(timeoutId);
       console.error('Error contacting AI Mentor:', err);
-      const displayError = err.message || 'AI Mentor is temporarily unavailable. Please try again.';
+      const isTimeout = err.name === 'AbortError';
+      const displayError = isTimeout 
+        ? 'AI Mentor request timed out. Please try again.' 
+        : (err.message || 'AI Mentor is temporarily unavailable. Please try again.');
       setChatError(displayError);
       setMessages((prev) => [
         ...prev,
@@ -312,9 +329,10 @@ export default function MentorPage() {
         },
       ]);
     } finally {
+      isSendingRef.current = false;
       setIsSending(false);
     }
-  }, [inputMessage, isSending, selectedHackathon, currentWorkspace, tasks, userSkillsData, teamMembers, messages]);
+  }, [inputMessage, selectedHackathon, currentWorkspace, tasks, userSkillsData, teamMembers, messages]);
 
   const clearChat = () => {
     if (selectedHackathon) {

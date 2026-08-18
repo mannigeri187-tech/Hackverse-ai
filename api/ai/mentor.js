@@ -2,6 +2,8 @@ import { authenticateServerRequest, sanitizeEnvString } from '../shared/supabase
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export default async function handler(req, res) {
+  const reqStart = performance.now();
+
   // Setup CORS
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -24,7 +26,10 @@ export default async function handler(req, res) {
 
   try {
     // 1. Authenticate user from Bearer token using shared server validator
+    const tAuthStart = performance.now();
     const { user, error: authError } = await authenticateServerRequest(req);
+    const authDuration = performance.now() - tAuthStart;
+
     if (authError || !user) {
       return res.status(401).json({ error: authError || 'Unauthorized user session.' });
     }
@@ -45,14 +50,16 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Message cannot be empty.' });
     }
 
-    // 3. Assemble Hackathon & Workspace Context
+    const tContextStart = performance.now();
+
+    // 3. Assemble Hackathon & Workspace Context concisely
     const hackathonContext = hackathon ? `
 Target Hackathon: "${hackathon.title || 'Unknown'}"
 Organizer: "${hackathon.organizer || 'N/A'}"
 Mode: "${hackathon.mode || 'Online'}"
 Start Date: "${hackathon.start_date || 'N/A'}"
 End Date / Deadline: "${hackathon.end_date || hackathon.registration_deadline || 'N/A'}"
-Description: "${(hackathon.description || 'No detailed description').slice(0, 800)}"
+Description: "${(hackathon.description || 'No detailed description').slice(0, 500)}"
 ` : 'No specific hackathon selected.';
 
     const workspaceContext = workspace ? `
@@ -61,18 +68,17 @@ Problem Statement: "${workspace.problem_statement || 'Not specified'}"
 Solution Proposal: "${workspace.solution || 'Not specified'}"
 Tech Stack: "${Array.isArray(workspace.tech_stack) ? workspace.tech_stack.join(', ') : 'Not specified'}"
 GitHub Repo: "${workspace.github_url || 'None linked'}"
-Submission Deadline: "${workspace.submission_deadline || 'Not set'}"
 Progress: ${workspace.progress_percentage || 0}%
 ` : 'No workspace created yet for this hackathon.';
 
     const tasksContext = Array.isArray(tasks) && tasks.length > 0 ? `
 Workspace Tasks (${tasks.length} total):
-${tasks.slice(0, 15).map(t => `- [${t.status.toUpperCase()}] (Priority: ${t.priority}) "${t.title}" ${t.due_date ? `(Due: ${t.due_date})` : ''}`).join('\n')}
+${tasks.slice(0, 10).map(t => `- [${t.status.toUpperCase()}] (Priority: ${t.priority}) "${t.title}" ${t.due_date ? `(Due: ${t.due_date})` : ''}`).join('\n')}
 ` : 'No workspace tasks logged yet.';
 
     const skillsContext = `
 User Skills: ${Array.isArray(skills) && skills.length > 0 ? skills.map(s => `${s.skill?.name || s.name} (${s.proficiency || 'intermediate'})`).join(', ') : 'None added'}
-Missing/Gap Skills for this Hackathon: ${Array.isArray(skillGaps) && skillGaps.length > 0 ? skillGaps.map(g => `${g.skill_name} (${g.importance})`).join(', ') : 'None identified'}
+Missing/Gap Skills: ${Array.isArray(skillGaps) && skillGaps.length > 0 ? skillGaps.map(g => `${g.skill_name} (${g.importance})`).join(', ') : 'None identified'}
 `;
 
     const teamContext = Array.isArray(team) && team.length > 0 ? `
@@ -114,12 +120,16 @@ GUIDELINES FOR YOUR RESPONSES:
     }
 
     const fullPrompt = `${systemPrompt}\n${historySnippet}\nUSER MESSAGE:\n${userMessage.trim()}\n\nMENTOR RESPONSE:`;
+    const contextDuration = performance.now() - tContextStart;
 
-    // 6. Generate Response using verified active Gemini models with fallback
+    // 6. Generate Response using fastest low-latency model first with reliable fallbacks
     const genAI = new GoogleGenerativeAI(apiKey);
-    const activeModels = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-flash-latest'];
+    const activeModels = ['gemini-3.5-flash-lite', 'gemini-3.7-flash', 'gemini-3.6-flash'];
     let responseText = '';
     let lastError = null;
+    let selectedModel = '';
+
+    const tGeminiStart = performance.now();
 
     for (const modelName of activeModels) {
       try {
@@ -127,17 +137,32 @@ GUIDELINES FOR YOUR RESPONSES:
         const result = await model.generateContent(fullPrompt);
         const response = await result.response;
         responseText = response.text().trim();
-        if (responseText) break;
+        if (responseText) {
+          selectedModel = modelName;
+          break;
+        }
       } catch (geminiErr) {
         lastError = geminiErr;
       }
     }
 
+    const geminiDuration = performance.now() - tGeminiStart;
+    const totalDuration = performance.now() - reqStart;
+
+    console.log(`[AI-MENTOR-PERF] total: ${totalDuration.toFixed(1)}ms | auth: ${authDuration.toFixed(1)}ms | context: ${contextDuration.toFixed(1)}ms | gemini (${selectedModel}): ${geminiDuration.toFixed(1)}ms`);
+
     if (!responseText) {
       throw lastError || new Error('No response from Gemini models');
     }
 
-    return res.status(200).json({ reply: responseText });
+    return res.status(200).json({ 
+      reply: responseText,
+      perf: {
+        totalMs: Math.round(totalDuration),
+        geminiMs: Math.round(geminiDuration),
+        model: selectedModel
+      }
+    });
   } catch (err) {
     console.error('AI Mentor Error:', err?.message || err);
     return res.status(500).json({ 
@@ -146,3 +171,4 @@ GUIDELINES FOR YOUR RESPONSES:
     });
   }
 }
+
