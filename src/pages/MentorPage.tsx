@@ -142,7 +142,13 @@ export default function MentorPage() {
 
   // Selected Hackathon and User Hackathons List
   const [activeHackathons, setActiveHackathons] = useState<Hackathon[]>([]);
-  const [selectedHackathonId, setSelectedHackathonId] = useState<string>('');
+  const [selectedHackathonId, setSelectedHackathonId] = useState<string>(() => {
+    try {
+      return localStorage.getItem(`hackverse_last_hackathon_${user?.id}`) || '';
+    } catch {
+      return '';
+    }
+  });
   const [selectedHackathon, setSelectedHackathon] = useState<Hackathon | null>(null);
   const [isLoadingHackathons, setIsLoadingHackathons] = useState<boolean>(true);
 
@@ -154,8 +160,30 @@ export default function MentorPage() {
   const [workspaceId, setWorkspaceId] = useState<string | undefined>(undefined);
   const { currentWorkspace, tasks } = useWorkspaces(workspaceId);
 
-  // Chat State
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // Chat State initialized synchronously from local history for 0ms recovery across navigation
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    try {
+      if (user?.id) {
+        const savedHackId = localStorage.getItem(`hackverse_last_hackathon_${user.id}`) || 'general';
+        const raw = localStorage.getItem(getLocalHistoryKey(user.id, savedHackId));
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
+        }
+      }
+    } catch {}
+    return [
+      {
+        id: 'welcome-reset',
+        sender: 'ai',
+        text: `👋 Hey! I'm your AI Hackathon Mentor.\n\nI'm connected to your project workspace, tasks, and team data. Ask me anything, or choose a quick evaluation question below to begin!`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      },
+    ];
+  });
+
   const [inputMessage, setInputMessage] = useState<string>('');
   const [isSending, setIsSending] = useState<boolean>(false);
   const [chatError, setChatError] = useState<string | null>(null);
@@ -179,17 +207,16 @@ export default function MentorPage() {
       if (!user) return;
       setIsLoadingHackathons(true);
       try {
-        const savedPromise = supabase
-          .from('saved_hackathons')
-          .select('hackathons(*)')
-          .eq('user_id', user.id);
-
-        const workspacePromise = supabase
-          .from('workspaces')
-          .select('hackathon:hackathons(*)')
-          .eq('user_id', user.id);
-
-        const [savedRes, workspaceRes] = await Promise.all([savedPromise, workspacePromise]);
+        const [savedRes, workspaceRes] = await Promise.all([
+          supabase
+            .from('saved_hackathons')
+            .select('hackathons(*)')
+            .eq('user_id', user.id),
+          supabase
+            .from('workspaces')
+            .select('hackathon:hackathons(*)')
+            .eq('user_id', user.id)
+        ]);
 
         if (isCancelled) return;
 
@@ -203,24 +230,15 @@ export default function MentorPage() {
           if (item.hackathon) hackMap.set(item.hackathon.id, item.hackathon);
         });
 
-        if (hackMap.size === 0) {
-          const { data: popularHacks } = await supabase
-            .from('hackathons')
-            .select('*')
-            .order('start_date', { ascending: true })
-            .limit(5);
-
-          if (!isCancelled) {
-            (popularHacks || []).forEach((h: any) => hackMap.set(h.id, h));
-          }
-        }
-
         const hackList = Array.from(hackMap.values());
-        if (!isCancelled) {
+        if (hackList.length > 0) {
           setActiveHackathons(hackList);
-          if (hackList.length > 0) {
-            setSelectedHackathonId(hackList[0].id);
-          }
+          setSelectedHackathonId((currentId) => {
+            if (currentId && hackList.some(h => h.id === currentId)) {
+              return currentId;
+            }
+            return hackList[0].id;
+          });
         }
       } catch (err) {
         console.error('Error loading active hackathons for Mentor:', err);
@@ -241,7 +259,9 @@ export default function MentorPage() {
     let isCancelled = false;
 
     async function loadContext() {
-      if (!user || !selectedHackathonId) {
+      if (!user) return;
+
+      if (!selectedHackathonId) {
         setSelectedHackathon(null);
         setWorkspaceId(undefined);
         setUserSkillsData([]);
@@ -249,37 +269,45 @@ export default function MentorPage() {
         return;
       }
 
+      // Save last selected hackathon ID to survive page navigation
+      try {
+        localStorage.setItem(`hackverse_last_hackathon_${user.id}`, selectedHackathonId);
+      } catch {}
+
       const chosen = activeHackathons.find((h) => h.id === selectedHackathonId) || null;
       if (!isCancelled) setSelectedHackathon(chosen);
 
+      // Fast synchronous load from user-scoped localStorage
       try {
-        const wsPromise = supabase
-          .from('workspaces')
-          .select('id')
-          .eq('hackathon_id', selectedHackathonId)
-          .eq('user_id', user.id)
-          .maybeSingle();
+        const raw = localStorage.getItem(getLocalHistoryKey(user.id, selectedHackathonId));
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0 && !isCancelled) {
+            setMessages(parsed);
+          }
+        }
+      } catch {}
 
-        const profPromise = supabase
-          .from('team_profiles')
-          .select('skills, preferred_roles')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        const requestsPromise = supabase
-          .from('team_requests')
-          .select('sender_id, receiver_id')
-          .eq('hackathon_id', selectedHackathonId)
-          .eq('status', 'accepted')
-          .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
-
-        const historyPromise = loadPersistentMessages(user.id, selectedHackathonId, chosen?.title);
-
+      try {
         const [wsRes, profRes, requestsRes, persistentHistory] = await Promise.all([
-          wsPromise,
-          profPromise,
-          requestsPromise,
-          historyPromise
+          supabase
+            .from('workspaces')
+            .select('id')
+            .eq('hackathon_id', selectedHackathonId)
+            .eq('user_id', user.id)
+            .maybeSingle(),
+          supabase
+            .from('team_profiles')
+            .select('skills, preferred_roles')
+            .eq('user_id', user.id)
+            .maybeSingle(),
+          supabase
+            .from('team_requests')
+            .select('sender_id, receiver_id')
+            .eq('hackathon_id', selectedHackathonId)
+            .eq('status', 'accepted')
+            .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`),
+          loadPersistentMessages(user.id, selectedHackathonId, chosen?.title)
         ]);
 
         if (isCancelled) return;
@@ -317,8 +345,8 @@ export default function MentorPage() {
           setTeamMembers([]);
         }
 
-        // Restore user's persistent messages for this hackathon
-        if (!isCancelled && persistentHistory) {
+        // Restore full persistent messages from DB/storage
+        if (!isCancelled && persistentHistory && persistentHistory.length > 0) {
           setMessages(persistentHistory);
         }
       } catch (err) {
