@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, MapPin, Calendar, Globe, Building2, Clock, ExternalLink } from 'lucide-react';
 import { useHackathons } from '../hooks/useHackathons';
-import { parseHackathonDate, isUpcomingHackathon, getHackathonNormalizedStatus } from '../utils/hackathonDate';
+import { parseHackathonDate, isUpcomingHackathon, removeExpiredHackathons, getHackathonNormalizedStatus } from '../utils/hackathonDate';
 
 export default function HackathonsPage() {
   const [searchInput, setSearchInput] = useState('');
@@ -44,15 +44,13 @@ export default function HackathonsPage() {
     limit
   });
 
-  // Strict Upcoming Date Filtering: Never display expired/closed events in upcoming lists
+  // Strict Upcoming Date Filtering: Clean out expired/closed events from active display
   const displayHackathons = useMemo(() => {
-    return (rawHackathons || []).filter(h => {
-      if (status === 'completed') {
-        return !isUpcomingHackathon(h);
-      }
-      // Default / 'upcoming' / 'active' / 'all' -> ONLY show upcoming and active competitions
-      return isUpcomingHackathon(h);
-    });
+    if (status === 'completed') {
+      return (rawHackathons || []).filter(h => !isUpcomingHackathon(h));
+    }
+    // Default / 'upcoming' / 'active' / 'all' -> ONLY maintain active, upcoming hackathons
+    return removeExpiredHackathons(rawHackathons);
   }, [rawHackathons, status]);
 
   const totalPages = Math.ceil(totalCount / limit);

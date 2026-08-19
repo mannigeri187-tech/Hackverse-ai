@@ -282,3 +282,35 @@ export function isUpcomingHackathon(hackathon: any): boolean {
   return Boolean(hasFuture);
 }
 
+/**
+ * Removes expired hackathons from any array of hackathon records.
+ * Returns only verified active/upcoming hackathon records.
+ */
+export function removeExpiredHackathons<T = any>(hackathons: T[] | null | undefined): T[] {
+  if (!Array.isArray(hackathons)) return [];
+  return hackathons.filter(isUpcomingHackathon);
+}
+
+/**
+ * Safely reads hackathons from localStorage, cleans out all expired records,
+ * saves the cleaned list back to localStorage, and returns the active records.
+ */
+export function cleanLocalStorageHackathons<T = any>(storageKey: string): T[] {
+  if (typeof window === 'undefined' || !window.localStorage) return [];
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    
+    const active = removeExpiredHackathons<T>(parsed);
+    if (active.length !== parsed.length) {
+      window.localStorage.setItem(storageKey, JSON.stringify(active));
+    }
+    return active;
+  } catch {
+    return [];
+  }
+}
+
+

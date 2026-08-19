@@ -5,7 +5,7 @@ import { useHackathons } from '../hooks/useHackathons';
 import { useAuth } from '../contexts/AuthContext';
 import { DailyCoach } from '../components/DailyCoach';
 import { TrackerSummaryWidget } from '../components/TrackerSummaryWidget';
-import { parseHackathonDate, isUpcomingHackathon } from '../utils/hackathonDate';
+import { parseHackathonDate, removeExpiredHackathons } from '../utils/hackathonDate';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -19,7 +19,7 @@ export default function DashboardPage() {
   });
 
   const upcomingHackathons = useMemo(() => {
-    return (rawHackathons || []).filter(isUpcomingHackathon).slice(0, 3);
+    return removeExpiredHackathons(rawHackathons).slice(0, 3);
   }, [rawHackathons]);
 
   return (

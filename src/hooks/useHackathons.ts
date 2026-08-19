@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { isUpcomingHackathon } from '../utils/hackathonDate';
+import { removeExpiredHackathons } from '../utils/hackathonDate';
 
 export type Hackathon = {
   id: string;
@@ -56,12 +56,12 @@ export function useHackathons(params: SearchParams) {
 
     const cacheKey = queryParams.toString() || 'default';
 
-    // 2. Check Client-Side In-Memory Cache First (Immediate 0ms paint)
+    // 2. Check Client-Side In-Memory Cache First (Immediate 0ms paint with cleaned active data)
     const cached = clientCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CLIENT_CACHE_TTL) {
-      const validCached = params.status === 'completed' ? cached.data : cached.data.filter(isUpcomingHackathon);
-      setHackathons(validCached);
-      setTotalCount(params.status === 'completed' ? cached.count : validCached.length);
+      const activeData = params.status === 'completed' ? cached.data : removeExpiredHackathons(cached.data);
+      setHackathons(activeData);
+      setTotalCount(params.status === 'completed' ? cached.count : activeData.length);
       setResponseTime(0.5);
       setDataSource('instant-cache');
       setIsLoading(false);
@@ -93,17 +93,17 @@ export function useHackathons(params: SearchParams) {
         const clientLatency = performance.now() - fetchStartTime;
 
         const rawList = (result.data || []) as Hackathon[];
-        const validList = params.status === 'completed' ? rawList : rawList.filter(isUpcomingHackathon);
+        const activeList = params.status === 'completed' ? rawList : removeExpiredHackathons(rawList);
 
-        setHackathons(validList);
-        setTotalCount(params.status === 'completed' ? (result.count || validList.length) : validList.length);
+        setHackathons(activeList);
+        setTotalCount(params.status === 'completed' ? (result.count || activeList.length) : activeList.length);
         setResponseTime(result.responseTime || clientLatency);
         setDataSource(result.source || 'postgres');
 
-        // Store in client cache
+        // Store cleaned active data in client cache
         clientCache.set(cacheKey, {
-          data: validList,
-          count: validList.length,
+          data: activeList,
+          count: activeList.length,
           responseTime: result.responseTime || clientLatency,
           source: result.source || 'postgres',
           timestamp: Date.now()
