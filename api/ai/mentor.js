@@ -104,6 +104,10 @@ ${contextParts || 'General Hackathon Guidance'}`;
 
     // 7. Ultra-Low Latency Streaming via SSE
     if (req.body?.stream === true || req.headers.accept?.includes('text/event-stream')) {
+      if (res.socket && typeof res.socket.setNoDelay === 'function') {
+        res.socket.setNoDelay(true);
+      }
+
       res.writeHead(200, {
         'Content-Type': 'text/event-stream; charset=utf-8',
         'Cache-Control': 'no-cache, no-transform, no-store, must-revalidate',
