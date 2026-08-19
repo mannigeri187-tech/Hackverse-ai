@@ -59,6 +59,12 @@ function vercelServerlessDevPlugin() {
               res.setHeader('Content-Type', 'application/json');
               res.end(JSON.stringify(data));
             };
+            if (typeof res.flush !== 'function') {
+              res.flush = () => {};
+            }
+            if (typeof res.flushHeaders !== 'function') {
+              res.flushHeaders = () => {};
+            }
             
             await handler(req, res);
             return;
