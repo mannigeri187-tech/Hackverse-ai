@@ -73,22 +73,28 @@ export default function IdeaGeneratorPage() {
     setExpandedCards(prev => ({ ...prev, [index]: !prev[index] }));
   };
 
-  // 1. Fetch available hackathons & user skills on mount
+  // 1. Fetch available hackathons & user skills concurrently on mount
   useEffect(() => {
     async function loadInitialData() {
       if (!user) return;
       setIsLoadingHackathons(true);
 
       try {
-        // Fetch hackathons from database
-        const { data: hackData, error: hackError } = await supabase
-          .from('hackathons')
-          .select('*')
-          .order('start_date', { ascending: true });
+        const [hackRes, profRes] = await Promise.all([
+          supabase
+            .from('hackathons')
+            .select('*')
+            .order('start_date', { ascending: true }),
+          supabase
+            .from('team_profiles')
+            .select('skills')
+            .eq('user_id', user.id)
+            .maybeSingle()
+        ]);
 
-        if (hackError) throw hackError;
+        if (hackRes.error) throw hackRes.error;
 
-        const list = hackData || [];
+        const list = hackRes.data || [];
         setHackathons(list);
 
         if (list.length > 0) {
@@ -96,15 +102,8 @@ export default function IdeaGeneratorPage() {
           setSelectedHackathon(list[0]);
         }
 
-        // Fetch user skills from team profile
-        const { data: prof } = await supabase
-          .from('team_profiles')
-          .select('skills')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (prof?.skills && Array.isArray(prof.skills)) {
-          setUserSkills(prof.skills);
+        if (profRes.data?.skills && Array.isArray(profRes.data.skills)) {
+          setUserSkills(profRes.data.skills);
         }
       } catch (err) {
         console.error('Error loading hackathons for idea generator:', err);

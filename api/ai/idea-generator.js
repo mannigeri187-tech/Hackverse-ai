@@ -139,7 +139,6 @@ Requirements:
 4. Output strictly structured JSON conforming to the schema.`;
 
     // 5. Generate with Gemini using fastest flash-lite model & singleton client
-    console.log('[IDEA-PERF] Gemini started');
     const tGeminiStart = performance.now();
     const genAI = getGenAIClient(apiKey);
     const modelName = 'gemini-3.5-flash-lite';
@@ -159,7 +158,6 @@ Requirements:
     text = response.text().trim();
 
     const geminiDuration = performance.now() - tGeminiStart;
-    console.log(`[IDEA-PERF] Gemini completed: ${geminiDuration.toFixed(1)} ms`);
 
     if (!text) {
       throw new Error('Failed to generate ideas from AI model.');
@@ -170,7 +168,6 @@ Requirements:
     const cleanText = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/i, '').trim();
     const parsed = JSON.parse(cleanText);
     const parseDuration = performance.now() - tParseStart;
-    console.log(`[IDEA-PERF] JSON parsing: ${parseDuration.toFixed(1)} ms`);
 
     if (!parsed.ideas || !Array.isArray(parsed.ideas)) {
       throw new Error('Invalid JSON format received from AI model.');
@@ -193,7 +190,10 @@ Requirements:
     }));
 
     const totalDuration = performance.now() - reqStart;
-    console.log(`[IDEA-PERF] total: ${totalDuration.toFixed(1)} ms`);
+    const processingDuration = totalDuration - authDuration - dbDuration - geminiDuration;
+
+    // Exact required performance block
+    console.log(`[IDEA-PERF]\nauth=${authDuration.toFixed(1)}ms\ncontext=${dbDuration.toFixed(1)}ms\ngemini=${geminiDuration.toFixed(1)}ms\nprocessing=${processingDuration.toFixed(1)}ms\ntotal=${totalDuration.toFixed(1)}ms`);
 
     return res.status(200).json({ 
       ideas: normalizedIdeas,
@@ -201,7 +201,7 @@ Requirements:
         totalMs: Math.round(totalDuration),
         geminiMs: Math.round(geminiDuration),
         authMs: Math.round(authDuration),
-        dbMs: Math.round(dbDuration),
+        contextMs: Math.round(dbDuration),
         parseMs: Math.round(parseDuration),
         model: modelName
       }
