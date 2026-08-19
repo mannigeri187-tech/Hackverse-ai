@@ -23,6 +23,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspaces } from '../hooks/useWorkspaces';
+import { isUpcomingHackathon } from '../utils/hackathonDate';
 import type { Hackathon } from '../hooks/useHackathons';
 
 export interface GeneratedIdea {
@@ -94,7 +95,7 @@ export default function IdeaGeneratorPage() {
 
         if (hackRes.error) throw hackRes.error;
 
-        const list = hackRes.data || [];
+        const list = (hackRes.data || []).filter(isUpcomingHackathon);
         setHackathons(list);
 
         if (list.length > 0) {

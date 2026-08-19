@@ -131,20 +131,67 @@ export function normalizeMode(rawMode = '', rawLocation = '') {
   return 'offline';
 }
 
+const MONTH_MAP = {
+  jan: 0, january: 0,
+  feb: 1, february: 1,
+  mar: 2, march: 2,
+  apr: 3, april: 3,
+  may: 4,
+  jun: 5, june: 5,
+  jul: 6, july: 6,
+  aug: 7, august: 7,
+  sep: 8, sept: 8, september: 8,
+  oct: 9, october: 9,
+  nov: 10, november: 10,
+  dec: 11, december: 11,
+};
+
 export function parseSafeIsoDate(dateString) {
   if (!dateString) return null;
   try {
-    const raw = String(dateString).trim();
+    let raw = String(dateString).trim();
     if (!raw) return null;
 
-    // 1. Direct parsing
+    // 1. Remove text prefixes
+    raw = raw
+      .replace(/^(deadline|starts|ends|date|registration deadline|reg deadline|apply by|ends on|registration ends)\s*:\s*/i, '')
+      .replace(/^(deadline|starts|ends|date)\s+/i, '')
+      .trim();
+
+    // 2. Remove ordinal suffixes: 1st, 2nd, 3rd, 4th -> 1, 2, 3, 4
+    raw = raw.replace(/\b(\d{1,2})(st|nd|rd|th)\b/gi, '$1');
+
+    // 3. Direct parsing
     const cleaned = raw.replace(/GMT\+0530/g, '+05:30');
     const d = new Date(cleaned);
     if (!isNaN(d.getTime())) {
       return d.toISOString();
     }
 
-    // 2. Slash parsing MM/DD/YYYY or DD/MM/YYYY
+    // 4. Text month formats: "2 Aug 2026", "August 2, 2026"
+    const textMonthMatch1 = raw.match(/^(\d{1,2})[\s\-\/\.]([A-Za-z]+)[\s\-\/\.](\d{4})/);
+    if (textMonthMatch1) {
+      const day = parseInt(textMonthMatch1[1], 10);
+      const mStr = textMonthMatch1[2].toLowerCase();
+      const year = parseInt(textMonthMatch1[3], 10);
+      if (mStr in MONTH_MAP) {
+        const testD = new Date(year, MONTH_MAP[mStr], day);
+        if (!isNaN(testD.getTime())) return testD.toISOString();
+      }
+    }
+
+    const textMonthMatch2 = raw.match(/^([A-Za-z]+)[\s\-\/\.](\d{1,2}),?[\s\-\/\.](\d{4})/);
+    if (textMonthMatch2) {
+      const mStr = textMonthMatch2[1].toLowerCase();
+      const day = parseInt(textMonthMatch2[2], 10);
+      const year = parseInt(textMonthMatch2[3], 10);
+      if (mStr in MONTH_MAP) {
+        const testD = new Date(year, MONTH_MAP[mStr], day);
+        if (!isNaN(testD.getTime())) return testD.toISOString();
+      }
+    }
+
+    // 5. Slash parsing MM/DD/YYYY or DD/MM/YYYY
     const slashMatch = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
     if (slashMatch) {
       const p1 = parseInt(slashMatch[1], 10);
@@ -160,6 +207,21 @@ export function parseSafeIsoDate(dateString) {
       }
     }
 
+    // 6. Dash parsing YYYY-MM-DD or DD-MM-YYYY
+    const dashMatch = raw.match(/^(\d{1,4})-(\d{1,2})-(\d{1,4})/);
+    if (dashMatch) {
+      const p1 = parseInt(dashMatch[1], 10);
+      const p2 = parseInt(dashMatch[2], 10);
+      const p3 = parseInt(dashMatch[3], 10);
+      if (p1 > 1000) {
+        const testD = new Date(p1, p2 - 1, p3);
+        if (!isNaN(testD.getTime())) return testD.toISOString();
+      } else if (p3 > 1000) {
+        const testD = new Date(p3, p2 - 1, p1);
+        if (!isNaN(testD.getTime())) return testD.toISOString();
+      }
+    }
+
     return null;
   } catch {
     return null;
@@ -171,7 +233,14 @@ export function isUpcomingEvent(startDateStr, endDateStr, regDeadlineStr, rawSta
   const nowMs = now.getTime();
   const statusStr = String(rawStatus || '').toLowerCase().trim();
 
-  if (statusStr === 'completed' || statusStr === 'ended' || statusStr === 'closed' || statusStr === 'registration closed') {
+  // 1. Explicit status check: Reject closed, ended, completed, or expired events
+  if (
+    statusStr.includes('closed') ||
+    statusStr.includes('ended') ||
+    statusStr.includes('completed') ||
+    statusStr.includes('expired') ||
+    statusStr.includes('past')
+  ) {
     return false;
   }
 
@@ -183,13 +252,29 @@ export function isUpcomingEvent(startDateStr, endDateStr, regDeadlineStr, rawSta
   const end = endIso ? new Date(endIso) : null;
   const deadline = deadlineIso ? new Date(deadlineIso) : null;
 
-  if (end && end.getTime() < nowMs) return false;
-  if (deadline && deadline.getTime() < nowMs) return false;
-  if (!end && !deadline && start && (nowMs - start.getTime() > 24 * 60 * 60 * 1000)) return false;
+  const getComparableTime = (d) => {
+    if (!d) return 0;
+    if (d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0) {
+      const eod = new Date(d);
+      eod.setHours(23, 59, 59, 999);
+      return eod.getTime();
+    }
+    return d.getTime();
+  };
 
-  const hasFuture = (start && start.getTime() >= nowMs) ||
-                    (end && end.getTime() >= nowMs) ||
-                    (deadline && deadline.getTime() >= nowMs);
+  // 2. Check registration deadline
+  if (deadline && getComparableTime(deadline) < nowMs) return false;
+
+  // 3. Check event end date
+  if (end && getComparableTime(end) < nowMs) return false;
+
+  // 4. Check start date if neither end nor deadline exists
+  if (!end && !deadline && start && getComparableTime(start) < nowMs) return false;
+
+  // 5. Must have at least one valid future date
+  const hasFuture = (deadline && getComparableTime(deadline) >= nowMs) ||
+                    (end && getComparableTime(end) >= nowMs) ||
+                    (start && getComparableTime(start) >= nowMs);
 
   return Boolean(hasFuture);
 }
@@ -217,3 +302,4 @@ export function calculateEventStatus(startDateStr, endDateStr, regDeadlineStr) {
   }
   return 'upcoming';
 }
+
