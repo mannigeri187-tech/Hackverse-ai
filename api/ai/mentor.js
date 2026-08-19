@@ -2,8 +2,21 @@ import { authenticateServerRequest, sanitizeEnvString } from '../shared/supabase
 import { applyRateLimit } from '../shared/rateLimiter.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+// Module-level memoized Gemini client singleton to eliminate instantiation on warm Vercel invocations
+let cachedGenAI = null;
+let cachedApiKey = '';
+
+function getGenAIClient(apiKey) {
+  if (!cachedGenAI || cachedApiKey !== apiKey) {
+    cachedGenAI = new GoogleGenerativeAI(apiKey);
+    cachedApiKey = apiKey;
+  }
+  return cachedGenAI;
+}
+
 export default async function handler(req, res) {
   const reqStart = performance.now();
+  console.log('[MENTOR-PERF] request received');
 
   // Setup CORS
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -30,19 +43,24 @@ export default async function handler(req, res) {
     const tAuthStart = performance.now();
     const { user, error: authError } = await authenticateServerRequest(req);
     const authDuration = performance.now() - tAuthStart;
+    console.log(`[MENTOR-PERF] auth completed: ${authDuration.toFixed(2)} ms`);
 
     if (authError || !user) {
       return res.status(401).json({ error: authError || 'Unauthorized user session.' });
     }
 
-    // 2. Apply AI Tier Rate Limiting (by user.id)
+    // 2. Database / Rate Limiting Check
+    const tDbStart = performance.now();
     const isAllowed = await applyRateLimit(req, res, {
       type: 'AI',
       identifier: user.id
     });
+    const dbDuration = performance.now() - tDbStart;
+    console.log(`[MENTOR-PERF] database completed: ${dbDuration.toFixed(2)} ms`);
+
     if (!isAllowed) return;
 
-    // 2. Extract and validate request body
+    // 3. Extract and validate request body
     const { 
       hackathon, 
       workspace, 
@@ -58,9 +76,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Message cannot be empty.' });
     }
 
-    const tContextStart = performance.now();
-
-    // 3. Assemble Hackathon & Workspace Context concisely
+    // 4. Assemble Hackathon & Workspace Context concisely
     const hackathonContext = hackathon ? `
 Target Hackathon: "${hackathon.title || 'Unknown'}"
 Organizer: "${hackathon.organizer || 'N/A'}"
@@ -94,7 +110,7 @@ Team Squad (${team.length} members):
 ${team.map(m => `- ${m.display_name} (Roles: ${(m.roles || []).join(', ') || 'General Hacker'})`).join('\n')}
 ` : 'Solo hacker or no team members connected yet.';
 
-    // 4. Build System Prompt for Gemini
+    // 5. Build System Prompt for Gemini
     const systemPrompt = `You are the AI Hackathon Mentor on HackVerse AI — an elite technical coach and mentor helping student hackers win hackathons.
 
 YOUR WORKING CONTEXT:
@@ -113,7 +129,7 @@ GUIDELINES FOR YOUR RESPONSES:
 6. When asked "What should we do today?": analyze the deadline, incomplete high-priority tasks, and missing skills to provide the top 3 focused actions with realistic time estimates.
 7. Keep answers concise, high-impact, and easy to read during a high-speed hackathon.`;
 
-    // 5. Construct full prompt
+    // 6. Construct full prompt
     let historySnippet = '';
     if (Array.isArray(chatHistory) && chatHistory.length > 0) {
       const genuineHistory = chatHistory
@@ -128,9 +144,8 @@ GUIDELINES FOR YOUR RESPONSES:
     }
 
     const fullPrompt = `${systemPrompt}\n${historySnippet}\nUSER MESSAGE:\n${userMessage.trim()}\n\nMENTOR RESPONSE:`;
-    const contextDuration = performance.now() - tContextStart;
 
-    // 6. Streaming SSE response handler for ultra-low latency on Vercel
+    // 7. Streaming SSE response handler for ultra-low latency on Vercel
     if (req.body.stream === true || req.headers.accept?.includes('text/event-stream')) {
       res.writeHead(200, {
         'Content-Type': 'text/event-stream; charset=utf-8',
@@ -146,45 +161,61 @@ GUIDELINES FOR YOUR RESPONSES:
         res.flushHeaders();
       }
 
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const activeModels = ['gemini-3.5-flash-lite'];
+      console.log('[MENTOR-PERF] Gemini request started');
+      const tGeminiStart = performance.now();
+      const genAI = getGenAIClient(apiKey);
+      const modelName = 'gemini-3.5-flash-lite';
+      
       let streamedSuccess = false;
       let lastStreamError = null;
-      let selectedModel = '';
+      let tFirstChunk = null;
+      let totalStreamDuration = 0;
+      let chunkCount = 0;
 
-      for (const modelName of activeModels) {
-        try {
-          const model = genAI.getGenerativeModel({ 
-            model: modelName,
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 1024,
-            }
-          });
-          const streamResult = await model.generateContentStream(fullPrompt);
-          selectedModel = modelName;
+      try {
+        const model = genAI.getGenerativeModel({ 
+          model: modelName,
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 1024,
+          }
+        });
+        const streamResult = await model.generateContentStream(fullPrompt);
 
-          for await (const chunk of streamResult.stream) {
-            const chunkText = chunk.text();
-            if (chunkText) {
-              res.write(`data: ${JSON.stringify({ chunk: chunkText })}\n\n`);
-              if (typeof res.flush === 'function') {
-                res.flush();
-              }
+        const tResponseProcessingStart = performance.now();
+
+        for await (const chunk of streamResult.stream) {
+          if (tFirstChunk === null) {
+            tFirstChunk = performance.now() - tGeminiStart;
+          }
+          const chunkText = chunk.text();
+          if (chunkText) {
+            chunkCount++;
+            res.write(`data: ${JSON.stringify({ chunk: chunkText })}\n\n`);
+            if (typeof res.flush === 'function') {
+              res.flush();
             }
           }
-
-          streamedSuccess = true;
-          const totalStreamDuration = performance.now() - reqStart;
-          res.write(`data: ${JSON.stringify({ done: true, perf: { totalMs: Math.round(totalStreamDuration), model: selectedModel } })}\n\n`);
-          if (typeof res.flush === 'function') {
-            res.flush();
-          }
-          res.end();
-          break;
-        } catch (streamErr) {
-          lastStreamError = streamErr;
         }
+
+        const geminiDuration = performance.now() - tGeminiStart;
+        console.log(`[MENTOR-PERF] Gemini request completed: ${geminiDuration.toFixed(2)} ms`);
+
+        const responseProcessingDuration = performance.now() - tResponseProcessingStart;
+        console.log(`[MENTOR-PERF] response processing: ${responseProcessingDuration.toFixed(2)} ms`);
+
+        streamedSuccess = true;
+        totalStreamDuration = performance.now() - reqStart;
+        console.log(`[MENTOR-PERF] total: ${totalStreamDuration.toFixed(2)} ms`);
+
+        res.write(`data: ${JSON.stringify({ done: true, perf: { totalMs: Math.round(totalStreamDuration), ttftMs: Math.round(tFirstChunk || 0), model: modelName } })}\n\n`);
+        if (typeof res.flush === 'function') {
+          res.flush();
+        }
+        res.end();
+      } catch (streamErr) {
+        lastStreamError = streamErr;
+        console.error('Gemini Stream Error:', streamErr?.message);
       }
 
       if (!streamedSuccess) {
@@ -197,51 +228,39 @@ GUIDELINES FOR YOUR RESPONSES:
       return;
     }
 
-    // 7. Fast JSON Response using verified active Gemini models with fallback
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const activeModels = ['gemini-3.5-flash-lite'];
-    let responseText = '';
-    let lastError = null;
-    let selectedModel = '';
-
+    // 8. Fast JSON Response fallback
+    console.log('[MENTOR-PERF] Gemini request started');
     const tGeminiStart = performance.now();
+    const genAI = getGenAIClient(apiKey);
+    const modelName = 'gemini-3.5-flash-lite';
+    let responseText = '';
 
-    for (const modelName of activeModels) {
-      try {
-        const model = genAI.getGenerativeModel({ 
-          model: modelName,
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 1024,
-          }
-        });
-        const result = await model.generateContent(fullPrompt);
-        const response = await result.response;
-        responseText = response.text().trim();
-        if (responseText) {
-          selectedModel = modelName;
-          break;
-        }
-      } catch (geminiErr) {
-        lastError = geminiErr;
+    const model = genAI.getGenerativeModel({ 
+      model: modelName,
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 1024,
       }
-    }
+    });
+    const result = await model.generateContent(fullPrompt);
+    const response = await result.response;
+    responseText = response.text().trim();
 
     const geminiDuration = performance.now() - tGeminiStart;
+    console.log(`[MENTOR-PERF] Gemini request completed: ${geminiDuration.toFixed(2)} ms`);
+
+    const tResponseProcessingStart = performance.now();
     const totalDuration = performance.now() - reqStart;
-
-    console.log(`[AI-MENTOR-PERF] total: ${totalDuration.toFixed(1)}ms | auth: ${authDuration.toFixed(1)}ms | context: ${contextDuration.toFixed(1)}ms | gemini (${selectedModel}): ${geminiDuration.toFixed(1)}ms`);
-
-    if (!responseText) {
-      throw lastError || new Error('No response from Gemini models');
-    }
+    const responseProcessingDuration = performance.now() - tResponseProcessingStart;
+    console.log(`[MENTOR-PERF] response processing: ${responseProcessingDuration.toFixed(2)} ms`);
+    console.log(`[MENTOR-PERF] total: ${totalDuration.toFixed(2)} ms`);
 
     return res.status(200).json({ 
       reply: responseText,
       perf: {
         totalMs: Math.round(totalDuration),
         geminiMs: Math.round(geminiDuration),
-        model: selectedModel
+        model: modelName
       }
     });
   } catch (err) {
@@ -252,4 +271,5 @@ GUIDELINES FOR YOUR RESPONSES:
     });
   }
 }
+
 
