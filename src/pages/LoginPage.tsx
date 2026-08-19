@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { checkAuthRateLimit, reportAuthSuccess, reportAuthFailure } from '../utils/authRateLimiter';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -17,8 +18,17 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
+    const cleanEmail = email.trim().toLowerCase();
+
+    // 1. Check Rate Limit before hitting auth service
+    const rateCheck = await checkAuthRateLimit('login', cleanEmail);
+    if (!rateCheck.allowed) {
+      setError(rateCheck.error || 'Too many login attempts. Please try again later.');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const cleanEmail = email.trim().toLowerCase();
       const cleanPassword = password;
 
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
@@ -27,12 +37,14 @@ export default function LoginPage() {
       });
 
       if (signInError) {
+        reportAuthFailure(cleanEmail);
         setError(signInError.message || 'Invalid email or password.');
         if (signInError.message?.includes('Email not confirmed')) {
           navigate('/verify-email', { state: { email: cleanEmail } });
         }
         setLoading(false);
       } else if (data?.user) {
+        reportAuthSuccess(cleanEmail);
         navigate(from, { replace: true });
       } else {
         setLoading(false);

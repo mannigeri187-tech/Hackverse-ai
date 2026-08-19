@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { supabase } from '../shared/supabase.js';
 import { getFromCache, setToCache } from '../shared/redis.js';
 import { isUpcomingEvent } from '../shared/normalizer.js';
+import { applyRateLimit } from '../shared/rateLimiter.js';
 
 const CACHE_TTL_SEARCH = 120; // 2 minutes cache
 
@@ -32,6 +33,10 @@ export default async function handler(req, res) {
     res.status(200).end();
     return;
   }
+
+  // Apply Public Tier Rate Limiting (by IP)
+  const isAllowed = await applyRateLimit(req, res, { type: 'PUBLIC' });
+  if (!isAllowed) return;
 
   const startTime = performance.now();
   const cacheKey = generateSearchCacheKey(req.query);

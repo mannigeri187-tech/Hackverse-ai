@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { checkAuthRateLimit, reportAuthFailure } from '../utils/authRateLimiter';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -15,8 +16,17 @@ export default function SignupPage() {
     setLoading(true);
     setError(null);
 
+    const cleanEmail = email.trim().toLowerCase();
+
+    // 1. Check Rate Limit before signup
+    const rateCheck = await checkAuthRateLimit('signup', cleanEmail);
+    if (!rateCheck.allowed) {
+      setError(rateCheck.error || 'Too many signup attempts. Please try again later.');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const cleanEmail = email.trim().toLowerCase();
       const cleanPassword = password;
 
       const { data, error: signUpError } = await supabase.auth.signUp({
@@ -30,6 +40,7 @@ export default function SignupPage() {
       });
 
       if (signUpError) {
+        reportAuthFailure(cleanEmail);
         setError(signUpError.message || 'Signup failed. Please try again.');
         setLoading(false);
       } else if (data?.user) {

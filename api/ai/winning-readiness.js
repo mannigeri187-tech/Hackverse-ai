@@ -1,4 +1,5 @@
 import { authenticateServerRequest, sanitizeEnvString } from '../shared/supabase.js';
+import { applyRateLimit } from '../shared/rateLimiter.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // In-Memory cache for AI strategic explanations (keyed by user and workspace)
@@ -31,6 +32,13 @@ export default async function handler(req, res) {
     if (authError || !user) {
       return res.status(401).json({ error: authError || 'Unauthorized user session.' });
     }
+
+    // 2. Apply AI Tier Rate Limiting (by user.id)
+    const isAllowed = await applyRateLimit(req, res, {
+      type: 'AI',
+      identifier: user.id
+    });
+    if (!isAllowed) return;
 
     // 2. Extract deterministic calculated scores and minimal sanitized context
     const { 

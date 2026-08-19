@@ -1,5 +1,6 @@
 import { supabase } from '../shared/supabase.js';
 import { getFromCache, setToCache } from '../shared/redis.js';
+import { applyRateLimit } from '../shared/rateLimiter.js';
 
 const CACHE_TTL_DETAIL = 3600; // 1 hour
 
@@ -13,6 +14,10 @@ export default async function handler(req, res) {
     res.status(200).end();
     return;
   }
+
+  // Apply Public Tier Rate Limiting (by IP)
+  const isAllowed = await applyRateLimit(req, res, { type: 'PUBLIC' });
+  if (!isAllowed) return;
 
   const { id } = req.query; // In Vercel, dynamic path segments are in req.query
   if (!id) return res.status(400).json({ error: 'Missing ID parameter' });

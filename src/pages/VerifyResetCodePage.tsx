@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, RefreshCw, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { checkAuthRateLimit, reportAuthSuccess, reportAuthFailure } from '../utils/authRateLimiter';
 
 export default function VerifyResetCodePage() {
   const location = useLocation();
@@ -153,15 +154,26 @@ export default function VerifyResetCodePage() {
     setErrorMsg(null);
     setSuccessMsg(null);
 
+    const cleanEmail = email.trim().toLowerCase();
+
+    // 1. Check Rate Limit for verification attempts
+    const rateCheck = await checkAuthRateLimit('otp_verify', cleanEmail);
+    if (!rateCheck.allowed) {
+      setErrorMsg(rateCheck.error || 'Too many verification attempts. Please wait before trying again.');
+      setLoading(false);
+      return;
+    }
+
     try {
       // Verify email OTP token using Supabase Auth (passing strict 6-digit numeric string)
       const { data, error } = await supabase.auth.verifyOtp({
-        email: email.trim().toLowerCase(),
+        email: cleanEmail,
         token: token,
         type: 'email',
       });
 
       if (error || !data.session) {
+        reportAuthFailure(cleanEmail);
         if (error?.message?.toLowerCase().includes('expired')) {
           setErrorMsg('Your verification code has expired. Please request a new code.');
         } else {
@@ -171,12 +183,14 @@ export default function VerifyResetCodePage() {
         return;
       }
 
+      reportAuthSuccess(cleanEmail);
       setSuccessMsg('Email verified successfully! Setting up your new password...');
       // After successful OTP authentication, navigate to reset password page to set new password
       setTimeout(() => {
         navigate('/reset-password');
       }, 700);
     } catch (err: any) {
+      reportAuthFailure(cleanEmail);
       setErrorMsg('Invalid verification code. Please try again.');
       setLoading(false);
     }
@@ -189,11 +203,21 @@ export default function VerifyResetCodePage() {
     setErrorMsg(null);
     setSuccessMsg(null);
 
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Rate check for resending OTP
+    const rateCheck = await checkAuthRateLimit('otp_resend', cleanEmail);
+    if (!rateCheck.allowed) {
+      setErrorMsg(rateCheck.error || 'Too many resend attempts. Please wait before requesting another code.');
+      setResending(false);
+      return;
+    }
+
     try {
       console.log('[AUTH-DEBUG] Resend OTP request started for:', email);
 
       const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim().toLowerCase(),
+        email: cleanEmail,
         options: {
           shouldCreateUser: false,
         }

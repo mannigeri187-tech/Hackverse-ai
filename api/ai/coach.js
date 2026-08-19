@@ -1,4 +1,5 @@
 import { authenticateServerRequest, getSupabaseServerClient, sanitizeEnvString } from '../shared/supabase.js';
+import { applyRateLimit } from '../shared/rateLimiter.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export default async function handler(req, res) {
@@ -18,6 +19,13 @@ export default async function handler(req, res) {
     if (authError || !user) {
       return res.status(401).json({ error: authError || 'Unauthorized session or invalid auth token' });
     }
+
+    // Apply Rate Limiting (AI tier for POST generation, Authenticated tier for GET)
+    const isAllowed = await applyRateLimit(req, res, {
+      type: req.method === 'POST' ? 'AI' : 'AUTHENTICATED',
+      identifier: user.id
+    });
+    if (!isAllowed) return;
 
     const supabase = getSupabaseServerClient();
     const targetDate = req.query.date || new Date().toISOString().split('T')[0];

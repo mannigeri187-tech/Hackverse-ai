@@ -1,4 +1,5 @@
 import { authenticateServerRequest, sanitizeEnvString } from '../shared/supabase.js';
+import { applyRateLimit } from '../shared/rateLimiter.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Helper to safely parse GitHub Owner and Repo from various URL formats
@@ -40,7 +41,14 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: authError || 'Unauthorized user session.' });
     }
 
-    // 2. Validate GitHub URL
+    // 2. Apply AI Tier Rate Limiting (by user.id)
+    const isAllowed = await applyRateLimit(req, res, {
+      type: 'AI',
+      identifier: user.id
+    });
+    if (!isAllowed) return;
+
+    // 3. Validate GitHub URL
     const { repoUrl, workspaceContext } = req.body;
     const parsed = parseGitHubUrl(repoUrl);
 

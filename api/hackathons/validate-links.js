@@ -1,5 +1,6 @@
 import { runDatabaseLinkValidation } from '../shared/linkAuditService.js';
 import { supabase } from '../shared/supabase.js';
+import { applyRateLimit } from '../shared/rateLimiter.js';
 
 export default async function handler(req, res) {
   // CORS setup
@@ -12,6 +13,10 @@ export default async function handler(req, res) {
     res.status(200).end();
     return;
   }
+
+  // Apply Public Rate Limit to prevent flooding
+  const isAllowed = await applyRateLimit(req, res, { type: 'PUBLIC' });
+  if (!isAllowed) return;
 
   // Security Check: Vercel Cron Secret OR Bearer Authentication from Admin User
   const authHeader = req.headers.authorization;

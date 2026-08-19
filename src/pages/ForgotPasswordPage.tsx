@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { checkAuthRateLimit, reportAuthFailure } from '../utils/authRateLimiter';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -31,6 +32,14 @@ export default function ForgotPasswordPage() {
 
     const trimmedEmail = email.trim().toLowerCase();
 
+    // 1. Check Rate Limit before requesting OTP/Password Reset
+    const rateCheck = await checkAuthRateLimit('password_reset', trimmedEmail);
+    if (!rateCheck.allowed) {
+      setMessage({ type: 'error', text: rateCheck.error || 'Too many reset attempts. Please try again later.' });
+      setLoading(false);
+      return;
+    }
+
     console.log('[AUTH-DEBUG] Request started');
     console.log('[AUTH-DEBUG] Email exists:', Boolean(trimmedEmail));
     console.log('[AUTH-DEBUG] Supabase URL configured:', Boolean(import.meta.env.VITE_SUPABASE_URL || 'https://updhbkmjgzighnifabsd.supabase.co'));
@@ -47,6 +56,7 @@ export default function ForgotPasswordPage() {
     console.log('[AUTH-DEBUG] Error:', Boolean(error));
 
     if (error) {
+      reportAuthFailure(trimmedEmail);
       const msg = error.message ? error.message.toLowerCase() : '';
       const code = (error as any).code || '';
 
