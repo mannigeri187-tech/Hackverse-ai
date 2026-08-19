@@ -280,7 +280,9 @@ export default function HackathonsPage() {
                               ? `Starts: ${startDate.toLocaleDateString()}`
                               : endDate && endDate.getTime() >= now.getTime()
                               ? `Ends: ${endDate.toLocaleDateString()}`
-                              : startDate ? startDate.toLocaleDateString() : 'TBA'}
+                              : deadlineDate && deadlineDate.getTime() >= now.getTime()
+                              ? `Deadline: ${deadlineDate.toLocaleDateString()}`
+                              : 'Upcoming'}
                           </span>
                         </div>
                         {deadlineDate && deadlineDate.getTime() >= now.getTime() && (

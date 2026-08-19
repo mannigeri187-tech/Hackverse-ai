@@ -105,6 +105,18 @@ export default function DashboardPage() {
             <div className="grid md:grid-cols-3 gap-6">
               {upcomingHackathons.map((hackathon) => {
                 const startDate = parseHackathonDate(hackathon.start_date);
+                const endDate = parseHackathonDate(hackathon.end_date);
+                const deadlineDate = parseHackathonDate(hackathon.registration_deadline);
+                const now = new Date();
+
+                const displayDate = startDate && startDate.getTime() >= now.getTime()
+                  ? `Starts: ${startDate.toLocaleDateString()}`
+                  : endDate && endDate.getTime() >= now.getTime()
+                  ? `Ends: ${endDate.toLocaleDateString()}`
+                  : deadlineDate && deadlineDate.getTime() >= now.getTime()
+                  ? `Deadline: ${deadlineDate.toLocaleDateString()}`
+                  : 'Upcoming';
+
                 return (
                   <Link key={hackathon.id} to={`/hackathons/${hackathon.id}`} className="block group">
                     <div className="h-full border border-slate-200 rounded-xl overflow-hidden hover:border-primary-300 hover:shadow-md transition-all">
@@ -119,7 +131,7 @@ export default function DashboardPage() {
                         <div className="space-y-1.5 text-xs text-slate-500 font-medium">
                           <div className="flex items-center">
                             <Calendar className="w-3.5 h-3.5 mr-2 text-slate-400" />
-                            <span>{startDate ? startDate.toLocaleDateString() : 'TBA'}</span>
+                            <span>{displayDate}</span>
                           </div>
                           <div className="flex items-center">
                             <MapPin className="w-3.5 h-3.5 mr-2 text-slate-400" />

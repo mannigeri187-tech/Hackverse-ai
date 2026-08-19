@@ -19,7 +19,7 @@ function generateSearchCacheKey(params) {
   };
   const stringified = JSON.stringify(normalizedParams);
   const hash = crypto.createHash('md5').update(stringified).digest('hex');
-  return `hackathons:search:v5:${hash}`;
+  return `hackathons:search:v6:${hash}`;
 }
 
 export default async function handler(req, res) {
