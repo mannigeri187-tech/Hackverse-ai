@@ -138,7 +138,7 @@ async function clearPersistentMessages(userId: string, hackathonId: string, hack
 }
 
 export default function MentorPage() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
 
   // Selected Hackathon and User Hackathons List
   const [activeHackathons, setActiveHackathons] = useState<Hackathon[]>([]);
@@ -362,12 +362,26 @@ export default function MentorPage() {
     const timeoutId = setTimeout(() => abortController.abort(), 25000);
 
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
+      // 1. Get access token directly from existing auth session (0ms) or fallback to getSession
+      const token = session?.access_token || (await supabase.auth.getSession()).data.session?.access_token;
 
       if (!token) {
         throw new Error('Authentication session expired. Please log in again.');
       }
+
+      // Compact context payload to reduce network latency & token processing
+      const compactHistory = messages
+        .filter(m => m && m.text && m.id !== 'welcome-reset' && m.id !== 'welcome-1')
+        .slice(-3)
+        .map(m => ({ sender: m.sender, text: m.text.slice(0, 300) }));
+
+      const compactTasks = Array.isArray(tasks)
+        ? tasks.slice(0, 6).map(t => ({ title: t.title?.slice(0, 60), status: t.status, priority: t.priority }))
+        : [];
+
+      const compactSkills = Array.isArray(userSkillsData)
+        ? userSkillsData.slice(0, 6).map(s => s.skill?.name || s.name || 'Skill')
+        : [];
 
       const res = await fetch('/api/ai/mentor', {
         method: 'POST',
@@ -377,14 +391,24 @@ export default function MentorPage() {
           Accept: 'text/event-stream, application/json',
         },
         body: JSON.stringify({
-          hackathon: selectedHackathon,
-          workspace: currentWorkspace,
-          tasks: tasks || [],
-          skills: userSkillsData,
-          skillGaps: [],
-          team: teamMembers,
+          hackathon: selectedHackathon ? {
+            title: selectedHackathon.title,
+            organizer: selectedHackathon.organizer,
+            mode: selectedHackathon.mode,
+            description: selectedHackathon.description?.slice(0, 300),
+          } : undefined,
+          workspace: currentWorkspace ? {
+            project_name: currentWorkspace.project_name,
+            problem_statement: currentWorkspace.problem_statement?.slice(0, 200),
+            solution: currentWorkspace.solution?.slice(0, 200),
+            tech_stack: currentWorkspace.tech_stack,
+            progress_percentage: currentWorkspace.progress_percentage,
+          } : undefined,
+          tasks: compactTasks,
+          skills: compactSkills,
+          team: teamMembers.slice(0, 4).map(m => ({ display_name: m.display_name, roles: m.roles })),
           userMessage: textToSend,
-          chatHistory: messages.slice(-4),
+          chatHistory: compactHistory,
           stream: true,
         }),
         signal: abortController.signal,
