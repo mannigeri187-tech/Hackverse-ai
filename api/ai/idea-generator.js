@@ -35,16 +35,26 @@ const IDEA_RESPONSE_SCHEMA = {
   required: ['ideas']
 };
 
-// Module-level memoized Gemini client singleton
+// Module-level memoized Gemini client and model singleton
 let cachedGenAI = null;
 let cachedApiKey = '';
+let cachedIdeaModel = null;
 
-function getGenAIClient(apiKey) {
-  if (!cachedGenAI || cachedApiKey !== apiKey) {
+function getIdeaModel(apiKey) {
+  if (!cachedGenAI || cachedApiKey !== apiKey || !cachedIdeaModel) {
     cachedGenAI = new GoogleGenerativeAI(apiKey);
     cachedApiKey = apiKey;
+    cachedIdeaModel = cachedGenAI.getGenerativeModel({ 
+      model: 'gemini-3.5-flash-lite',
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: IDEA_RESPONSE_SCHEMA,
+        temperature: 0.7,
+        maxOutputTokens: 2500
+      }
+    });
   }
-  return cachedGenAI;
+  return cachedIdeaModel;
 }
 
 export default async function handler(req, res) {
@@ -133,26 +143,17 @@ ${existingProject}
 ${previousExclusions}
 
 Requirements:
-1. Generate exactly 3 distinct ideas.
-2. High novelty & clear winning factor for judging.
-3. Realistic 24-36h MVP scope.
+1. Generate exactly 3 distinct, fresh ideas.
+2. Be crisp and high-impact (1-2 clear sentences per field). Max 3-4 bullet items per array.
+3. Realistic 24-36h hackathon MVP scope.
 4. Output strictly structured JSON conforming to the schema.`;
 
     // 5. Generate with Gemini using fastest flash-lite model & singleton client
     const tGeminiStart = performance.now();
-    const genAI = getGenAIClient(apiKey);
+    const model = getIdeaModel(apiKey);
     const modelName = 'gemini-3.5-flash-lite';
     let text = '';
 
-    const model = genAI.getGenerativeModel({ 
-      model: modelName,
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: IDEA_RESPONSE_SCHEMA,
-        temperature: 0.8,
-        maxOutputTokens: 1200
-      }
-    });
     const result = await model.generateContent(prompt);
     const response = await result.response;
     text = response.text().trim();
