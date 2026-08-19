@@ -20,6 +20,10 @@ const MONTH_MAP: Record<string, number> = {
   dec: 11, december: 11,
 };
 
+/**
+ * Robust Hackathon Date Parser
+ * Adheres strictly to DAY/MONTH/YEAR for slash dates (e.g. 1/8/2026 = 1 August 2026)
+ */
 export function parseHackathonDate(val: string | number | Date | null | undefined): Date | null {
   if (!val) return null;
   if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
@@ -41,13 +45,19 @@ export function parseHackathonDate(val: string | number | Date | null | undefine
     // 2. Remove ordinal suffixes: 1st, 2nd, 3rd, 4th -> 1, 2, 3, 4
     raw = raw.replace(/\b(\d{1,2})(st|nd|rd|th)\b/gi, '$1');
 
-    // 3. Direct standard parsing (ISO 8601, RFC2822, etc.)
-    const directDate = new Date(raw.replace(/GMT\+0530/g, '+05:30'));
-    if (!isNaN(directDate.getTime())) {
-      return directDate;
+    // 3. Slash Formats: Strict DAY/MONTH/YEAR convention (e.g. 1/8/2026 = 1 August 2026, 5/8/2026 = 5 August 2026)
+    const slashMatch = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (slashMatch) {
+      const day = parseInt(slashMatch[1], 10);
+      const month = parseInt(slashMatch[2], 10);
+      const year = parseInt(slashMatch[3], 10);
+      if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+        const d = new Date(year, month - 1, day);
+        if (!isNaN(d.getTime())) return d;
+      }
     }
 
-    // 4. Handle text month formats: "2 Aug 2026", "August 2, 2026", "02-Aug-2026", "Aug 2 2026"
+    // 4. Text month formats: "2 Aug 2026", "August 2, 2026", "02-Aug-2026", "Aug 2 2026"
     const textMonthMatch1 = raw.match(/^(\d{1,2})[\s\-\/\.]([A-Za-z]+)[\s\-\/\.](\d{4})/);
     if (textMonthMatch1) {
       const day = parseInt(textMonthMatch1[1], 10);
@@ -70,27 +80,7 @@ export function parseHackathonDate(val: string | number | Date | null | undefine
       }
     }
 
-    // 5. Handle Slash Formats: MM/DD/YYYY or DD/MM/YYYY
-    const slashMatch = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-    if (slashMatch) {
-      const part1 = parseInt(slashMatch[1], 10);
-      const part2 = parseInt(slashMatch[2], 10);
-      const year = parseInt(slashMatch[3], 10);
-
-      // Try Month/Day/Year (US style)
-      if (part1 <= 12) {
-        const d = new Date(year, part1 - 1, part2);
-        if (!isNaN(d.getTime())) return d;
-      }
-
-      // Try Day/Month/Year (UK/India style)
-      if (part2 <= 12) {
-        const d = new Date(year, part2 - 1, part1);
-        if (!isNaN(d.getTime())) return d;
-      }
-    }
-
-    // 6. Handle Dash Formats: YYYY-MM-DD or DD-MM-YYYY
+    // 5. Dash Formats: YYYY-MM-DD or DD-MM-YYYY
     const dashMatch = raw.match(/^(\d{1,4})-(\d{1,2})-(\d{1,4})/);
     if (dashMatch) {
       const p1 = parseInt(dashMatch[1], 10);
@@ -107,6 +97,12 @@ export function parseHackathonDate(val: string | number | Date | null | undefine
       }
     }
 
+    // 6. Direct standard ISO / RFC parsing
+    const directDate = new Date(raw.replace(/GMT\+0530/g, '+05:30'));
+    if (!isNaN(directDate.getTime())) {
+      return directDate;
+    }
+
     return null;
   } catch {
     return null;
@@ -114,31 +110,6 @@ export function parseHackathonDate(val: string | number | Date | null | undefine
 }
 
 export type HackathonStatus = 'UPCOMING' | 'OPEN' | 'ACTIVE' | 'CLOSED' | 'ENDED';
-
-export interface HackathonDateFields {
-  start_date?: string | number | Date | null;
-  startDate?: string | number | Date | null;
-  eventStartDate?: string | number | Date | null;
-  event_start_date?: string | number | Date | null;
-  start?: string | number | Date | null;
-  date?: string | number | Date | null;
-
-  end_date?: string | number | Date | null;
-  endDate?: string | number | Date | null;
-  eventEndDate?: string | number | Date | null;
-  event_end_date?: string | number | Date | null;
-  end?: string | number | Date | null;
-
-  registration_deadline?: string | number | Date | null;
-  registrationDeadline?: string | number | Date | null;
-  deadline?: string | number | Date | null;
-  reg_deadline?: string | number | Date | null;
-  end_regn_dt?: string | number | Date | null;
-
-  status?: string | null;
-  event_status?: string | null;
-  registration_url_status?: string | null;
-}
 
 /**
  * Extracts and parses all possible date & status fields from any hackathon object representation.
@@ -155,11 +126,12 @@ export function extractHackathonDates(item: any): {
 
   const rawStart = item.startDate || item.start_date || item.eventStartDate || item.event_start_date || item.start || item.date || null;
   const rawEnd = item.endDate || item.end_date || item.eventEndDate || item.event_end_date || item.end || null;
-  const rawDeadline = item.deadline || item.registrationDeadline || item.registration_deadline || item.reg_deadline || item.end_regn_dt || null;
+  const rawDeadline = item.deadline || item.registrationDeadline || item.registration_deadline || item.reg_deadline || item.registrationDate || item.registration_date || item.end_regn_dt || null;
   
-  // Combine all status-like fields for comprehensive status checking
   const statusParts = [
     item.status,
+    item.registrationStatus,
+    item.registration_status,
     item.event_status,
     item.registration_url_status,
     typeof rawDeadline === 'string' && /closed|ended|completed/i.test(rawDeadline) ? rawDeadline : ''
@@ -208,7 +180,7 @@ export function getHackathonNormalizedStatus(item: any): HackathonStatus {
     return 'ACTIVE';
   }
 
-  // 4. If start is in the future and registration is open
+  // 4. If registration is open
   if (deadline && deadline.getTime() >= nowMs) {
     return 'OPEN';
   }
@@ -217,60 +189,96 @@ export function getHackathonNormalizedStatus(item: any): HackathonStatus {
 }
 
 /**
- * Determines whether a hackathon should be displayed in the upcoming / active discovery list.
- * STRICTLY rejects past deadlines, closed registrations, completed events, and expired dates.
- * Fully dynamic against Date.now().
+ * Single reliable upcoming hackathon filter function
+ * Returns true = SHOW, false = HIDE
+ * Fully dynamic against Date.now()
  */
-export function isUpcomingHackathon(item: any): boolean {
-  if (!item || typeof item !== 'object') return false;
+export function isUpcomingHackathon(hackathon: any): boolean {
+  if (!hackathon || typeof hackathon !== 'object') return false;
 
-  const { start, end, deadline, status } = extractHackathonDates(item);
   const now = new Date();
   const nowMs = now.getTime();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  const todayStartMs = todayStart.getTime();
 
-  // 1. Explicit status check: Reject closed, ended, completed, or expired events
-  const normalizedStatus = String(status || '').toLowerCase().trim();
+  // 1. Inspect status fields: status, registrationStatus, registration_status, event_status, registration_url_status
+  const statusFields = [
+    hackathon.status,
+    hackathon.registrationStatus,
+    hackathon.registration_status,
+    hackathon.event_status,
+    hackathon.registration_url_status,
+  ].filter(Boolean);
+
+  const rawStatus = statusFields.join(' ').toLowerCase().trim();
+
+  // If status contains: Ended, Completed, Closed, Registration Closed, Expired, Past -> return false
   if (
-    normalizedStatus.includes('closed') ||
-    normalizedStatus.includes('ended') ||
-    normalizedStatus.includes('completed') ||
-    normalizedStatus.includes('expired') ||
-    normalizedStatus.includes('past')
+    rawStatus.includes('ended') ||
+    rawStatus.includes('completed') ||
+    rawStatus.includes('closed') ||
+    rawStatus.includes('expired') ||
+    rawStatus.includes('past') ||
+    rawStatus === 'registration closed' ||
+    rawStatus === 'registration_closed'
   ) {
     return false;
   }
 
-  // Helper: Get comparable timestamp with end-of-day grace period for date-only values
-  const getComparableTime = (d: Date): number => {
-    // If the date was parsed at exact midnight (00:00:00), treat as end of day 23:59:59.999
-    if (d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0) {
-      const eod = new Date(d);
-      eod.setHours(23, 59, 59, 999);
-      return eod.getTime();
-    }
-    return d.getTime();
+  const rawDeadline = hackathon.registration_deadline ||
+                      hackathon.registrationDeadline ||
+                      hackathon.deadline ||
+                      hackathon.reg_deadline ||
+                      hackathon.registrationDate ||
+                      hackathon.registration_date ||
+                      hackathon.end_regn_dt ||
+                      null;
+
+  const rawEnd = hackathon.end_date ||
+                 hackathon.endDate ||
+                 hackathon.event_end_date ||
+                 hackathon.eventEndDate ||
+                 hackathon.end ||
+                 null;
+
+  const rawStart = hackathon.start_date ||
+                   hackathon.startDate ||
+                   hackathon.event_start_date ||
+                   hackathon.eventStartDate ||
+                   hackathon.start ||
+                   hackathon.date ||
+                   null;
+
+  const deadline = parseHackathonDate(rawDeadline);
+  const end = parseHackathonDate(rawEnd);
+  const start = parseHackathonDate(rawStart);
+
+  const getEndOfDayMs = (d: Date): number => {
+    const copy = new Date(d);
+    copy.setHours(23, 59, 59, 999);
+    return copy.getTime();
   };
 
-  // 2. Registration Deadline check: If registration deadline has passed -> REJECT
-  if (deadline && getComparableTime(deadline) < nowMs) {
+  // RULE 1: If deadline exists and is in the past -> REJECT (registration closed)
+  if (deadline && getEndOfDayMs(deadline) < nowMs) {
     return false;
   }
 
-  // 3. Event End Date check: If event end date has passed -> REJECT
-  if (end && getComparableTime(end) < nowMs) {
+  // RULE 2: If end date exists and is in the past -> REJECT (event ended)
+  if (end && getEndOfDayMs(end) < nowMs) {
     return false;
   }
 
-  // 4. Start Date check: If no end date and no deadline exists, and start date has passed -> REJECT
-  if (!end && !deadline && start && getComparableTime(start) < nowMs) {
+  // RULE 3: If start date exists and is before today -> REJECT (event already started in past e.g. 1/8/2026, 2/8/2026, 5/8/2026)
+  if (start && getEndOfDayMs(start) < todayStartMs) {
     return false;
   }
 
-  // 5. Must have at least one valid future/today date (deadline, end, or start)
-  const hasFutureDate = (deadline && getComparableTime(deadline) >= nowMs) ||
-                        (end && getComparableTime(end) >= nowMs) ||
-                        (start && getComparableTime(start) >= nowMs);
+  // RULE 4: Must have at least one valid future/today date (start or deadline or end)
+  const hasFuture = (start && getEndOfDayMs(start) >= todayStartMs) ||
+                    (deadline && getEndOfDayMs(deadline) >= nowMs) ||
+                    (end && getEndOfDayMs(end) >= nowMs);
 
-  return Boolean(hasFutureDate);
+  return Boolean(hasFuture);
 }
 

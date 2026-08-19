@@ -59,8 +59,9 @@ export function useHackathons(params: SearchParams) {
     // 2. Check Client-Side In-Memory Cache First (Immediate 0ms paint)
     const cached = clientCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CLIENT_CACHE_TTL) {
-      setHackathons(cached.data);
-      setTotalCount(cached.count);
+      const validCached = params.status === 'completed' ? cached.data : cached.data.filter(isUpcomingHackathon);
+      setHackathons(validCached);
+      setTotalCount(params.status === 'completed' ? cached.count : validCached.length);
       setResponseTime(0.5);
       setDataSource('instant-cache');
       setIsLoading(false);

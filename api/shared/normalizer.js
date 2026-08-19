@@ -158,14 +158,19 @@ export function parseSafeIsoDate(dateString) {
       .replace(/^(deadline|starts|ends|date)\s+/i, '')
       .trim();
 
-    // 2. Remove ordinal suffixes: 1st, 2nd, 3rd, 4th -> 1, 2, 3, 4
+    // 2. Remove ordinal suffixes
     raw = raw.replace(/\b(\d{1,2})(st|nd|rd|th)\b/gi, '$1');
 
-    // 3. Direct parsing
-    const cleaned = raw.replace(/GMT\+0530/g, '+05:30');
-    const d = new Date(cleaned);
-    if (!isNaN(d.getTime())) {
-      return d.toISOString();
+    // 3. Slash Formats: Strict DAY/MONTH/YEAR convention
+    const slashMatch = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (slashMatch) {
+      const day = parseInt(slashMatch[1], 10);
+      const month = parseInt(slashMatch[2], 10);
+      const year = parseInt(slashMatch[3], 10);
+      if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+        const d = new Date(year, month - 1, day);
+        if (!isNaN(d.getTime())) return d.toISOString();
+      }
     }
 
     // 4. Text month formats: "2 Aug 2026", "August 2, 2026"
@@ -191,23 +196,7 @@ export function parseSafeIsoDate(dateString) {
       }
     }
 
-    // 5. Slash parsing MM/DD/YYYY or DD/MM/YYYY
-    const slashMatch = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-    if (slashMatch) {
-      const p1 = parseInt(slashMatch[1], 10);
-      const p2 = parseInt(slashMatch[2], 10);
-      const yr = parseInt(slashMatch[3], 10);
-      if (p1 <= 12) {
-        const testD = new Date(yr, p1 - 1, p2);
-        if (!isNaN(testD.getTime())) return testD.toISOString();
-      }
-      if (p2 <= 12) {
-        const testD = new Date(yr, p2 - 1, p1);
-        if (!isNaN(testD.getTime())) return testD.toISOString();
-      }
-    }
-
-    // 6. Dash parsing YYYY-MM-DD or DD-MM-YYYY
+    // 5. Dash parsing YYYY-MM-DD or DD-MM-YYYY
     const dashMatch = raw.match(/^(\d{1,4})-(\d{1,2})-(\d{1,4})/);
     if (dashMatch) {
       const p1 = parseInt(dashMatch[1], 10);
@@ -222,6 +211,13 @@ export function parseSafeIsoDate(dateString) {
       }
     }
 
+    // 6. Direct standard parsing
+    const cleaned = raw.replace(/GMT\+0530/g, '+05:30');
+    const d = new Date(cleaned);
+    if (!isNaN(d.getTime())) {
+      return d.toISOString();
+    }
+
     return null;
   } catch {
     return null;
@@ -231,6 +227,8 @@ export function parseSafeIsoDate(dateString) {
 export function isUpcomingEvent(startDateStr, endDateStr, regDeadlineStr, rawStatus) {
   const now = new Date();
   const nowMs = now.getTime();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  const todayStartMs = todayStart.getTime();
   const statusStr = String(rawStatus || '').toLowerCase().trim();
 
   // 1. Explicit status check: Reject closed, ended, completed, or expired events
@@ -239,7 +237,9 @@ export function isUpcomingEvent(startDateStr, endDateStr, regDeadlineStr, rawSta
     statusStr.includes('ended') ||
     statusStr.includes('completed') ||
     statusStr.includes('expired') ||
-    statusStr.includes('past')
+    statusStr.includes('past') ||
+    statusStr === 'registration closed' ||
+    statusStr === 'registration_closed'
   ) {
     return false;
   }
@@ -252,29 +252,32 @@ export function isUpcomingEvent(startDateStr, endDateStr, regDeadlineStr, rawSta
   const end = endIso ? new Date(endIso) : null;
   const deadline = deadlineIso ? new Date(deadlineIso) : null;
 
-  const getComparableTime = (d) => {
+  const getEndOfDayMs = (d) => {
     if (!d) return 0;
-    if (d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0) {
-      const eod = new Date(d);
-      eod.setHours(23, 59, 59, 999);
-      return eod.getTime();
-    }
-    return d.getTime();
+    const copy = new Date(d);
+    copy.setHours(23, 59, 59, 999);
+    return copy.getTime();
   };
 
-  // 2. Check registration deadline
-  if (deadline && getComparableTime(deadline) < nowMs) return false;
+  // RULE 1: If deadline exists and is in the past -> REJECT (registration closed)
+  if (deadline && getEndOfDayMs(deadline) < nowMs) {
+    return false;
+  }
 
-  // 3. Check event end date
-  if (end && getComparableTime(end) < nowMs) return false;
+  // RULE 2: If end date exists and is in the past -> REJECT (event ended)
+  if (end && getEndOfDayMs(end) < nowMs) {
+    return false;
+  }
 
-  // 4. Check start date if neither end nor deadline exists
-  if (!end && !deadline && start && getComparableTime(start) < nowMs) return false;
+  // RULE 3: If start date exists and is before today -> REJECT (event started in past e.g. 1/8/2026, 2/8/2026, 5/8/2026)
+  if (start && getEndOfDayMs(start) < todayStartMs) {
+    return false;
+  }
 
-  // 5. Must have at least one valid future date
-  const hasFuture = (deadline && getComparableTime(deadline) >= nowMs) ||
-                    (end && getComparableTime(end) >= nowMs) ||
-                    (start && getComparableTime(start) >= nowMs);
+  // RULE 4: Must have at least one valid future/today date (start or deadline or end)
+  const hasFuture = (start && getEndOfDayMs(start) >= todayStartMs) ||
+                    (deadline && getEndOfDayMs(deadline) >= nowMs) ||
+                    (end && getEndOfDayMs(end) >= nowMs);
 
   return Boolean(hasFuture);
 }
