@@ -41,7 +41,7 @@ export interface GeneratedIdea {
 }
 
 export default function IdeaGeneratorPage() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const navigate = useNavigate();
   const { createWorkspace } = useWorkspaces();
 
@@ -174,10 +174,8 @@ export default function IdeaGeneratorPage() {
     const timeoutId = setTimeout(() => abortController.abort(), 25000);
 
     try {
-      const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
-      if (sessionErr) console.error('[IDEA-REGEN] Session retrieval error:', sessionErr);
+      const token = session?.access_token || (await supabase.auth.getSession()).data.session?.access_token;
 
-      const token = sessionData.session?.access_token;
       if (!token) {
         throw new Error('Authentication session expired. Please sign in again.');
       }
@@ -186,10 +184,14 @@ export default function IdeaGeneratorPage() {
 
       const requestUrl = '/api/ai/idea-generator';
       const requestPayload = {
-        hackathon: selectedHackathon,
-        skills: userSkills,
-        workspaceContext: existingWorkspace,
-        previousIdeaTitles: previousTitles,
+        hackathon: selectedHackathon ? {
+          title: selectedHackathon.title,
+          description: selectedHackathon.description?.slice(0, 200),
+          mode: selectedHackathon.mode
+        } : undefined,
+        skills: userSkills.slice(0, 6),
+        workspaceContext: existingWorkspace ? { project_name: existingWorkspace.project_name } : undefined,
+        previousIdeaTitles: previousTitles.slice(0, 6),
         generationNonce,
       };
 
@@ -208,14 +210,7 @@ export default function IdeaGeneratorPage() {
 
       clearTimeout(timeoutId);
 
-      const rawText = await res.text();
-      let data: any = {};
-      try {
-        data = JSON.parse(rawText);
-      } catch (parseErr: any) {
-        console.error('[IDEA-GEN-PERF] JSON parse failed:', parseErr.message);
-        throw new Error(`Invalid response from server (HTTP ${res.status}): ${rawText.slice(0, 80)}`);
-      }
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
         const statusMsg = `(HTTP ${res.status})`;
@@ -226,8 +221,7 @@ export default function IdeaGeneratorPage() {
         throw new Error('No ideas were returned. Please try again.');
       }
 
-      const clientDuration = performance.now() - clientReqStart;
-      console.log(`[IDEA-GEN-PERF] Client Roundtrip: ${clientDuration.toFixed(1)}ms | Server Reported: ${data?.perf?.totalMs || 0}ms (Model: ${data?.perf?.model || 'default'})`);
+      const tRenderStart = performance.now();
 
       // Safe normalization of all array and string properties to guarantee zero render exceptions
       const normalizedIdeas: GeneratedIdea[] = data.ideas.map((raw: any, index: number) => {
@@ -252,6 +246,10 @@ export default function IdeaGeneratorPage() {
       setIdeas(normalizedIdeas);
       setGenerateError(null);
       setExpandedCards({ 0: true });
+
+      const renderDuration = performance.now() - tRenderStart;
+      const clientDuration = performance.now() - clientReqStart;
+      console.log(`[IDEA-PERF] frontend rendering: ${renderDuration.toFixed(1)} ms | client total: ${clientDuration.toFixed(1)} ms`);
     } catch (err: any) {
       clearTimeout(timeoutId);
       console.error('[IDEA-GEN-PERF] Error generating ideas:', err);

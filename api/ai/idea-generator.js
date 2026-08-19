@@ -35,9 +35,21 @@ const IDEA_RESPONSE_SCHEMA = {
   required: ['ideas']
 };
 
+// Module-level memoized Gemini client singleton
+let cachedGenAI = null;
+let cachedApiKey = '';
+
+function getGenAIClient(apiKey) {
+  if (!cachedGenAI || cachedApiKey !== apiKey) {
+    cachedGenAI = new GoogleGenerativeAI(apiKey);
+    cachedApiKey = apiKey;
+  }
+  return cachedGenAI;
+}
+
 export default async function handler(req, res) {
   const reqStart = performance.now();
-  console.log('[IDEA-SPEED] request started');
+  console.log('[IDEA-PERF] request started');
 
   // Setup CORS & strict anti-caching headers (NEVER cache idea generations)
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -67,17 +79,21 @@ export default async function handler(req, res) {
     const tAuthStart = performance.now();
     const { user, error: authError } = await authenticateServerRequest(req);
     const authDuration = performance.now() - tAuthStart;
-    console.log(`[IDEA-SPEED] auth completed in ${authDuration.toFixed(1)}ms`);
+    console.log(`[IDEA-PERF] auth completed: ${authDuration.toFixed(1)} ms`);
 
     if (authError || !user) {
       return res.status(401).json({ error: authError || 'Unauthorized user session.' });
     }
 
-    // 2. Apply AI Tier Rate Limiting (by user.id)
+    // 2. Database & Rate Limiting Check
+    const tDbStart = performance.now();
     const isAllowed = await applyRateLimit(req, res, {
       type: 'AI',
       identifier: user.id
     });
+    const dbDuration = performance.now() - tDbStart;
+    console.log(`[IDEA-PERF] database/context completed: ${dbDuration.toFixed(1)} ms`);
+
     if (!isAllowed) return;
 
     // 3. Extract and validate request payload
@@ -87,27 +103,25 @@ export default async function handler(req, res) {
       workspaceContext, 
       previousIdeaTitles = [],
       generationNonce
-    } = req.body;
+    } = req.body || {};
 
     if (!hackathon || !hackathon.title) {
       return res.status(400).json({ error: 'Selected hackathon details are required.' });
     }
 
-    const tContextStart = performance.now();
-
-    // 3. Assemble Streamlined Prompt
+    // 4. Assemble Streamlined Prompt
     const hackathonTitle = String(hackathon.title || 'Hackathon').trim();
-    const hackathonDesc = String(hackathon.description || 'Open Innovation').slice(0, 300).trim();
-    const skillsList = skills && skills.length > 0
-      ? skills.map(s => typeof s === 'string' ? s : (s.skill?.name || s.name || '')).filter(Boolean).slice(0, 8).join(', ')
-      : 'Full-Stack Web, AI/ML, Cloud';
+    const hackathonDesc = String(hackathon.description || 'Open Innovation').slice(0, 200).trim();
+    const skillsList = Array.isArray(skills) && skills.length > 0
+      ? skills.map(s => typeof s === 'string' ? s : (s.skill?.name || s.name || '')).filter(Boolean).slice(0, 6).join(', ')
+      : 'Full-Stack Web, AI/ML';
 
     const existingProject = workspaceContext && workspaceContext.project_name
       ? `Current Project: "${workspaceContext.project_name}"`
       : '';
 
     const previousExclusions = Array.isArray(previousIdeaTitles) && previousIdeaTitles.length > 0
-      ? `Exclude previous titles: ${previousIdeaTitles.join(', ')}`
+      ? `Exclude previous titles: ${previousIdeaTitles.slice(0, 8).join(', ')}`
       : '';
 
     const prompt = `You are an elite hackathon mentor and technical judge.
@@ -124,53 +138,39 @@ Requirements:
 3. Realistic 24-36h MVP scope.
 4. Output strictly structured JSON conforming to the schema.`;
 
-    const contextDuration = performance.now() - tContextStart;
-    console.log(`[IDEA-SPEED] prompt construction completed in ${contextDuration.toFixed(1)}ms`);
-
-    // 4. Generate with Gemini using fastest flash-lite model
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const activeModels = ['gemini-3.5-flash-lite'];
-    let text = '';
-    let lastError = null;
-    let selectedModel = '';
-
+    // 5. Generate with Gemini using fastest flash-lite model & singleton client
+    console.log('[IDEA-PERF] Gemini started');
     const tGeminiStart = performance.now();
-    console.log('[IDEA-SPEED] Gemini request started');
+    const genAI = getGenAIClient(apiKey);
+    const modelName = 'gemini-3.5-flash-lite';
+    let text = '';
 
-    for (const modelName of activeModels) {
-      try {
-        const model = genAI.getGenerativeModel({ 
-          model: modelName,
-          generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: IDEA_RESPONSE_SCHEMA,
-            temperature: 0.85
-          }
-        });
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        text = response.text().trim();
-        if (text) {
-          selectedModel = modelName;
-          break;
-        }
-      } catch (err) {
-        lastError = err;
+    const model = genAI.getGenerativeModel({ 
+      model: modelName,
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: IDEA_RESPONSE_SCHEMA,
+        temperature: 0.8,
+        maxOutputTokens: 1200
       }
-    }
+    });
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    text = response.text().trim();
 
     const geminiDuration = performance.now() - tGeminiStart;
-    console.log(`[IDEA-SPEED] Gemini response received in ${geminiDuration.toFixed(1)}ms (${selectedModel})`);
+    console.log(`[IDEA-PERF] Gemini completed: ${geminiDuration.toFixed(1)} ms`);
 
     if (!text) {
-      throw lastError || new Error('Failed to generate ideas from AI model.');
+      throw new Error('Failed to generate ideas from AI model.');
     }
 
+    // 6. JSON Parsing & Validation
     const tParseStart = performance.now();
     const cleanText = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/i, '').trim();
     const parsed = JSON.parse(cleanText);
     const parseDuration = performance.now() - tParseStart;
-    console.log(`[IDEA-SPEED] JSON parsed in ${parseDuration.toFixed(1)}ms`);
+    console.log(`[IDEA-PERF] JSON parsing: ${parseDuration.toFixed(1)} ms`);
 
     if (!parsed.ideas || !Array.isArray(parsed.ideas)) {
       throw new Error('Invalid JSON format received from AI model.');
@@ -193,7 +193,7 @@ Requirements:
     }));
 
     const totalDuration = performance.now() - reqStart;
-    console.log(`[IDEA-SPEED] response sent | total: ${totalDuration.toFixed(1)}ms`);
+    console.log(`[IDEA-PERF] total: ${totalDuration.toFixed(1)} ms`);
 
     return res.status(200).json({ 
       ideas: normalizedIdeas,
@@ -201,9 +201,9 @@ Requirements:
         totalMs: Math.round(totalDuration),
         geminiMs: Math.round(geminiDuration),
         authMs: Math.round(authDuration),
-        contextMs: Math.round(contextDuration),
+        dbMs: Math.round(dbDuration),
         parseMs: Math.round(parseDuration),
-        model: selectedModel
+        model: modelName
       }
     });
   } catch (err) {
@@ -214,5 +214,6 @@ Requirements:
     });
   }
 }
+
 
 
