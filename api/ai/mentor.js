@@ -2,16 +2,24 @@ import { authenticateServerRequest, sanitizeEnvString } from '../shared/supabase
 import { applyRateLimit } from '../shared/rateLimiter.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Memoized singleton GoogleGenerativeAI client across warm serverless invocations
+// Memoized singleton GoogleGenerativeAI client and model across warm serverless invocations
 let cachedGenAI = null;
 let cachedApiKey = '';
+let cachedModel = null;
 
-function getGenAIClient(apiKey) {
+function getMentorModel(apiKey) {
   if (!cachedGenAI || cachedApiKey !== apiKey) {
     cachedGenAI = new GoogleGenerativeAI(apiKey);
     cachedApiKey = apiKey;
+    cachedModel = cachedGenAI.getGenerativeModel({ 
+      model: 'gemini-3.5-flash-lite',
+      generationConfig: {
+        temperature: 0.6,
+        maxOutputTokens: 800,
+      }
+    });
   }
-  return cachedGenAI;
+  return cachedModel;
 }
 
 export default async function handler(req, res) {
@@ -123,7 +131,7 @@ ${contextParts || 'General Hackathon Guidance'}`;
       }
 
       const tGeminiStart = performance.now();
-      const genAI = getGenAIClient(apiKey);
+      const model = getMentorModel(apiKey);
       const modelName = 'gemini-3.5-flash-lite';
       
       let streamedSuccess = false;
@@ -132,13 +140,6 @@ ${contextParts || 'General Hackathon Guidance'}`;
       const tProcessingStart = performance.now();
 
       try {
-        const model = genAI.getGenerativeModel({ 
-          model: modelName,
-          generationConfig: {
-            temperature: 0.6,
-            maxOutputTokens: 800,
-          }
-        });
         const streamResult = await model.generateContentStream(fullPrompt);
 
         for await (const chunk of streamResult.stream) {
@@ -184,16 +185,9 @@ ${contextParts || 'General Hackathon Guidance'}`;
 
     // 8. Fast JSON Response Fallback
     const tGeminiStart = performance.now();
-    const genAI = getGenAIClient(apiKey);
+    const model = getMentorModel(apiKey);
     const modelName = 'gemini-3.5-flash-lite';
 
-    const model = genAI.getGenerativeModel({ 
-      model: modelName,
-      generationConfig: {
-        temperature: 0.6,
-        maxOutputTokens: 800,
-      }
-    });
     const result = await model.generateContent(fullPrompt);
     const response = await result.response;
     const responseText = response.text().trim();
