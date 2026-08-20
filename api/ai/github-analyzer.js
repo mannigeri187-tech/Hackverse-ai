@@ -1,6 +1,7 @@
 import { authenticateServerRequest, sanitizeEnvString } from '../shared/supabase.js';
 import { applyRateLimit } from '../shared/rateLimiter.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { Groq } from 'groq-sdk';
 
 // Helper to safely parse GitHub Owner and Repo from various URL formats
 function parseGitHubUrl(url) {
@@ -243,6 +244,33 @@ JSON SCHEMA:
 
     const cleaned = rawText.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
     const aiAnalysisResult = JSON.parse(cleaned);
+
+    // Prompt Guard Safety Metric
+    let promptSafetyScore = 100; // Default safe
+    try {
+      const groqApiKey = process.env.GROQ_API_KEY || sanitizeEnvString(process.env.GEMINI_API_KEY); // Fallback to avoid breaking if unset
+      const groq = new Groq({ apiKey: groqApiKey });
+      const promptGuardCompletion = await groq.chat.completions.create({
+        messages: [{ role: 'user', content: String(readmeContent).slice(0, 3000) }],
+        model: 'meta-llama/llama-prompt-guard-2-86m',
+        temperature: 1,
+        max_completion_tokens: 1,
+        top_p: 1,
+        stream: false,
+        stop: null
+      });
+      const probability = parseFloat(promptGuardCompletion.choices[0].message.content);
+      if (!isNaN(probability)) {
+        promptSafetyScore = Math.max(0, 100 - Math.round(probability * 100));
+      }
+    } catch (pgError) {
+      console.warn('Prompt Guard evaluation failed:', pgError.message);
+    }
+    
+    // Inject the safety score into the AI's returned metrics
+    if (aiAnalysisResult.scores) {
+      aiAnalysisResult.scores.prompt_safety = promptSafetyScore;
+    }
 
     return res.status(200).json({
       repo_metadata: {
