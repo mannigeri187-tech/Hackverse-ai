@@ -121,10 +121,16 @@ export default function WinningReadinessPage() {
   // AI dynamically evaluates readiness instead of local logic
   const [readiness, setReadiness] = useState<any>(null);
 
+  // Generate a composite cache key based on actual workspace content to auto-invalidate when content changes
+  const getCacheKey = (ws: Workspace | null) => {
+    if (!ws) return '';
+    return `strat:${ws.id}:${ws.problem_statement?.length || 0}:${ws.solution?.length || 0}:${ws.tech_stack?.length || 0}:${ws.progress_percentage || 0}`;
+  };
+
   // Check cached strategy on workspace switch
   useEffect(() => {
     if (selectedWorkspace) {
-      const cacheKey = `strat:${selectedWorkspace.id}`;
+      const cacheKey = getCacheKey(selectedWorkspace);
       const cachedStr = clientStrategyCache.get(cacheKey);
       if (cachedStr) {
         try {
@@ -139,7 +145,7 @@ export default function WinningReadinessPage() {
         setStrategyStatus('idle');
       }
     }
-  }, [selectedWorkspaceId]);
+  }, [selectedWorkspaceId, selectedWorkspace?.problem_statement, selectedWorkspace?.solution, selectedWorkspace?.tech_stack, selectedWorkspace?.progress_percentage]);
 
   // AI Strategic Explanation Handler (On-Demand only)
   const handleGenerateAiExplanation = async () => {
@@ -192,7 +198,7 @@ export default function WinningReadinessPage() {
 
       // Cache locally in React memory
       if (data.overall_score !== undefined) {
-        const cacheKey = `strat:${selectedWorkspace.id}`;
+        const cacheKey = getCacheKey(selectedWorkspace);
         clientStrategyCache.set(cacheKey, JSON.stringify(data));
       }
     } catch (err: any) {
