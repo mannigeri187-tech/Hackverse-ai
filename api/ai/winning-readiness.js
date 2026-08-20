@@ -40,56 +40,53 @@ export default async function handler(req, res) {
     });
     if (!isAllowed) return;
 
-    // 2. Extract deterministic calculated scores and minimal sanitized context
     const { 
-      readinessData, 
+      workspace,
+      userSkills,
+      teamMembers,
+      githubScore,
+      pitchScore,
       workspaceId,
       workspaceName, 
       hackathonTitle 
     } = req.body;
 
-    if (!readinessData) {
-      return res.status(400).json({ error: 'Readiness data is required.' });
+    if (!workspace) {
+      return res.status(400).json({ error: 'Workspace data is required.' });
     }
 
-    // Check user-isolated strategic cache (3-minute TTL)
-    const cacheKey = `strat:${user.id}:${workspaceId || workspaceName || 'default'}:${readinessData.overall_score}`;
-    const cached = strategyCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < 180000) {
-      return res.status(200).json({ explanation: cached.data, cached: true });
-    }
+    const prompt = `You are an AI Hackathon Strategy Advisor & Readiness Engine.
+Evaluate the student's project progress and calculate a strictly realistic score (0-100) based on their actual semantic input.
 
-    // 3. Construct lightweight prompt with compact summaries
-    const categorySummary = (readinessData.categories || [])
-      .map(c => `- ${c.name}: ${c.score}/${c.maxScore} (${c.status})`)
-      .join('\n');
+# Hackathon: "${String(hackathonTitle || 'Hackathon').slice(0, 60)}"
+# Project: "${String(workspaceName || 'Project').slice(0, 60)}"
 
-    const topStrengths = (readinessData.strengths || []).slice(0, 4).map(s => `- ${s}`).join('\n') || '- In progress';
-    const topGaps = (readinessData.gaps || []).slice(0, 4).map(g => `- [${g.priority}] ${g.title}: ${g.action}`).join('\n') || '- None';
+## Workspace Context:
+Problem Statement: "${String(workspace.problem_statement || 'None').slice(0, 1000)}"
+Solution: "${String(workspace.solution || 'None').slice(0, 1000)}"
+Tech Stack: ${JSON.stringify(workspace.tech_stack || [])}
+Progress: ${workspace.progress_percentage || 0}%
+GitHub URL: ${workspace.github_url ? 'Linked' : 'Not Linked'}
+GitHub Analyzer Score: ${githubScore || 'Not Analyzed'}
+Pitch Coach Score: ${pitchScore || 'Not Analyzed'}
 
-    const prompt = `You are an AI Hackathon Strategy Advisor.
-The student's project has a DETERMINISTIC readiness score of ${readinessData.overall_score}/100 (${readinessData.readiness_tier}) for hackathon "${String(hackathonTitle || 'Hackathon').slice(0, 60)}".
-
-SCORES:
-${categorySummary}
-
-STRENGTHS:
-${topStrengths}
-
-CRITICAL GAPS:
-${topGaps}
+## Team Context:
+Team Members Count: ${teamMembers ? teamMembers.length : 0}
+User Skills: ${JSON.stringify(userSkills || [])}
 
 TASK:
-Write a concise 3-paragraph strategy in clean Markdown:
-1. **Readiness Summary**: Why the score is ${readinessData.overall_score}/100.
-2. **Competitive Edge**: 2 main strengths for judges.
-3. **Top 3 Fixes Before Submission**: High-impact improvements.
-
-Keep it direct and high-impact. Do not recalculate the score.`;
+1. Evaluate the semantic quality of the Problem Statement and Solution. If it's gibberish (e.g. "asdfasdf"), score it extremely low. If it's legitimate, score it realistically.
+2. Evaluate Tech Stack, Team, Skills, GitHub, and Pitch.
+3. Calculate an overall_score (0-100).
+4. Assign a readiness_tier: "Excellent Readiness", "Strong Readiness", "Good Progress", "Needs Improvement", or "Early Stage".
+5. Generate 8 category scores. Each category needs: name, key, score, maxScore, status ('Analyzed' | 'Partial' | 'Not analyzed yet'), explanation.
+6. List 3 strengths, 3 critical gaps, and 3 checklist items.
+7. Write a concise 3-paragraph strategy explanation (Readiness Summary, Competitive Edge, Top 3 Fixes).
+8. Return strictly as JSON.`;
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const activeModels = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-flash-latest'];
-    let explanationText = '';
+    const activeModels = ['gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.7-flash', 'gemini-flash-latest'];
+    let aiResponse = null;
     let lastError = null;
 
     for (const modelName of activeModels) {
@@ -97,32 +94,32 @@ Keep it direct and high-impact. Do not recalculate the score.`;
         const model = genAI.getGenerativeModel({ 
           model: modelName,
           generationConfig: {
-            maxOutputTokens: 650,
+            responseMimeType: "application/json",
             temperature: 0.3
           }
         });
 
-        // 8-second hard timeout
+        // 12-second hard timeout
         const result = await Promise.race([
           model.generateContent(prompt),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('AI generation timed out')), 8000))
+          new Promise((_, reject) => setTimeout(() => reject(new Error('AI generation timed out')), 12000))
         ]);
 
         const response = await result.response;
-        explanationText = response.text().trim();
-        if (explanationText) break;
+        const text = response.text().replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
+        aiResponse = JSON.parse(text);
+        
+        if (aiResponse && typeof aiResponse.overall_score === 'number') {
+          break; // Valid JSON received
+        }
       } catch (err) {
         lastError = err;
       }
     }
 
-    if (!explanationText) throw lastError || new Error('Failed to generate strategic explanation');
+    if (!aiResponse) throw lastError || new Error('Failed to generate strategic explanation');
 
-    // Save in user-isolated memory cache
-    strategyCache.set(cacheKey, { data: explanationText, timestamp: Date.now() });
-    if (strategyCache.size > 200) strategyCache.delete(strategyCache.keys().next().value);
-
-    return res.status(200).json({ explanation: explanationText });
+    return res.status(200).json(aiResponse);
   } catch (err) {
     console.error('Winning Readiness Advisor Error:', err?.message || err);
     return res.status(500).json({ 

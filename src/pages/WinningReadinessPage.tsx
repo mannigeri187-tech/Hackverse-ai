@@ -119,33 +119,28 @@ export default function WinningReadinessPage() {
     };
   }, [user, selectedWorkspace]);
 
-  // Instant Local Pure Deterministic Calculation (0-100) — Never calls Gemini for scoring
-  const readiness = useMemo(() => {
-    return calculateWinningReadiness({
-      hackathon: (selectedWorkspace?.hackathon as any) || null,
-      workspace: selectedWorkspace,
-      tasks: [],
-      userSkills,
-      teamMembers,
-      githubScore,
-      pitchScore,
-    });
-  }, [selectedWorkspace, userSkills, teamMembers, githubScore, pitchScore]);
+  // AI dynamically evaluates readiness instead of local logic
+  const [readiness, setReadiness] = useState<any>(null);
 
   // Check cached strategy on workspace switch
   useEffect(() => {
     if (selectedWorkspace) {
-      const cacheKey = `strat:${selectedWorkspace.id}:${readiness.overall_score}`;
-      const cached = clientStrategyCache.get(cacheKey);
-      if (cached) {
-        setAiExplanation(cached);
-        setStrategyStatus('ready');
+      const cacheKey = `strat:${selectedWorkspace.id}`;
+      const cachedStr = clientStrategyCache.get(cacheKey);
+      if (cachedStr) {
+        try {
+          const cached = JSON.parse(cachedStr);
+          setReadiness(cached);
+          setAiExplanation(cached.explanation);
+          setStrategyStatus('ready');
+        } catch(e) {}
       } else {
+        setReadiness(null);
         setAiExplanation(null);
         setStrategyStatus('idle');
       }
     }
-  }, [selectedWorkspaceId, readiness.overall_score]);
+  }, [selectedWorkspaceId]);
 
   // AI Strategic Explanation Handler (On-Demand only)
   const handleGenerateAiExplanation = async () => {
@@ -174,7 +169,11 @@ export default function WinningReadinessPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          readinessData: readiness,
+          workspace: selectedWorkspace,
+          userSkills,
+          teamMembers,
+          githubScore,
+          pitchScore,
           workspaceId: selectedWorkspace.id,
           workspaceName: selectedWorkspace.project_name,
           hackathonTitle: selectedWorkspace.hackathon?.title,
@@ -188,13 +187,14 @@ export default function WinningReadinessPage() {
       }
 
       const data = await res.json();
+      setReadiness(data);
       setAiExplanation(data.explanation || null);
       setStrategyStatus('ready');
 
       // Cache locally in React memory
-      if (data.explanation) {
-        const cacheKey = `strat:${selectedWorkspace.id}:${readiness.overall_score}`;
-        clientStrategyCache.set(cacheKey, data.explanation);
+      if (data.overall_score !== undefined) {
+        const cacheKey = `strat:${selectedWorkspace.id}`;
+        clientStrategyCache.set(cacheKey, JSON.stringify(data));
       }
     } catch (err: any) {
       if (err.name !== 'AbortError') {
@@ -308,6 +308,30 @@ export default function WinningReadinessPage() {
 
       {/* 3. MAIN SCORE CARD */}
       {selectedWorkspace ? (
+        !readiness ? (
+          <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm text-center space-y-4 mt-8">
+            <Trophy className="w-12 h-12 text-slate-300 mx-auto" />
+            <div>
+              <h3 className="text-lg font-bold text-slate-900">Project Not Evaluated</h3>
+              <p className="text-sm text-slate-500">Click the button below to have the AI evaluate your project's semantic quality and calculate your winning readiness score.</p>
+            </div>
+            <button
+              onClick={handleGenerateAiExplanation}
+              disabled={strategyStatus === 'loading'}
+              className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold text-sm rounded-xl transition-all"
+            >
+              {strategyStatus === 'loading' ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Evaluating Semantics...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" /> Evaluate Readiness
+                </>
+              )}
+            </button>
+          </div>
+        ) : (
         <div className="space-y-6 animate-in fade-in duration-200">
           <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="space-y-2 text-center md:text-left">
@@ -498,6 +522,7 @@ export default function WinningReadinessPage() {
             )}
           </div>
         </div>
+        )
       ) : (
         <div className="p-12 bg-white border border-slate-200 rounded-3xl text-center space-y-4 shadow-sm">
           <FolderGit2 className="w-12 h-12 text-slate-400 mx-auto" />
