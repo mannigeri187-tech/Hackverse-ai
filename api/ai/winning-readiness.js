@@ -55,18 +55,19 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Workspace data is required.' });
     }
 
-    const prompt = `You are an AI Hackathon Strategy Advisor & Readiness Engine.
-Evaluate the student's project progress and calculate a strictly realistic score (0-100) based on their actual semantic input.
+    const prompt = `You are the HackVerse AI Hackathon Winning Readiness Engine.
+Evaluate the student's project progress based on the ACTUAL SEMANTIC QUALITY of their input. Do NOT award points simply because a field exists or a string is long.
 
 # Hackathon: "${String(hackathonTitle || 'Hackathon').slice(0, 60)}"
 # Project: "${String(workspaceName || 'Project').slice(0, 60)}"
 
-## Workspace Context:
+## Workspace Context (EVIDENCE):
 Problem Statement: "${String(workspace.problem_statement || 'None').slice(0, 1000)}"
 Solution: "${String(workspace.solution || 'None').slice(0, 1000)}"
+Target Users: "${String(workspace.target_users || 'None').slice(0, 500)}"
 Tech Stack: ${JSON.stringify(workspace.tech_stack || [])}
 Progress: ${workspace.progress_percentage || 0}%
-GitHub URL: ${workspace.github_url ? 'Linked' : 'Not Linked'}
+GitHub URL: "${workspace.github_url || 'Not Linked'}"
 GitHub Analyzer Score: ${githubScore || 'Not Analyzed'}
 Pitch Coach Score: ${pitchScore || 'Not Analyzed'}
 
@@ -74,15 +75,49 @@ Pitch Coach Score: ${pitchScore || 'Not Analyzed'}
 Team Members Count: ${teamMembers ? teamMembers.length : 0}
 User Skills: ${JSON.stringify(userSkills || [])}
 
+SCORING RULES & GIBBERISH DETECTION:
+1. Meaning Matters: Detect random characters (e.g., "asdf"), repeated words, keyboard smashing, or generic placeholders. If the input is gibberish or lacks semantic meaning, score it near zero and explicitly mention this in the gaps/explanation.
+2. Meaningful short input (e.g. "Students can't find hackathons") is better than long gibberish.
+3. Tech Stack Validation: Do NOT award points just because there are multiple items. Check if they are REAL technologies, relevant to the proposed solution, and compatible. ["apple", "banana"] gets 0 points.
+4. GitHub Validation: Just because a URL contains "github.com" does NOT mean it's valid. Treat it as unverified unless the "GitHub Analyzer Score" is present.
+5. Evidence-Based: Every score must be justified by the provided text.
+
 TASK:
-1. Evaluate the semantic quality of the Problem Statement and Solution. If it's gibberish (e.g. "asdfasdf"), score it extremely low. If it's legitimate, score it realistically.
-2. Evaluate Tech Stack, Team, Skills, GitHub, and Pitch.
-3. Calculate an overall_score (0-100).
-4. Assign a readiness_tier: "Excellent Readiness", "Strong Readiness", "Good Progress", "Needs Improvement", or "Early Stage".
-5. Generate 8 category scores. Each category needs: name, key, score, maxScore, status ('Analyzed' | 'Partial' | 'Not analyzed yet'), explanation.
-6. List 3 strengths, 3 critical gaps, and 3 checklist items.
-7. Write a concise 3-paragraph strategy explanation (Readiness Summary, Competitive Edge, Top 3 Fixes).
-8. Return strictly as JSON.`;
+1. Assign a readiness_tier: "Excellent Readiness", "Strong Readiness", "Good Progress", "Needs Improvement", or "Early Stage".
+2. Evaluate these EXACT 8 categories and assign a score based on semantic quality. Do not invent new categories. 
+   - Hackathon Alignment (max 20 points)
+   - Project Completeness (max 15 points)
+   - Technical Readiness (max 15 points)
+   - Team Readiness (max 15 points)
+   - Skill Readiness (max 10 points)
+   - GitHub Quality (max 10 points)
+   - Pitch Readiness (max 10 points)
+   - Submission Readiness (max 5 points)
+3. Calculate the overall_score by summing the 8 category scores (0-100).
+4. List exactly 3 strengths, 3 critical gaps (with priority and action), and 3 action_checklist items.
+5. Write an 'explanation': a concise 3-paragraph strategy (Readiness Summary, Competitive Edge, Top Fixes).
+
+Return STRICTLY valid JSON matching this schema exactly:
+{
+  "overall_score": 0,
+  "readiness_tier": "",
+  "categories": [
+    { "name": "Hackathon Alignment", "key": "hackathon_alignment", "score": 0, "maxScore": 20, "status": "Analyzed", "explanation": "..." },
+    { "name": "Project Completeness", "key": "project_completeness", "score": 0, "maxScore": 15, "status": "Analyzed", "explanation": "..." },
+    { "name": "Technical Readiness", "key": "technical_readiness", "score": 0, "maxScore": 15, "status": "Analyzed", "explanation": "..." },
+    { "name": "Team Readiness", "key": "team_readiness", "score": 0, "maxScore": 15, "status": "Analyzed", "explanation": "..." },
+    { "name": "Skill Readiness", "key": "skill_readiness", "score": 0, "maxScore": 10, "status": "Analyzed", "explanation": "..." },
+    { "name": "GitHub Quality", "key": "github_quality", "score": 0, "maxScore": 10, "status": "Analyzed", "explanation": "..." },
+    { "name": "Pitch Readiness", "key": "pitch_readiness", "score": 0, "maxScore": 10, "status": "Analyzed", "explanation": "..." },
+    { "name": "Submission Readiness", "key": "submission_readiness", "score": 0, "maxScore": 5, "status": "Analyzed", "explanation": "..." }
+  ],
+  "strengths": ["..."],
+  "gaps": [
+    { "id": "gap1", "title": "...", "priority": "High", "action": "..." }
+  ],
+  "checklist": ["..."],
+  "explanation": "..."
+}`;
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const activeModels = ['gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.7-flash', 'gemini-flash-latest'];
