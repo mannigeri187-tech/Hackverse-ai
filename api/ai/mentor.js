@@ -130,6 +130,12 @@ ${contextParts || 'General Hackathon Guidance'}`;
         res.flushHeaders();
       }
 
+      // Send initial keep-alive comment to unbuffer reverse proxies immediately
+      res.write(': stream-start\n\n');
+      if (typeof res.flush === 'function') {
+        res.flush();
+      }
+
       const tGeminiStart = performance.now();
       const model = getMentorModel(apiKey);
       const modelName = 'gemini-3.5-flash-lite';
@@ -174,7 +180,7 @@ ${contextParts || 'General Hackathon Guidance'}`;
       }
 
       if (!streamedSuccess) {
-        res.write(`data: ${JSON.stringify({ error: lastStreamError?.message || 'Streaming generation failed' })}\n\n`);
+        res.write(`data: ${JSON.stringify({ error: 'AI Mentor is temporarily unavailable. Please try again.' })}\n\n`);
         if (typeof res.flush === 'function') {
           res.flush();
         }

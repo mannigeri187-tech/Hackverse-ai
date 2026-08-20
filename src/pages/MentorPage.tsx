@@ -445,9 +445,7 @@ export default function MentorPage() {
       clearTimeout(timeoutId);
 
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        const statusMsg = `(HTTP ${res.status})`;
-        throw new Error(errorData.error || errorData.details || `AI Mentor is temporarily unavailable ${statusMsg}. Please try again.`);
+        throw new Error('AI Mentor is temporarily unavailable. Please try again.');
       }
 
       const contentType = res.headers.get('content-type') || '';
@@ -487,8 +485,14 @@ export default function MentorPage() {
                       msg.id === aiReplyId ? { ...msg, text: completeReply } : msg
                     )
                   );
+                } else if (dataJson.error) {
+                  throw new Error('AI Mentor is temporarily unavailable. Please try again.');
                 }
-              } catch {}
+              } catch (parseErr: any) {
+                if (parseErr?.message?.includes('AI Mentor is temporarily unavailable')) {
+                  throw parseErr;
+                }
+              }
             }
           }
         }
@@ -508,7 +512,7 @@ export default function MentorPage() {
       console.log(`[AI-MENTOR-PERF] Stream complete. Total roundtrip: ${clientDuration.toFixed(1)}ms`);
 
       if (!completeReply) {
-        throw new Error('Empty response received from AI Mentor.');
+        throw new Error('AI Mentor is temporarily unavailable. Please try again.');
       }
 
       const finalAiReply: ChatMessage = {
@@ -524,20 +528,20 @@ export default function MentorPage() {
     } catch (err: any) {
       clearTimeout(timeoutId);
       console.error('Error contacting AI Mentor:', err);
-      const isTimeout = err.name === 'AbortError';
-      const displayError = isTimeout 
-        ? 'AI Mentor request timed out. Please try again.' 
-        : (err.message || 'AI Mentor is temporarily unavailable. Please try again.');
+      const displayError = 'AI Mentor is temporarily unavailable. Please try again.';
       setChatError(displayError);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `ai-err-${Date.now()}`,
-          sender: 'ai',
-          text: `⚠️ **Notice:** ${displayError}`,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        },
-      ]);
+      setMessages((prev) => {
+        const cleaned = prev.filter((m) => m.text && m.text.trim().length > 0);
+        return [
+          ...cleaned,
+          {
+            id: `ai-err-${Date.now()}`,
+            sender: 'ai',
+            text: displayError,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          },
+        ];
+      });
     } finally {
       isSendingRef.current = false;
       setIsSending(false);
