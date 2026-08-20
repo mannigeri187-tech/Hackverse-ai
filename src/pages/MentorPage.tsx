@@ -448,11 +448,10 @@ export default function MentorPage() {
         throw new Error('AI Mentor is temporarily unavailable. Please try again.');
       }
 
-      const contentType = res.headers.get('content-type') || '';
       let completeReply = '';
       const aiReplyId = `ai-${Date.now()}`;
 
-      if (contentType.includes('text/event-stream') && res.body) {
+      if (res.body) {
         const initialAiReply: ChatMessage = {
           id: aiReplyId,
           sender: 'ai',
@@ -477,7 +476,9 @@ export default function MentorPage() {
             const trimmed = line.trim();
             if (trimmed.startsWith('data:')) {
               try {
-                const dataJson = JSON.parse(trimmed.slice(5).trim());
+                const jsonStr = trimmed.slice(5).trim();
+                if (jsonStr === '[DONE]') continue;
+                const dataJson = JSON.parse(jsonStr);
                 if (dataJson.chunk) {
                   completeReply += dataJson.chunk;
                   setMessages((prev) =>
@@ -495,6 +496,21 @@ export default function MentorPage() {
               }
             }
           }
+        }
+
+        // If response was single JSON payload instead of SSE
+        if (!completeReply && buffer.trim()) {
+          try {
+            const fallbackJson = JSON.parse(buffer.trim());
+            if (fallbackJson.reply) {
+              completeReply = fallbackJson.reply;
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === aiReplyId ? { ...msg, text: completeReply } : msg
+                )
+              );
+            }
+          } catch {}
         }
       } else {
         const data = await res.json();
