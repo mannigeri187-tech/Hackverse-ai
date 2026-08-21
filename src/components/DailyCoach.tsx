@@ -356,4 +356,3 @@ export function DailyCoach() {
   );
 }
 
-export default DailyCoach;

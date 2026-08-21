@@ -14,10 +14,6 @@ export interface DailyCoachTask {
   updated_at: string;
 }
 
-export interface CoachGenerationRequest {
-  date: string; // YYYY-MM-DD
-}
-
 export interface CoachGenerationResponse {
   source: 'database' | 'gemini';
   tasks: DailyCoachTask[];

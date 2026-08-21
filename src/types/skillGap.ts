@@ -12,7 +12,7 @@ export type SkillCategory =
 
 export type SkillProficiency = 'beginner' | 'intermediate' | 'advanced';
 
-export type SkillImportance = 'required' | 'recommended';
+type SkillImportance = 'required' | 'recommended';
 
 export type SkillGapStatus = 'have' | 'missing';
 
@@ -63,7 +63,7 @@ export interface SkillGapResult {
   skills: SkillGapItem[];
 }
 
-export interface LearningPlanItem {
+interface LearningPlanItem {
   skill: string;
   priority: 'high' | 'medium' | 'low';
   reason: string;

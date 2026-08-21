@@ -114,7 +114,7 @@ export type HackathonStatus = 'UPCOMING' | 'OPEN' | 'ACTIVE' | 'CLOSED' | 'ENDED
 /**
  * Extracts and parses all possible date & status fields from any hackathon object representation.
  */
-export function extractHackathonDates(item: any): {
+function extractHackathonDates(item: any): {
   start: Date | null;
   end: Date | null;
   deadline: Date | null;
@@ -290,27 +290,3 @@ export function removeExpiredHackathons<T = any>(hackathons: T[] | null | undefi
   if (!Array.isArray(hackathons)) return [];
   return hackathons.filter(isUpcomingHackathon);
 }
-
-/**
- * Safely reads hackathons from localStorage, cleans out all expired records,
- * saves the cleaned list back to localStorage, and returns the active records.
- */
-export function cleanLocalStorageHackathons<T = any>(storageKey: string): T[] {
-  if (typeof window === 'undefined' || !window.localStorage) return [];
-  try {
-    const raw = window.localStorage.getItem(storageKey);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    
-    const active = removeExpiredHackathons<T>(parsed);
-    if (active.length !== parsed.length) {
-      window.localStorage.setItem(storageKey, JSON.stringify(active));
-    }
-    return active;
-  } catch {
-    return [];
-  }
-}
-
-

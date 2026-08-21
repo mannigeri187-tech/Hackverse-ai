@@ -44,15 +44,7 @@ export type ResumeContent = {
   achievements: string;
 };
 
-export type Resume = {
-  id: string;
-  user_id: string;
-  title: string;
-  template_id: string;
-  content: ResumeContent;
-  created_at: string;
-  updated_at: string;
-};
+;
 
 export const defaultResumeContent: ResumeContent = {
   name: '',

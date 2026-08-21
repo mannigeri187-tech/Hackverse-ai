@@ -1,7 +1,7 @@
 export type ExperienceLevel = 'Beginner' | 'Intermediate' | 'Advanced';
 export type AvailabilityType = 'Weekdays' | 'Weekends' | 'Both';
 export type PreferredRole = 'Frontend' | 'Backend' | 'AI/ML' | 'UI/UX' | 'Pitching' | 'Business' | 'DevOps' | 'Other';
-export type TeamRequestStatus = 'pending' | 'accepted' | 'rejected';
+type TeamRequestStatus = 'pending' | 'accepted' | 'rejected';
 
 export const AVAILABLE_SKILLS = [
   'React',
