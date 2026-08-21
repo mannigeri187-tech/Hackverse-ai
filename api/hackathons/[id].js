@@ -1,6 +1,6 @@
-import { supabase } from '../shared/supabase.js';
-import { getFromCache, setToCache } from '../shared/redis.js';
-import { applyRateLimit } from '../shared/rateLimiter.js';
+import { supabase } from '../_shared/supabase.js';
+import { getFromCache, setToCache } from '../_shared/redis.js';
+import { applyRateLimit } from '../_shared/rateLimiter.js';
 
 const CACHE_TTL_DETAIL = 3600; // 1 hour
 

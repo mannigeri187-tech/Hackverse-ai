@@ -1,8 +1,8 @@
 import crypto from 'crypto';
-import { supabase } from '../shared/supabase.js';
-import { getFromCache, setToCache } from '../shared/redis.js';
-import { isUpcomingEvent } from '../shared/normalizer.js';
-import { applyRateLimit } from '../shared/rateLimiter.js';
+import { supabase } from '../_shared/supabase.js';
+import { getFromCache, setToCache } from '../_shared/redis.js';
+import { isUpcomingEvent } from '../_shared/normalizer.js';
+import { applyRateLimit } from '../_shared/rateLimiter.js';
 
 const CACHE_TTL_SEARCH = 120; // 2 minutes cache
 

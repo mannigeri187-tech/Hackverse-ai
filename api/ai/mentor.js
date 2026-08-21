@@ -1,5 +1,5 @@
-import { authenticateServerRequest, sanitizeEnvString } from '../shared/supabase.js';
-import { applyRateLimit } from '../shared/rateLimiter.js';
+import { authenticateServerRequest, sanitizeEnvString } from '../_shared/supabase.js';
+import { applyRateLimit } from '../_shared/rateLimiter.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Memoized singleton GoogleGenerativeAI client and model across warm serverless invocations

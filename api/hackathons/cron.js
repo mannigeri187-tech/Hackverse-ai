@@ -1,6 +1,7 @@
-import { runDatabaseLinkValidation } from '../shared/linkAuditService.js';
-import { supabase } from '../shared/supabase.js';
-import { applyRateLimit } from '../shared/rateLimiter.js';
+import { runHackathonIngestion } from '../_shared/ingestionService.js';
+import { runDatabaseLinkValidation } from '../_shared/linkAuditService.js';
+import { supabase } from '../_shared/supabase.js';
+import { applyRateLimit } from '../_shared/rateLimiter.js';
 
 export default async function handler(req, res) {
   // CORS setup
@@ -20,11 +21,12 @@ export default async function handler(req, res) {
 
   // Security Check: Vercel Cron Secret OR Bearer Authentication from Admin User
   const authHeader = req.headers.authorization;
+  const cronHeader = req.headers['x-vercel-cron'] || req.headers['authorization'];
   const cronSecret = process.env.CRON_SECRET;
 
   let isAuthorized = false;
 
-  if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+  if (cronSecret && (authHeader === `Bearer ${cronSecret}` || cronHeader === `Bearer ${cronSecret}`)) {
     isAuthorized = true;
   }
 
@@ -45,10 +47,18 @@ export default async function handler(req, res) {
   }
 
   try {
-    const result = await runDatabaseLinkValidation();
-    return res.status(200).json(result);
+    const task = req.query.task;
+    if (task === 'ingest') {
+      const result = await runHackathonIngestion();
+      return res.status(200).json(result);
+    } else if (task === 'validate-links') {
+      const result = await runDatabaseLinkValidation();
+      return res.status(200).json(result);
+    } else {
+      return res.status(400).json({ error: 'Invalid task specified.' });
+    }
   } catch (err) {
-    console.error('❌ Link Validation Error:', err?.message || err);
-    return res.status(500).json({ error: 'Hackathon link audit failed', details: err?.message });
+    console.error('?O Cron Task Error:', err?.message || err);
+    return res.status(500).json({ error: 'Cron task failed', details: err?.message });
   }
 }

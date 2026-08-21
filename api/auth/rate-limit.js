@@ -1,4 +1,4 @@
-import { applyRateLimit, resetRateLimit } from '../shared/rateLimiter.js';
+import { applyRateLimit, resetRateLimit } from '../_shared/rateLimiter.js';
 
 export default async function handler(req, res) {
   // CORS setup
