@@ -5,14 +5,19 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { ResumePreview } from '../components/ResumePreview';
 import ResumeForm from '../components/ResumeForm';
+import { ResumeQualityScore } from '../components/ResumeQualityScore';
 import { defaultResumeContent } from '../types/resume';
 import type { ResumeContent } from '../types/resume';
+
+import { gatherUserResumeData } from '../hooks/useResumeDataImport';
 
 export default function ResumeBuilderPage() {
   const { user } = useAuth();
   const [content, setContent] = useState<ResumeContent>(defaultResumeContent);
   const [template, setTemplate] = useState<'modern' | 'classic'>('modern');
   const [resumeId, setResumeId] = useState<string | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importSummary, setImportSummary] = useState<string | null>(null);
   
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,12 +52,27 @@ export default function ResumeBuilderPage() {
           setContent({ ...defaultResumeContent, ...data.content });
         }
       } else {
-        // Pre-fill email and name from user auth if new
-        setContent(prev => ({
-          ...prev,
-          email: user.email || '',
-          name: user.user_metadata?.full_name || user.email?.split('@')[0] || ''
-        }));
+        // NEW RESUME: Auto-gather profile data
+        setIsImporting(true);
+        const gatheredData = await gatherUserResumeData(user.id);
+        
+        // Fallback for name/email if still empty
+        if (!gatheredData.email) gatheredData.email = user.email || '';
+        if (!gatheredData.name) gatheredData.name = user.user_metadata?.full_name || user.email?.split('@')[0] || '';
+        
+        setContent(gatheredData);
+        
+        // Create summary
+        const summaryParts = [];
+        if (gatheredData.projects.length) summaryParts.push(`${gatheredData.projects.length} Projects`);
+        if (gatheredData.hackathons.length) summaryParts.push(`${gatheredData.hackathons.length} Hackathons`);
+        if (gatheredData.skills) summaryParts.push(`Skills`);
+        if (gatheredData.certifications) summaryParts.push(`Certifications`);
+        
+        if (summaryParts.length > 0) {
+           setImportSummary(`Imported: Profile, ${summaryParts.join(', ')}`);
+        }
+        setIsImporting(false);
       }
       setIsLoading(false);
     }
@@ -104,10 +124,11 @@ export default function ResumeBuilderPage() {
     handlePrint();
   };
 
-  if (isLoading) {
+  if (isLoading || isImporting) {
     return (
-      <div className="flex justify-center items-center h-64 text-slate-500 font-medium">
-        Loading Resume Builder...
+      <div className="flex flex-col justify-center items-center h-64 text-slate-500 font-medium">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mb-4"></div>
+        {isImporting ? 'Importing your HackVerse AI profile...' : 'Loading Resume Builder...'}
       </div>
     );
   }
@@ -122,6 +143,11 @@ export default function ResumeBuilderPage() {
             Resume Builder
           </h1>
           <p className="text-slate-600">Build, preview, and download your professional resume.</p>
+          {importSummary && (
+             <div className="mt-2 text-sm text-green-700 bg-green-50 px-3 py-1.5 rounded border border-green-200">
+               {importSummary}
+             </div>
+          )}
         </div>
         
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
@@ -171,7 +197,8 @@ export default function ResumeBuilderPage() {
         </div>
         
         {/* Preview Pane */}
-        <div className="w-full lg:w-[55%] bg-slate-200 rounded-xl border border-slate-300 overflow-y-auto p-4 md:p-8 relative">
+        <div className="w-full lg:w-[55%] bg-slate-200 rounded-xl border border-slate-300 overflow-y-auto p-4 md:p-8 flex flex-col gap-4 relative">
+          <ResumeQualityScore content={content} />
           <ResumePreview ref={printRef} content={content} template={template} />
         </div>
       </div>
