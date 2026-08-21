@@ -12,7 +12,7 @@
   "crons": [
     {
       "path": "/api/hackathons/ingest",
-      "schedule": "0 */8 * * *"
+      "schedule": "0 0 * * *"
     },
     {
       "path": "/api/hackathons/validate-links",
