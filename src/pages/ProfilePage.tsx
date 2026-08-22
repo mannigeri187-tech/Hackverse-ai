@@ -1,18 +1,38 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { LogOut, MapPin, Trophy, Code, Briefcase, Award, PenLine, ExternalLink, Camera, Loader2 } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { 
+  MapPin, Trophy, Code, Briefcase, Award, PenLine, ExternalLink, 
+  Camera, Loader2, Globe, Save, AlertTriangle, Trash2
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import LinkedInButton from '../components/profile/LinkedInButton';
-import TwitterButton from '../components/profile/TwitterButton';
+
+// Helper component for valid LinkedIn links
+function LinkedInButton({ url }: { url: string }) {
+  if (!url) return null;
+  // Ensure the url is exactly the stored one
+  return (
+    <a 
+      href={url.trim()}
+      target="_blank" 
+      rel="noopener noreferrer"
+      className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-[#0A66C2]/10 text-[#0A66C2] hover:bg-[#0A66C2] hover:text-white transition-colors"
+      title="Visit LinkedIn Profile"
+    >
+      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+      </svg>
+    </a>
+  );
+}
 
 export default function ProfilePage() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [skills, setSkills] = useState<any[]>([]);
-  const [projects, setProjects] = useState<any[]>([]);
-  const [achievements, setAchievements] = useState<any[]>([]);
+  const [stats, setStats] = useState({ hackathons: 0, wins: 0, projects: 0 });
+  const [certificates, setCertificates] = useState<any[]>([]);
   
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -22,6 +42,8 @@ export default function ProfilePage() {
   const [showDelete, setShowDelete] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  const [linkedinError, setLinkedinError] = useState('');
 
   useEffect(() => {
     async function loadData() {
@@ -38,44 +60,69 @@ export default function ProfilePage() {
           
         let currentProfile = pData || {};
         
-        // Merge with auth metadata if missing fields
+        // Merge with auth metadata if missing
         if (user.user_metadata) {
           if (!currentProfile.name) currentProfile.name = user.user_metadata.full_name || user.email?.split('@')[0];
           if (!currentProfile.headline) currentProfile.headline = user.user_metadata.headline;
           if (!currentProfile.bio) currentProfile.bio = user.user_metadata.bio;
           if (!currentProfile.location) currentProfile.location = user.user_metadata.location;
           if (!currentProfile.linkedin_url) currentProfile.linkedin_url = user.user_metadata.linkedin_url;
-          if (!currentProfile.twitter_url) currentProfile.twitter_url = user.user_metadata.twitter_url;
+          if (!currentProfile.github_url) currentProfile.github_url = user.user_metadata.github_url;
+          if (!currentProfile.portfolio_url) currentProfile.portfolio_url = user.user_metadata.portfolio_url;
           if (!currentProfile.avatar_url) currentProfile.avatar_url = user.user_metadata.avatar_url || user.user_metadata.picture || currentProfile.profile_image;
         }
 
+        // Clean up linkedIn URL if it's duplicated in the database from the previous bug
+        if (currentProfile.linkedin_url) {
+          const m = currentProfile.linkedin_url.match(/^(https:\/\/[^/]+\.linkedin\.com\/in\/[^/]+\/?)/i);
+          if (m) {
+            currentProfile.linkedin_url = m[1];
+          }
+        }
+  
         setProfile(currentProfile);
         setEditForm(currentProfile);
-
+  
         // Fetch skills
         const { data: sData } = await supabase
           .from('user_skills')
-          .select('proficiency, skill:skills(id, name, category)')
+          .select('skills ( id, name, category )')
           .eq('user_id', user.id);
-        if (sData) setSkills(sData);
+          
+        setSkills((sData || []).map(s => s.skills).filter(Boolean));
 
-        // Fetch projects
-        const { data: projData } = await supabase
-          .from('workspaces')
-          .select('id, project_name, problem_statement, tech_stack, github_url, hackathon:hackathons(id, title)')
-          .eq('user_id', user.id)
-          .not('project_name', 'is', null);
-        if (projData) setProjects(projData);
-
-        // Fetch achievements
-        const { data: achData } = await supabase
+        // Fetch Certificates
+        const { data: cData } = await supabase
           .from('certificates')
-          .select('id, title, issuer, certificate_date, description, hackathon:hackathons(id, title)')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+        
+        setCertificates(cData || []);
+
+        // Fetch Workspaces (Projects)
+        const { count: projectCount } = await supabase
+          .from('workspaces')
+          .select('*', { count: 'exact', head: true })
           .eq('user_id', user.id);
-        if (achData) setAchievements(achData);
+
+        // Fetch Accepted Team Requests to approximate hackathon participation
+        const { data: tData } = await supabase
+          .from('team_requests')
+          .select('hackathon_id')
+          .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+          .eq('status', 'accepted');
+        
+        const uniqueHackathons = new Set(tData?.map(t => t.hackathon_id) || []);
+
+        setStats({
+          hackathons: uniqueHackathons.size,
+          wins: cData?.length || 0,
+          projects: projectCount || 0
+        });
 
       } catch (err) {
-        console.error(err);
+        console.error('Error loading profile:', err);
       } finally {
         setIsLoading(false);
       }
@@ -84,24 +131,50 @@ export default function ProfilePage() {
     loadData();
   }, [user]);
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/login');
+  const validateLinkedIn = (url: string) => {
+    if (!url || !url.trim()) return true;
+    const regex = /^https:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9-]+\/?$/;
+    return regex.test(url.trim());
+  };
+
+  const handleSave = async () => {
+    if (!user) return;
+    
+    // Validate LinkedIn
+    if (editForm.linkedin_url && !validateLinkedIn(editForm.linkedin_url)) {
+      setLinkedinError('Please enter a valid LinkedIn profile URL (e.g., https://www.linkedin.com/in/username/)');
+      return;
+    }
+    setLinkedinError('');
+
+    try {
+      const { error } = await supabase.from('profiles').upsert({
+        user_id: user.id,
+        name: editForm.name,
+        headline: editForm.headline,
+        bio: editForm.bio,
+        location: editForm.location,
+        linkedin_url: editForm.linkedin_url?.trim(),
+        github_url: editForm.github_url?.trim(),
+        portfolio_url: editForm.portfolio_url?.trim(),
+        avatar_url: editForm.avatar_url
+      }, { onConflict: 'user_id' });
+
+      if (error) throw error;
+      setProfile(editForm);
+      setIsEditing(false);
+    } catch (err) {
+      console.error('Error saving profile:', err);
+      alert('Failed to save profile. Please try again.');
+    }
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      alert('File size must be less than 5MB');
-      return;
-    }
+    if (!file.type.startsWith('image/')) return alert('Please select an image file');
+    if (file.size > 5 * 1024 * 1024) return alert('File size must be less than 5MB');
 
     try {
       setIsUploadingAvatar(true);
@@ -120,433 +193,413 @@ export default function ProfilePage() {
 
       setEditForm({ ...editForm, avatar_url: publicUrlData.publicUrl });
       
-      // Auto-save just the avatar so it persists immediately
-      await supabase.auth.updateUser({
-        data: { avatar_url: publicUrlData.publicUrl }
-      });
+      // Auto-save just the avatar so it persists even if they cancel other edits
       await supabase.from('profiles').upsert({
         user_id: user.id,
         avatar_url: publicUrlData.publicUrl
       }, { onConflict: 'user_id' });
-      
-    } catch (err: any) {
-      console.error('Avatar upload error:', err);
-      alert(err.message || 'Failed to upload avatar');
+
+      setProfile((prev: any) => ({ ...prev, avatar_url: publicUrlData.publicUrl }));
+    } catch (err) {
+      console.error('Error uploading avatar:', err);
+      alert('Error uploading avatar');
     } finally {
       setIsUploadingAvatar(false);
     }
   };
 
-  const handleSaveProfile = async () => {
+  const handleDeleteAccount = async () => {
+    if (deleteConfirm !== 'DELETE') return;
     if (!user) return;
     
-    // Validate LinkedIn URL
-    if (editForm.linkedin_url) {
-      try {
-        const url = new URL(editForm.linkedin_url);
-        if (!url.hostname.includes('linkedin.com')) {
-          alert('Please enter a valid LinkedIn URL');
-          return;
-        }
-      } catch {
-        alert('Please enter a valid URL (include https://) for LinkedIn');
-        return;
-      }
-    }
-
-    // Validate Twitter URL
-    if (editForm.twitter_url) {
-      try {
-        const url = new URL(editForm.twitter_url);
-        if (!url.hostname.includes('twitter.com') && !url.hostname.includes('x.com')) {
-          alert('Please enter a valid Twitter/X URL');
-          return;
-        }
-      } catch {
-        alert('Please enter a valid URL (include https://) for Twitter');
-        return;
-      }
-    }
-
-    try {
-      // 1. Try to save to profiles table (requires SQL migration)
-      await supabase.from('profiles').upsert({
-        user_id: user.id,
-        name: editForm.name,
-        headline: editForm.headline,
-        bio: editForm.bio,
-        location: editForm.location,
-        linkedin_url: editForm.linkedin_url,
-        twitter_url: editForm.twitter_url,
-        avatar_url: editForm.avatar_url,
-      });
-
-      // 2. Always save to user_metadata as fallback
-      await supabase.auth.updateUser({
-        data: {
-          full_name: editForm.name,
-          headline: editForm.headline,
-          bio: editForm.bio,
-          location: editForm.location,
-          linkedin_url: editForm.linkedin_url,
-          twitter_url: editForm.twitter_url,
-          avatar_url: editForm.avatar_url,
-        }
-      });
-
-      setProfile(editForm);
-      setIsEditing(false);
-    } catch (err) {
-      console.error(err);
-      alert('Failed to save profile');
-    }
-  };
-
-  const handleDeleteAccount = async () => {
-    if (deleteConfirm !== 'DELETE' || !user) return;
     setIsDeleting(true);
-    
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('No session');
-
-      const res = await fetch('/api/user-actions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      });
-
-      if (!res.ok) throw new Error('Failed to delete account');
-      
+      const res = await fetch('/api/user-actions', { method: 'DELETE' });
+      if (!res.ok) throw new Error('Delete failed');
       await signOut();
-      navigate('/login');
+      navigate('/');
     } catch (err) {
-      console.error(err);
-      alert('Failed to delete account. Please try again later.');
+      console.error('Error deleting account:', err);
+      alert('Failed to delete account. Please try again.');
       setIsDeleting(false);
-      setShowDelete(false);
-      setDeleteConfirm('');
     }
   };
 
-  if (!user) return null;
+  const getInitials = (name: string) => (name || 'U').substring(0, 2).toUpperCase();
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto space-y-6 animate-pulse p-4">
-        <div className="h-48 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
-        <div className="h-32 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+      <div className="max-w-5xl mx-auto space-y-6 animate-pulse p-4 min-h-screen">
+        <div className="h-64 bg-slate-800 rounded-3xl"></div>
+        <div className="h-32 bg-slate-800 rounded-3xl"></div>
       </div>
     );
   }
 
-  const getInitials = (name: string) => name ? name.substring(0, 2).toUpperCase() : 'U';
-  const hackathonsParticipated = projects.length;
-  const hackathonsWon = achievements.length;
+  // Profile Completion logic
+  const requiredFields = ['name', 'headline', 'bio', 'location', 'linkedin_url', 'github_url'];
+  const filledFields = requiredFields.filter(f => profile[f] && profile[f].trim() !== '').length;
+  const completionPercentage = Math.round((filledFields / requiredFields.length) * 100);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-16">
-      {/* Profile Header */}
-      <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 dark:from-cyan-600/20 dark:to-blue-600/20"></div>
+    <div className="min-h-screen bg-[#050816] text-slate-200 selection:bg-indigo-500/30">
+      <div className="max-w-5xl mx-auto px-4 py-8 space-y-8 pb-24">
         
-        <div className="relative pt-12 flex flex-col md:flex-row gap-8 items-start">
-          <div 
-            onClick={() => isEditing && document.getElementById('avatar-upload')?.click()}
-            className={`w-32 h-32 bg-cyan-100 dark:bg-cyan-900/50 rounded-full flex items-center justify-center text-cyan-700 dark:text-cyan-300 text-4xl font-black shadow-xl border-4 border-white dark:border-slate-900 shrink-0 overflow-hidden relative ${isEditing ? 'cursor-pointer group' : ''}`}
-          >
-            {isEditing && (
-              <div className="absolute inset-0 bg-black/50 hidden group-hover:flex flex-col items-center justify-center text-white z-10 transition-all">
-                {isUploadingAvatar ? (
-                  <Loader2 className="w-8 h-8 animate-spin" />
-                ) : (
-                  <>
-                    <Camera className="w-8 h-8 mb-1" />
-                    <span className="text-xs font-bold">Upload</span>
-                  </>
-                )}
-              </div>
-            )}
-            
-            {/* Show local edit state if editing, else show saved profile state */}
-            {(isEditing ? editForm.avatar_url : (profile.avatar_url || profile.profile_image)) ? (
-              <img src={isEditing ? editForm.avatar_url : (profile.avatar_url || profile.profile_image)} alt={profile.name} className="w-full h-full object-cover" />
-            ) : getInitials(profile.name)}
-          </div>
-          <input 
-            type="file" 
-            id="avatar-upload" 
-            className="hidden" 
-            accept="image/*"
-            onChange={handleAvatarUpload}
-          />
+        {/* Profile Header (Premium Glassmorphism) */}
+        <div className="relative bg-[#0B1026]/80 backdrop-blur-xl border border-indigo-500/20 rounded-[2rem] shadow-2xl shadow-indigo-900/20 overflow-hidden">
+          {/* Top glowing gradient line */}
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-50"></div>
           
-          <div className="flex-1 space-y-4 w-full">
-            {isEditing ? (
-              <div className="space-y-4 w-full">
-                <input 
-                  type="text" 
-                  value={editForm.name || ''} 
-                  onChange={e => setEditForm({...editForm, name: e.target.value})}
-                  className="w-full p-2 text-xl font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="Full Name"
-                />
-                <input 
-                  type="text" 
-                  value={editForm.headline || ''} 
-                  onChange={e => setEditForm({...editForm, headline: e.target.value})}
-                  className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="Professional Headline"
-                />
-                <div className="flex gap-2">
-                  <MapPin className="w-5 h-5 text-slate-400 mt-2" />
-                  <input 
-                    type="text" 
-                    value={editForm.location || ''} 
-                    onChange={e => setEditForm({...editForm, location: e.target.value})}
-                    className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="Location"
-                  />
-                </div>
-                <textarea 
-                  value={editForm.bio || ''} 
-                  onChange={e => setEditForm({...editForm, bio: e.target.value})}
-                  maxLength={500}
-                  className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 h-24 resize-none"
-                  placeholder="Tell the community about yourself..."
-                />
-                <div className="text-xs text-right text-slate-500">{editForm.bio?.length || 0}/500</div>
-                <div className="flex gap-2">
-                  <ExternalLink className="w-5 h-5 text-slate-400 mt-2" />
-                  <input 
-                    type="url" 
-                    value={editForm.linkedin_url || ''} 
-                    onChange={e => setEditForm({...editForm, linkedin_url: e.target.value})}
-                    className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="LinkedIn Profile URL (https://www.linkedin.com/in/...)"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <ExternalLink className="w-5 h-5 text-slate-400 mt-2" />
-                  <input 
-                    type="url" 
-                    value={editForm.twitter_url || ''} 
-                    onChange={e => setEditForm({...editForm, twitter_url: e.target.value})}
-                    className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="Twitter / X URL (https://twitter.com/...)"
-                  />
-                </div>
-                <div className="flex gap-3 pt-2">
-                  <button onClick={handleSaveProfile} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors">
-                    Save Profile
-                  </button>
-                  <button onClick={() => {setIsEditing(false); setEditForm(profile);}} className="px-6 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-lg hover:bg-slate-300 transition-colors">
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="flex justify-between items-start flex-wrap gap-4">
-                  <div>
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-                      {profile.name}
-                    </h1>
-                    {profile.headline && <p className="text-lg text-slate-700 dark:text-slate-300 mt-2 font-medium">{profile.headline}</p>}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <button 
-                      onClick={() => setIsEditing(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 font-semibold rounded-lg transition-colors"
-                    >
-                      <PenLine className="w-4 h-4" /> Edit Profile
-                    </button>
-                    <button 
-                      onClick={handleSignOut}
-                      className="flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 font-semibold rounded-lg transition-colors"
-                    >
-                      <LogOut className="w-4 h-4" /> Sign Out
-                    </button>
-                  </div>
-                </div>
+          {/* Soft background glows */}
+          <div className="absolute -top-[150px] -right-[150px] w-[400px] h-[400px] bg-indigo-600/20 rounded-full blur-[100px] pointer-events-none"></div>
+          <div className="absolute -bottom-[150px] -left-[150px] w-[300px] h-[300px] bg-cyan-600/10 rounded-full blur-[80px] pointer-events-none"></div>
 
-                {profile.location && (
-                  <div className="flex items-center text-slate-500 dark:text-slate-400 text-sm">
-                    <MapPin className="w-4 h-4 mr-1.5" /> {profile.location}
-                  </div>
-                )}
-
-                {profile.bio ? (
-                  <p className="text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed whitespace-pre-wrap">
-                    {profile.bio}
-                  </p>
-                ) : (
-                  <p className="text-slate-400 italic text-sm">No bio added yet.</p>
-                )}
-
-                <div className="pt-2 flex flex-wrap gap-3">
-                  {profile.linkedin_url && <LinkedInButton url={profile.linkedin_url} />}
-                  {profile.twitter_url && <TwitterButton url={profile.twitter_url} />}
-                </div>
-              </>
+          <div className="relative p-8 sm:p-12">
+            {!isEditing && (
+              <button 
+                onClick={() => setIsEditing(true)}
+                className="absolute top-6 right-6 sm:top-8 sm:right-8 inline-flex items-center gap-2 px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 rounded-full text-sm font-medium transition-all border border-indigo-500/20"
+              >
+                <PenLine className="w-4 h-4" />
+                <span className="hidden sm:inline">Edit Profile</span>
+              </button>
             )}
-          </div>
-        </div>
-      </div>
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 text-center shadow-sm">
-          <div className="w-10 h-10 mx-auto bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center mb-3">
-            <Code className="w-5 h-5" />
-          </div>
-          <p className="text-3xl font-black text-slate-900 dark:text-white">{hackathonsParticipated}</p>
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-1">Hackathons</p>
-        </div>
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 text-center shadow-sm">
-          <div className="w-10 h-10 mx-auto bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center mb-3">
-            <Trophy className="w-5 h-5" />
-          </div>
-          <p className="text-3xl font-black text-slate-900 dark:text-white">{hackathonsWon}</p>
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-1">Wins</p>
-        </div>
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 text-center shadow-sm">
-          <div className="w-10 h-10 mx-auto bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-xl flex items-center justify-center mb-3">
-            <Briefcase className="w-5 h-5" />
-          </div>
-          <p className="text-3xl font-black text-slate-900 dark:text-white">{projects.length}</p>
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-1">Projects</p>
-        </div>
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="grid md:grid-cols-3 gap-8">
-        
-        {/* Left Column: Skills */}
-        <div className="md:col-span-1 space-y-6">
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Technical Skills</h3>
-            </div>
-            {skills.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {skills.map((s: any) => (
-                  <span key={s.skill.id} className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-lg border border-slate-200 dark:border-slate-700">
-                    {s.skill.name}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p className="text-slate-500 text-sm">You haven't added any skills. Go to the Skill Gap section to add them.</p>
-            )}
-          </div>
-        </div>
-
-        {/* Right Column: Projects & Achievements */}
-        <div className="md:col-span-2 space-y-8">
-          
-          {/* Projects */}
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Code className="w-5 h-5 text-blue-500" /> Your Projects (Participated)
-            </h3>
-            {projects.length > 0 ? (
-              <div className="grid gap-4">
-                {projects.map((p: any) => (
-                  <div key={p.id} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
-                    <h4 className="text-lg font-bold text-slate-900 dark:text-white">{p.project_name}</h4>
-                    {p.hackathon && <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mb-3">{p.hackathon.title}</p>}
-                    <p className="text-slate-600 dark:text-slate-300 text-sm line-clamp-2 mb-4">{p.problem_statement}</p>
-                    {p.tech_stack && p.tech_stack.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        {p.tech_stack.slice(0, 4).map((tech: string, i: number) => (
-                          <span key={i} className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs rounded font-medium">
-                            {tech}
-                          </span>
-                        ))}
-                      </div>
+            <div className="flex flex-col md:flex-row gap-8 items-start">
+              {/* Avatar */}
+              <div 
+                onClick={() => isEditing && document.getElementById('avatar-upload')?.click()}
+                className={`w-32 h-32 sm:w-40 sm:h-40 rounded-full flex items-center justify-center text-4xl font-black shrink-0 overflow-hidden relative border-4 border-[#1E2A5A] shadow-[0_0_30px_rgba(79,70,229,0.3)] bg-gradient-to-br from-indigo-900 to-[#0B1026] text-indigo-300 ${isEditing ? 'cursor-pointer group' : ''}`}
+              >
+                {isEditing && (
+                  <div className="absolute inset-0 bg-black/60 hidden group-hover:flex flex-col items-center justify-center text-white z-10 backdrop-blur-sm transition-all">
+                    {isUploadingAvatar ? <Loader2 className="w-8 h-8 animate-spin" /> : (
+                      <>
+                        <Camera className="w-8 h-8 mb-1" />
+                        <span className="text-xs font-bold">Upload</span>
+                      </>
                     )}
                   </div>
-                ))}
+                )}
+                {(isEditing ? editForm.avatar_url : profile.avatar_url) ? (
+                  <img src={isEditing ? editForm.avatar_url : profile.avatar_url} alt={profile.name} className="w-full h-full object-cover" />
+                ) : getInitials(profile.name)}
               </div>
-            ) : (
-              <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 text-center text-slate-500">
-                You haven't added any projects to your workspaces yet.
-              </div>
-            )}
-          </div>
+              <input type="file" id="avatar-upload" className="hidden" accept="image/*" onChange={handleAvatarUpload} />
 
-          {/* Achievements */}
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Award className="w-5 h-5 text-amber-500" /> Hackathon Wins & Achievements
-            </h3>
-            {achievements.length > 0 ? (
-              <div className="grid gap-4">
-                {achievements.map((a: any) => (
-                  <div key={a.id} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-amber-500/20 shadow-sm flex items-start gap-4">
-                    <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/20 rounded-full flex items-center justify-center shrink-0">
-                      <Trophy className="w-6 h-6 text-amber-500" />
-                    </div>
-                    <div>
-                      <h4 className="text-lg font-bold text-slate-900 dark:text-white">{a.title}</h4>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">{a.hackathon?.title || a.issuer}</p>
-                      {a.description && <p className="text-sm text-slate-500 mt-1">{a.description}</p>}
+              {/* Profile Details */}
+              <div className="flex-1 w-full space-y-4 pt-2">
+                {isEditing ? (
+                  <div className="space-y-4 max-w-2xl">
+                    <input 
+                      type="text" 
+                      value={editForm.name || ''} 
+                      onChange={e => setEditForm({...editForm, name: e.target.value})}
+                      className="w-full p-3 text-2xl font-bold bg-[#111A3A] border border-indigo-500/30 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-white placeholder-slate-500"
+                      placeholder="Full Name"
+                    />
+                    <input 
+                      type="text" 
+                      value={editForm.headline || ''} 
+                      onChange={e => setEditForm({...editForm, headline: e.target.value})}
+                      className="w-full p-3 bg-[#111A3A] border border-indigo-500/30 rounded-xl focus:ring-2 focus:ring-indigo-500 text-slate-300 placeholder-slate-500"
+                      placeholder="Professional Headline"
+                    />
+                    <div className="flex gap-2 items-center">
+                      <MapPin className="w-5 h-5 text-indigo-400" />
+                      <input 
+                        type="text" 
+                        value={editForm.location || ''} 
+                        onChange={e => setEditForm({...editForm, location: e.target.value})}
+                        className="flex-1 p-3 bg-[#111A3A] border border-indigo-500/30 rounded-xl focus:ring-2 focus:ring-indigo-500 text-slate-300 placeholder-slate-500"
+                        placeholder="Location (e.g. Bangalore, India)"
+                      />
                     </div>
                   </div>
-                ))}
+                ) : (
+                  <div>
+                    <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-2">
+                      {profile.name || 'Anonymous Hacker'}
+                    </h1>
+                    <p className="text-indigo-300 text-lg sm:text-xl font-medium mb-3">
+                      {profile.headline || 'Add a professional headline to stand out'}
+                    </p>
+                    <div className="flex items-center gap-2 text-slate-400 font-medium">
+                      <MapPin className="w-4 h-4 text-cyan-400" />
+                      <span>{profile.location || 'Location not specified'}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Social Links View Mode */}
+                {!isEditing && (
+                  <div className="flex flex-wrap items-center gap-3 pt-2">
+                    {profile.linkedin_url && <LinkedInButton url={profile.linkedin_url} />}
+                    {profile.github_url && (
+                      <a href={profile.github_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-slate-800 text-white hover:bg-slate-700 transition-colors" title="GitHub">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" /></svg>
+                      </a>
+                    )}
+                    {profile.portfolio_url && (
+                      <a href={profile.portfolio_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-cyan-900/40 text-cyan-400 hover:bg-cyan-900/60 hover:text-cyan-300 transition-colors" title="Portfolio">
+                        <Globe className="w-5 h-5" />
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 text-center text-slate-500">
-                No achievements recorded yet. Add them in the Certificate Vault.
+            </div>
+
+            {/* Statistics Row */}
+            {!isEditing && (
+              <div className="mt-10 grid grid-cols-3 gap-4 sm:gap-6 pt-8 border-t border-indigo-500/10">
+                <div className="bg-[#111A3A]/50 rounded-2xl p-4 text-center border border-indigo-500/10">
+                  <div className="text-2xl sm:text-3xl font-black text-white mb-1">{stats.hackathons}</div>
+                  <div className="text-xs sm:text-sm font-medium text-indigo-300 uppercase tracking-wider">Hackathons</div>
+                </div>
+                <div className="bg-[#111A3A]/50 rounded-2xl p-4 text-center border border-indigo-500/10">
+                  <div className="text-2xl sm:text-3xl font-black text-white mb-1">{stats.wins}</div>
+                  <div className="text-xs sm:text-sm font-medium text-cyan-300 uppercase tracking-wider">Wins</div>
+                </div>
+                <div className="bg-[#111A3A]/50 rounded-2xl p-4 text-center border border-indigo-500/10">
+                  <div className="text-2xl sm:text-3xl font-black text-white mb-1">{stats.projects}</div>
+                  <div className="text-xs sm:text-sm font-medium text-purple-300 uppercase tracking-wider">Projects</div>
+                </div>
               </div>
             )}
           </div>
-
         </div>
-      </div>
 
-      {/* Delete Account */}
-      <div className="border-t border-red-500/20 pt-12 mt-12 pb-8">
-        <div className="flex flex-col md:flex-row justify-end items-start md:items-center gap-4">
-          {!showDelete ? (
-            <button 
-              onClick={() => setShowDelete(true)}
-              className="px-6 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 font-medium rounded-xl transition-colors"
-            >
-              Delete Account
+        {/* Profile Completion Indicator */}
+        {!isEditing && completionPercentage < 100 && (
+          <div className="bg-[#0B1026]/80 backdrop-blur-xl border border-indigo-500/20 rounded-2xl p-6 shadow-lg flex items-center justify-between gap-6">
+            <div className="flex-1">
+              <div className="flex justify-between items-end mb-2">
+                <h3 className="text-sm font-bold text-white">Profile Completion</h3>
+                <span className="text-sm font-bold text-indigo-400">{completionPercentage}%</span>
+              </div>
+              <div className="w-full bg-[#111A3A] rounded-full h-2">
+                <div className="bg-gradient-to-r from-cyan-400 to-indigo-500 h-2 rounded-full" style={{ width: `${completionPercentage}%` }}></div>
+              </div>
+              <p className="text-xs text-slate-400 mt-3">Add your LinkedIn, GitHub, and bio to complete your profile.</p>
+            </div>
+            <button onClick={() => setIsEditing(true)} className="shrink-0 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold rounded-xl transition-colors">
+              Complete Now
             </button>
-          ) : (
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-red-200 dark:border-red-500/30 w-full md:w-auto shadow-sm">
-              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                Type <strong className="text-red-600 dark:text-red-400">DELETE</strong> to confirm:
-              </p>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={deleteConfirm}
-                  onChange={(e) => setDeleteConfirm(e.target.value)}
-                  className="flex-1 w-full md:w-32 p-2 border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-lg text-sm font-bold text-red-600 dark:text-red-400 focus:ring-2 focus:ring-red-500"
-                  placeholder="DELETE"
-                />
-                <button 
-                  onClick={handleDeleteAccount}
-                  disabled={deleteConfirm !== 'DELETE' || isDeleting}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-lg transition-colors"
-                >
-                  {isDeleting ? 'Deleting...' : 'Confirm'}
-                </button>
-                <button 
-                  onClick={() => { setShowDelete(false); setDeleteConfirm(''); }}
-                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 font-semibold rounded-lg transition-colors"
-                >
-                  Cancel
-                </button>
+          </div>
+        )}
+
+        {isEditing ? (
+          /* EDIT MODE FIELDS */
+          <div className="bg-[#0B1026]/80 backdrop-blur-xl border border-indigo-500/20 rounded-3xl p-8 shadow-xl space-y-8">
+            <div>
+              <h3 className="text-lg font-bold text-white mb-4">About Me</h3>
+              <textarea 
+                value={editForm.bio || ''} 
+                onChange={e => setEditForm({...editForm, bio: e.target.value.substring(0, 500)})}
+                className="w-full p-4 bg-[#111A3A] border border-indigo-500/30 rounded-xl focus:ring-2 focus:ring-indigo-500 text-slate-300 placeholder-slate-500 min-h-[120px] resize-none"
+                placeholder="Full-stack developer passionate about AI, hackathons, and building products that solve real-world problems."
+              />
+              <div className="text-right text-xs text-slate-500 mt-2">{editForm.bio?.length || 0}/500 characters</div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-bold text-white mb-4">Social Links</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-400 mb-1">LinkedIn Profile</label>
+                  <input 
+                    type="text" 
+                    value={editForm.linkedin_url || ''} 
+                    onChange={e => setEditForm({...editForm, linkedin_url: e.target.value})}
+                    className="w-full p-3 bg-[#111A3A] border border-indigo-500/30 rounded-xl focus:ring-2 focus:ring-indigo-500 text-slate-300 placeholder-slate-500"
+                    placeholder="https://www.linkedin.com/in/your-username/"
+                  />
+                  {linkedinError && <p className="text-red-400 text-xs mt-1">{linkedinError}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-400 mb-1">GitHub Profile</label>
+                  <input 
+                    type="text" 
+                    value={editForm.github_url || ''} 
+                    onChange={e => setEditForm({...editForm, github_url: e.target.value})}
+                    className="w-full p-3 bg-[#111A3A] border border-indigo-500/30 rounded-xl focus:ring-2 focus:ring-indigo-500 text-slate-300 placeholder-slate-500"
+                    placeholder="https://github.com/your-username"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-400 mb-1">Portfolio Website</label>
+                  <input 
+                    type="text" 
+                    value={editForm.portfolio_url || ''} 
+                    onChange={e => setEditForm({...editForm, portfolio_url: e.target.value})}
+                    className="w-full p-3 bg-[#111A3A] border border-indigo-500/30 rounded-xl focus:ring-2 focus:ring-indigo-500 text-slate-300 placeholder-slate-500"
+                    placeholder="https://your-portfolio.com"
+                  />
+                </div>
               </div>
             </div>
-          )}
-        </div>
+
+            <div className="flex items-center justify-end gap-3 pt-6 border-t border-indigo-500/20">
+              <button 
+                onClick={() => {
+                  setIsEditing(false);
+                  setEditForm(profile);
+                  setLinkedinError('');
+                }}
+                className="px-6 py-2.5 bg-transparent hover:bg-slate-800 text-slate-300 font-bold rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSave}
+                className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/30 transition-colors flex items-center gap-2"
+              >
+                <Save className="w-4 h-4" /> Save Profile
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            {/* Left Column: About & Skills */}
+            <div className="lg:col-span-1 space-y-8">
+              <div className="bg-[#0B1026]/80 backdrop-blur-xl border border-indigo-500/20 rounded-3xl p-8 shadow-xl">
+                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                  <Briefcase className="w-5 h-5 text-indigo-400" /> About Me
+                </h3>
+                <p className="text-slate-300 whitespace-pre-wrap leading-relaxed text-sm">
+                  {profile.bio || "No bio added yet."}
+                </p>
+              </div>
+
+              <div className="bg-[#0B1026]/80 backdrop-blur-xl border border-indigo-500/20 rounded-3xl p-8 shadow-xl">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                    <Code className="w-5 h-5 text-cyan-400" /> Skills
+                  </h3>
+                  <Link to="/skill-gap" className="text-xs font-bold text-indigo-400 hover:text-indigo-300">Edit Skills</Link>
+                </div>
+                {skills.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {skills.map(skill => (
+                      <span key={skill.id} className="px-3 py-1.5 bg-[#111A3A] border border-indigo-500/30 text-indigo-300 rounded-lg text-xs font-semibold">
+                        {skill.name}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500">No skills added yet.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Right Column: Achievements & Projects */}
+            <div className="lg:col-span-2 space-y-8">
+              
+              {/* Achievements / Certificates */}
+              <div className="bg-[#0B1026]/80 backdrop-blur-xl border border-indigo-500/20 rounded-3xl p-8 shadow-xl">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                    <Award className="w-5 h-5 text-amber-400" /> Achievements & Certificates
+                  </h3>
+                  <Link to="/certificate-vault" className="text-xs font-bold text-indigo-400 hover:text-indigo-300">Manage</Link>
+                </div>
+                {certificates.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {certificates.map(cert => (
+                      <div key={cert.id} className="p-4 bg-[#111A3A] border border-indigo-500/20 rounded-2xl flex flex-col hover:border-indigo-500/50 transition-colors">
+                        <Trophy className="w-6 h-6 text-amber-400 mb-2" />
+                        <h4 className="font-bold text-slate-200 line-clamp-1">{cert.title}</h4>
+                        <p className="text-xs text-slate-400 mt-1">{cert.issuer || 'HackVerse AI'}</p>
+                        {cert.certificate_url && (
+                          <a href={cert.certificate_url} target="_blank" rel="noopener noreferrer" className="mt-3 text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 w-fit">
+                            View Certificate <ExternalLink className="w-3 h-3" />
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500">No certificates yet.</p>
+                )}
+              </div>
+
+              {/* Projects placeholder (Workspaces) */}
+              <div className="bg-[#0B1026]/80 backdrop-blur-xl border border-indigo-500/20 rounded-3xl p-8 shadow-xl">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                    <Code className="w-5 h-5 text-emerald-400" /> Public Projects
+                  </h3>
+                  <Link to="/workspaces" className="text-xs font-bold text-indigo-400 hover:text-indigo-300">View Workspaces</Link>
+                </div>
+                <div className="p-8 border border-dashed border-indigo-500/20 rounded-2xl text-center">
+                  <p className="text-sm text-slate-500 mb-2">Projects integration from Workspaces</p>
+                  <p className="text-xs text-slate-600">Ensure your workspace is marked public to display it here.</p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
+
+        {/* Danger Zone */}
+        {!isEditing && (
+          <div className="mt-16 border-t border-red-500/20 pt-16">
+            <div className="bg-[#1a0f14] border border-red-500/30 rounded-3xl p-8 sm:p-10 shadow-xl shadow-red-900/10">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-red-500/10 rounded-2xl text-red-500 shrink-0">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-red-500 mb-2">Danger Zone</h3>
+                  <p className="text-sm text-slate-400 mb-6 max-w-xl">
+                    Permanently delete your HackVerse AI account and all associated data. This action is destructive, completely irreversible, and removes your profile, certificates, and workspaces.
+                  </p>
+                  
+                  {!showDelete ? (
+                    <button 
+                      onClick={() => setShowDelete(true)}
+                      className="px-6 py-2.5 bg-transparent border border-red-500/50 hover:bg-red-500/10 text-red-500 text-sm font-bold rounded-xl transition-colors"
+                    >
+                      Delete Account
+                    </button>
+                  ) : (
+                    <div className="space-y-4 max-w-md">
+                      <label className="block text-sm font-medium text-slate-300">
+                        Type <span className="font-bold text-red-400 select-all">DELETE</span> to confirm
+                      </label>
+                      <input 
+                        type="text" 
+                        value={deleteConfirm}
+                        onChange={e => setDeleteConfirm(e.target.value)}
+                        className="w-full p-3 bg-[#0B1026] border border-red-500/50 rounded-xl focus:ring-2 focus:ring-red-500 text-white font-mono"
+                        placeholder="DELETE"
+                      />
+                      <div className="flex items-center gap-3">
+                        <button 
+                          onClick={() => { setShowDelete(false); setDeleteConfirm(''); }}
+                          className="flex-1 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button 
+                          onClick={handleDeleteAccount}
+                          disabled={deleteConfirm !== 'DELETE' || isDeleting}
+                          className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-500 disabled:bg-red-900/50 disabled:text-red-400/50 text-white font-bold rounded-xl transition-colors flex justify-center items-center gap-2"
+                        >
+                          {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                          Confirm Delete
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
