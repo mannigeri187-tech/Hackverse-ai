@@ -61,7 +61,7 @@ export function useHackathons(params: SearchParams) {
     if (cached && Date.now() - cached.timestamp < CLIENT_CACHE_TTL) {
       const activeData = params.status === 'completed' ? cached.data : removeExpiredHackathons(cached.data);
       setHackathons(activeData);
-      setTotalCount(params.status === 'completed' ? cached.count : activeData.length);
+      setTotalCount(cached.count); // Always use cached total count to preserve pagination
       setResponseTime(0.5);
       setDataSource('instant-cache');
       setIsLoading(false);
@@ -96,14 +96,16 @@ export function useHackathons(params: SearchParams) {
         const activeList = params.status === 'completed' ? rawList : removeExpiredHackathons(rawList);
 
         setHackathons(activeList);
-        setTotalCount(params.status === 'completed' ? (result.count || activeList.length) : activeList.length);
+        // ALWAYS use the server's total count for pagination, otherwise it caps at 'limit' (e.g. 9)
+        const serverCount = result.count !== undefined ? result.count : activeList.length;
+        setTotalCount(serverCount);
         setResponseTime(result.responseTime || clientLatency);
         setDataSource(result.source || 'postgres');
 
         // Store cleaned active data in client cache
         clientCache.set(cacheKey, {
           data: activeList,
-          count: activeList.length,
+          count: serverCount,
           responseTime: result.responseTime || clientLatency,
           source: result.source || 'postgres',
           timestamp: Date.now()
