@@ -39,7 +39,7 @@ function fetchJson(url, options = {}) {
  */
 export async function fetchUnstopHackathons() {
   const items = [];
-  const MAX_PAGES = 5; // Fetch up to 250 hackathons
+  const MAX_PAGES = 15; // Fetch up to 750 hackathons
 
   for (let page = 1; page <= MAX_PAGES; page++) {
     const url = `https://unstop.com/api/public/opportunity/search-result?opportunity=hackathons&page=${page}&per_page=50`;
@@ -79,7 +79,7 @@ export async function fetchUnstopHackathons() {
         image_url: item.banner_mobile?.url || item.banner_desktop?.url || item.logo_url2 || null,
         status: status,
         source: 'unstop',
-        external_id: String(item.id)
+        external_id: String(item.slug || item.id)
       });
     }
   }
@@ -91,45 +91,50 @@ export async function fetchUnstopHackathons() {
  * 2. Fetch Real Hackathons from Devfolio Public API (India/Global Top Hackathons)
  */
 export async function fetchDevfolioHackathons() {
-  const url = 'https://api.devfolio.co/api/hackathons?filter=all&page=1&limit=40';
-  const res = await fetchJson(url);
-
-  if (!res.success || !res.data?.result) {
-    console.error('⚠️ Devfolio ingestion failed:', res.error || res.status);
-    return [];
-  }
-
-  const rawList = res.data.result;
   const items = [];
+  const MAX_PAGES = 5; // Up to 200 hackathons
 
-  for (const item of rawList) {
-    if (!item.name) continue;
-
-    const locInfo = normalizeLocation(item.location || '', {});
-    const mode = normalizeMode(item.is_online ? 'online' : 'offline', locInfo.location);
-    const startDate = parseSafeIsoDate(item.starts_at) || new Date().toISOString();
-    const endDate = parseSafeIsoDate(item.ends_at);
-    const regDeadline = parseSafeIsoDate(item.reg_ends_at);
-    const status = calculateEventStatus(startDate, endDate, regDeadline);
-
-    items.push({
-      title: item.name.trim(),
-      organizer: item.hosted_by || 'Devfolio Community',
-      description: item.tagline || item.desc || `${item.name} hosted on Devfolio`,
-      start_date: startDate,
-      end_date: endDate,
-      registration_deadline: regDeadline,
-      location: locInfo.location,
-      mode: mode,
-      prize: item.total_prizes ? `$${item.total_prizes.toLocaleString()} Prizes` : 'Prizes & Grants',
-      team_size: '2-4 Members',
-      eligibility: 'Open to all developers and students',
-      registration_url: item.slug ? `https://${item.slug}.devfolio.co` : (item.website || 'https://devfolio.co'),
-      image_url: item.cover_img || item.square_logo || null,
-      status: status,
-      source: 'devfolio',
-      external_id: String(item.slug || item.id)
-    });
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const url = `https://api.devfolio.co/api/hackathons?filter=all&page=${page}&limit=40`;
+    const res = await fetchJson(url);
+  
+    if (!res.success || !res.data?.result) {
+      console.error(`Devfolio ingestion failed on page ${page}:`, res.error || res.status);
+      break;
+    }
+  
+    const rawList = res.data.result;
+    if (rawList.length === 0) break;
+  
+    for (const item of rawList) {
+      if (!item.name) continue;
+  
+      const locInfo = normalizeLocation(item.location || '', {});
+      const mode = normalizeMode(item.is_online ? 'online' : 'offline', locInfo.location);
+      const startDate = parseSafeIsoDate(item.starts_at) || new Date().toISOString();
+      const endDate = parseSafeIsoDate(item.ends_at);
+      const regDeadline = parseSafeIsoDate(item.reg_ends_at);
+      const status = calculateEventStatus(startDate, endDate, regDeadline);
+  
+      items.push({
+        title: item.name.trim(),
+        organizer: item.hosted_by || 'Devfolio Community',
+        description: item.tagline || item.desc || `${item.name} hosted on Devfolio`,
+        start_date: startDate,
+        end_date: endDate,
+        registration_deadline: regDeadline,
+        location: locInfo.location,
+        mode: mode,
+        prize: item.prizes_total ? `₹${item.prizes_total.toLocaleString()}` : 'Cash & Swag',
+        team_size: item.team_size ? `1-${item.team_size} Members` : '1-4 Members',
+        eligibility: item.eligibility || 'Open to all developers',
+        registration_url: item.hackathon_setting?.subdomain ? `https://${item.hackathon_setting.subdomain}.devfolio.co` : (item.url || 'https://devfolio.co'),
+        image_url: item.cover_img || item.logo || null,
+        status: status,
+        source: 'devfolio',
+        external_id: String(item.slug || item.id)
+      });
+    }
   }
 
   return items;
