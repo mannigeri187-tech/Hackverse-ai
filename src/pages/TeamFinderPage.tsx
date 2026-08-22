@@ -455,7 +455,7 @@ export default function TeamFinderPage() {
 
       {/* TAB CONTENT: REQUESTS INBOX */}
       {activeTab === 'requests' && (
-        <TeamRequestsList />
+        <TeamRequestsList onStartChat={handleStartChat} />
       )}
 
       {/* TAB CONTENT: FIND TEAMMATES */}

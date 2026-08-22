@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Check, X, Clock, Send, Inbox } from 'lucide-react';
+import { Check, X, Clock, Send, Inbox, MessageCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { TeamRequest } from '../types/teamFinder';
 
-export function TeamRequestsList() {
+export function TeamRequestsList({ onStartChat }: { onStartChat?: (userId: string, userName: string) => void }) {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'received' | 'sent'>('received');
   const [requests, setRequests] = useState<TeamRequest[]>([]);
@@ -222,18 +222,28 @@ export function TeamRequestsList() {
                       </button>
                     </>
                   ) : (
-                    <span className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 ${
-                      req.status === 'accepted'
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        : req.status === 'rejected'
-                        ? 'bg-slate-100 text-slate-500'
-                        : 'bg-amber-50 text-amber-700 border border-amber-200'
-                    }`}>
-                      {req.status === 'accepted' && <Check className="w-3.5 h-3.5" />}
-                      {req.status === 'pending' && <Clock className="w-3.5 h-3.5" />}
-                      {req.status === 'rejected' && <X className="w-3.5 h-3.5" />}
-                      <span className="capitalize">{req.status === 'accepted' ? 'Team Request Accepted' : req.status === 'rejected' ? 'Declined' : 'Pending Response'}</span>
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 ${
+                        req.status === 'accepted'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : req.status === 'rejected'
+                          ? 'bg-slate-100 text-slate-500'
+                          : 'bg-amber-50 text-amber-700 border border-amber-200'
+                      }`}>
+                        {req.status === 'accepted' && <Check className="w-3.5 h-3.5" />}
+                        {req.status === 'pending' && <Clock className="w-3.5 h-3.5" />}
+                        {req.status === 'rejected' && <X className="w-3.5 h-3.5" />}
+                        <span className="capitalize">{req.status === 'accepted' ? 'Team Request Accepted' : req.status === 'rejected' ? 'Declined' : 'Pending Response'}</span>
+                      </span>
+                      {req.status === 'accepted' && onStartChat && (
+                        <button
+                          onClick={() => onStartChat(isReceived ? req.sender_id : req.receiver_id, partnerProfile?.display_name || 'User')}
+                          className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" /> Message
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
