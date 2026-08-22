@@ -124,6 +124,19 @@ export async function runHackathonIngestion() {
     }
   }
 
+  // 5.5 Delete expired hackathons
+  try {
+    const nowIso = new Date().toISOString();
+    const { error: deleteError } = await supabase
+      .from('hackathons')
+      .delete()
+      .lt('end_date', nowIso);
+    if (deleteError) console.error('Error deleting expired hackathons:', deleteError.message);
+    else console.log('Deleted expired hackathons successfully.');
+  } catch(err) {
+    console.error('Failed to cleanup expired hackathons', err);
+  }
+
   // 6. Invalidate Search Cache in Redis and L1 RAM
   await clearSearchCache();
 

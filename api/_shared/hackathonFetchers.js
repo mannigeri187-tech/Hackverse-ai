@@ -38,45 +38,50 @@ function fetchJson(url, options = {}) {
  * 1. Fetch Real Hackathons from Unstop Public API (India Heavy)
  */
 export async function fetchUnstopHackathons() {
-  const url = 'https://unstop.com/api/public/opportunity/search-result?opportunity=hackathons&page=1&per_page=50';
-  const res = await fetchJson(url);
-
-  if (!res.success || !res.data?.data?.data) {
-    console.error('⚠️ Unstop ingestion failed:', res.error || res.status);
-    return [];
-  }
-
-  const rawList = res.data.data.data;
   const items = [];
+  const MAX_PAGES = 5; // Fetch up to 250 hackathons
 
-  for (const item of rawList) {
-    if (!item.title) continue;
-
-    const locInfo = normalizeLocation(item.region || '', item.address_with_country_logo || {});
-    const mode = normalizeMode(item.opportunity_type || '', locInfo.location);
-    const startDate = parseSafeIsoDate(item.start_date || item.approved_date) || new Date().toISOString();
-    const endDate = parseSafeIsoDate(item.end_date);
-    const regDeadline = parseSafeIsoDate(item.regnRequirements?.end_regn_dt);
-    const status = calculateEventStatus(startDate, endDate, regDeadline);
-
-    items.push({
-      title: item.title.trim(),
-      organizer: item.organisation?.name || 'Unstop Partner',
-      description: item.details || item.seo_details?.description || `${item.title} on Unstop`,
-      start_date: startDate,
-      end_date: endDate,
-      registration_deadline: regDeadline,
-      location: locInfo.location,
-      mode: mode,
-      prize: item.prizes?.[0]?.cash ? `₹${item.prizes[0].cash.toLocaleString()}` : (item.regnRequirements?.remain_days || 'Awards & Certificates'),
-      team_size: item.regnRequirements?.min_team_size ? `${item.regnRequirements.min_team_size}-${item.regnRequirements.max_team_size || 4} Members` : '1-4 Members',
-      eligibility: item.filters?.map(f => f.name).join(', ') || 'College Students & Developers',
-      registration_url: item.seo_url ? `https://unstop.com/${item.seo_url}` : (item.short_url || 'https://unstop.com'),
-      image_url: item.banner_mobile?.url || item.banner_desktop?.url || item.logo_url2 || null,
-      status: status,
-      source: 'unstop',
-      external_id: String(item.id)
-    });
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const url = `https://unstop.com/api/public/opportunity/search-result?opportunity=hackathons&page=${page}&per_page=50`;
+    const res = await fetchJson(url);
+  
+    if (!res.success || !res.data?.data?.data) {
+      console.error(`Unstop ingestion failed on page ${page}:`, res.error || res.status);
+      break;
+    }
+  
+    const rawList = res.data.data.data;
+    if (rawList.length === 0) break;
+  
+    for (const item of rawList) {
+      if (!item.title) continue;
+  
+      const locInfo = normalizeLocation(item.region || '', item.address_with_country_logo || {});
+      const mode = normalizeMode(item.opportunity_type || '', locInfo.location);
+      const startDate = parseSafeIsoDate(item.start_date || item.approved_date) || new Date().toISOString();
+      const endDate = parseSafeIsoDate(item.end_date);
+      const regDeadline = parseSafeIsoDate(item.regnRequirements?.end_regn_dt);
+      const status = calculateEventStatus(startDate, endDate, regDeadline);
+  
+      items.push({
+        title: item.title.trim(),
+        organizer: item.organisation?.name || 'Unstop Partner',
+        description: item.details || item.seo_details?.description || `${item.title} on Unstop`,
+        start_date: startDate,
+        end_date: endDate,
+        registration_deadline: regDeadline,
+        location: locInfo.location,
+        mode: mode,
+        prize: item.prizes?.[0]?.cash ? `₹${item.prizes[0].cash.toLocaleString()}` : (item.regnRequirements?.remain_days || 'Awards & Certificates'),
+        team_size: item.regnRequirements?.min_team_size ? `${item.regnRequirements.min_team_size}-${item.regnRequirements.max_team_size || 4} Members` : '1-4 Members',
+        eligibility: item.filters?.map(f => f.name).join(', ') || 'College Students & Developers',
+        registration_url: item.seo_url ? `https://unstop.com/${item.seo_url}` : (item.short_url || 'https://unstop.com'),
+        image_url: item.banner_mobile?.url || item.banner_desktop?.url || item.logo_url2 || null,
+        status: status,
+        source: 'unstop',
+        external_id: String(item.id)
+      });
+    }
   }
 
   return items;
