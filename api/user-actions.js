@@ -46,7 +46,9 @@ export default async function handler(req, res) {
         if (!finalProfile.username) finalProfile.username = meta.username;
         if (!finalProfile.bio) finalProfile.bio = meta.bio;
         if (!finalProfile.github_url) finalProfile.github_url = meta.github_url;
+        if (!finalProfile.twitter_url) finalProfile.twitter_url = meta.twitter_url;
         if (!finalProfile.portfolio_url) finalProfile.portfolio_url = meta.portfolio_url;
+        if (!finalProfile.avatar_url) finalProfile.avatar_url = meta.avatar_url || meta.picture;
       }
 
       const { data: skills } = await adminClient.from('user_skills').select('proficiency, skill:skills(id, name, category)').eq('user_id', id);

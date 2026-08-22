@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, MapPin, Trophy, Code, Briefcase, Award, PenLine, AlertTriangle, ExternalLink } from 'lucide-react';
+import { LogOut, MapPin, Trophy, Code, Briefcase, Award, PenLine, ExternalLink } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import LinkedInButton from '../components/profile/LinkedInButton';
+import TwitterButton from '../components/profile/TwitterButton';
 
 export default function ProfilePage() {
   const { user, signOut } = useAuth();
@@ -43,6 +44,8 @@ export default function ProfilePage() {
           if (!currentProfile.bio) currentProfile.bio = user.user_metadata.bio;
           if (!currentProfile.location) currentProfile.location = user.user_metadata.location;
           if (!currentProfile.linkedin_url) currentProfile.linkedin_url = user.user_metadata.linkedin_url;
+          if (!currentProfile.twitter_url) currentProfile.twitter_url = user.user_metadata.twitter_url;
+          if (!currentProfile.avatar_url) currentProfile.avatar_url = user.user_metadata.avatar_url || user.user_metadata.picture || currentProfile.profile_image;
         }
 
         setProfile(currentProfile);
@@ -97,7 +100,21 @@ export default function ProfilePage() {
           return;
         }
       } catch {
-        alert('Please enter a valid URL (include https://)');
+        alert('Please enter a valid URL (include https://) for LinkedIn');
+        return;
+      }
+    }
+
+    // Validate Twitter URL
+    if (editForm.twitter_url) {
+      try {
+        const url = new URL(editForm.twitter_url);
+        if (!url.hostname.includes('twitter.com') && !url.hostname.includes('x.com')) {
+          alert('Please enter a valid Twitter/X URL');
+          return;
+        }
+      } catch {
+        alert('Please enter a valid URL (include https://) for Twitter');
         return;
       }
     }
@@ -111,6 +128,8 @@ export default function ProfilePage() {
         bio: editForm.bio,
         location: editForm.location,
         linkedin_url: editForm.linkedin_url,
+        twitter_url: editForm.twitter_url,
+        avatar_url: editForm.avatar_url,
       });
 
       // 2. Always save to user_metadata as fallback
@@ -121,6 +140,8 @@ export default function ProfilePage() {
           bio: editForm.bio,
           location: editForm.location,
           linkedin_url: editForm.linkedin_url,
+          twitter_url: editForm.twitter_url,
+          avatar_url: editForm.avatar_url,
         }
       });
 
@@ -182,9 +203,9 @@ export default function ProfilePage() {
         <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 dark:from-cyan-600/20 dark:to-blue-600/20"></div>
         
         <div className="relative pt-12 flex flex-col md:flex-row gap-8 items-start">
-          <div className="w-32 h-32 bg-cyan-100 dark:bg-cyan-900/50 rounded-full flex items-center justify-center text-cyan-700 dark:text-cyan-300 text-4xl font-black shadow-xl border-4 border-white dark:border-slate-900 shrink-0">
-            {profile.profile_image ? (
-              <img src={profile.profile_image} alt={profile.name} className="w-full h-full object-cover rounded-full" />
+          <div className="w-32 h-32 bg-cyan-100 dark:bg-cyan-900/50 rounded-full flex items-center justify-center text-cyan-700 dark:text-cyan-300 text-4xl font-black shadow-xl border-4 border-white dark:border-slate-900 shrink-0 overflow-hidden">
+            {profile.avatar_url || profile.profile_image ? (
+              <img src={profile.avatar_url || profile.profile_image} alt={profile.name} className="w-full h-full object-cover" />
             ) : getInitials(profile.name)}
           </div>
           
@@ -197,6 +218,13 @@ export default function ProfilePage() {
                   onChange={e => setEditForm({...editForm, name: e.target.value})}
                   className="w-full p-2 text-xl font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="Full Name"
+                />
+                <input 
+                  type="url" 
+                  value={editForm.avatar_url || ''} 
+                  onChange={e => setEditForm({...editForm, avatar_url: e.target.value})}
+                  className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                  placeholder="Profile Picture URL (e.g., https://github.com/username.png)"
                 />
                 <input 
                   type="text" 
@@ -231,6 +259,16 @@ export default function ProfilePage() {
                     onChange={e => setEditForm({...editForm, linkedin_url: e.target.value})}
                     className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500"
                     placeholder="LinkedIn Profile URL (https://www.linkedin.com/in/...)"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <ExternalLink className="w-5 h-5 text-slate-400 mt-2" />
+                  <input 
+                    type="url" 
+                    value={editForm.twitter_url || ''} 
+                    onChange={e => setEditForm({...editForm, twitter_url: e.target.value})}
+                    className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="Twitter / X URL (https://twitter.com/...)"
                   />
                 </div>
                 <div className="flex gap-3 pt-2">
@@ -283,6 +321,7 @@ export default function ProfilePage() {
 
                 <div className="pt-2 flex flex-wrap gap-3">
                   {profile.linkedin_url && <LinkedInButton url={profile.linkedin_url} />}
+                  {profile.twitter_url && <TwitterButton url={profile.twitter_url} />}
                 </div>
               </>
             )}
@@ -402,56 +441,45 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Danger Zone */}
-      <div className="border-t border-red-500/20 pt-12 mt-12">
-        <div className="bg-red-50 dark:bg-red-500/5 p-6 md:p-8 rounded-3xl border border-red-200 dark:border-red-500/20">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <h3 className="text-xl font-bold text-red-700 dark:text-red-400 flex items-center gap-2">
-                <AlertTriangle className="w-6 h-6" /> Danger Zone
-              </h3>
-              <p className="text-red-600/80 dark:text-red-400/80 text-sm mt-1">
-                Permanently delete your account and all associated data. This action cannot be undone.
+      {/* Delete Account */}
+      <div className="border-t border-red-500/20 pt-12 mt-12 pb-8">
+        <div className="flex flex-col md:flex-row justify-end items-start md:items-center gap-4">
+          {!showDelete ? (
+            <button 
+              onClick={() => setShowDelete(true)}
+              className="px-6 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 font-medium rounded-xl transition-colors"
+            >
+              Delete Account
+            </button>
+          ) : (
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-red-200 dark:border-red-500/30 w-full md:w-auto shadow-sm">
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                Type <strong className="text-red-600 dark:text-red-400">DELETE</strong> to confirm:
               </p>
-            </div>
-            
-            {!showDelete ? (
-              <button 
-                onClick={() => setShowDelete(true)}
-                className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-colors shrink-0 shadow-lg shadow-red-600/20"
-              >
-                Delete Account
-              </button>
-            ) : (
-              <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-red-200 dark:border-red-500/30 w-full md:w-auto shadow-sm">
-                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                  Type <strong className="text-red-600 dark:text-red-400">DELETE</strong> to confirm:
-                </p>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={deleteConfirm}
-                    onChange={(e) => setDeleteConfirm(e.target.value)}
-                    className="flex-1 w-full md:w-32 p-2 border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-lg text-sm font-bold text-red-600 dark:text-red-400 focus:ring-2 focus:ring-red-500"
-                    placeholder="DELETE"
-                  />
-                  <button 
-                    onClick={handleDeleteAccount}
-                    disabled={deleteConfirm !== 'DELETE' || isDeleting}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-lg transition-colors"
-                  >
-                    {isDeleting ? 'Deleting...' : 'Confirm'}
-                  </button>
-                  <button 
-                    onClick={() => { setShowDelete(false); setDeleteConfirm(''); }}
-                    className="px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 font-semibold rounded-lg transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={deleteConfirm}
+                  onChange={(e) => setDeleteConfirm(e.target.value)}
+                  className="flex-1 w-full md:w-32 p-2 border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-lg text-sm font-bold text-red-600 dark:text-red-400 focus:ring-2 focus:ring-red-500"
+                  placeholder="DELETE"
+                />
+                <button 
+                  onClick={handleDeleteAccount}
+                  disabled={deleteConfirm !== 'DELETE' || isDeleting}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-lg transition-colors"
+                >
+                  {isDeleting ? 'Deleting...' : 'Confirm'}
+                </button>
+                <button 
+                  onClick={() => { setShowDelete(false); setDeleteConfirm(''); }}
+                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 font-semibold rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

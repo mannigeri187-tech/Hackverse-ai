@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { MapPin, Trophy, Code, Briefcase, Award } from 'lucide-react';
 import LinkedInButton from '../components/profile/LinkedInButton';
+import TwitterButton from '../components/profile/TwitterButton';
 
 export default function PublicProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -59,9 +60,9 @@ export default function PublicProfilePage() {
         <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-r from-blue-500/20 to-purple-500/20 dark:from-blue-600/20 dark:to-purple-600/20"></div>
         
         <div className="relative pt-12 flex flex-col md:flex-row gap-8 items-start">
-          <div className="w-32 h-32 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center text-blue-700 dark:text-blue-300 text-4xl font-black shadow-xl border-4 border-white dark:border-slate-900 shrink-0">
-            {profile.profile_image ? (
-              <img src={profile.profile_image} alt={profile.name} className="w-full h-full object-cover rounded-full" />
+          <div className="w-32 h-32 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center text-blue-700 dark:text-blue-300 text-4xl font-black shadow-xl border-4 border-white dark:border-slate-900 shrink-0 overflow-hidden">
+            {profile.avatar_url || profile.profile_image ? (
+              <img src={profile.avatar_url || profile.profile_image} alt={profile.name} className="w-full h-full object-cover" />
             ) : getInitials(profile.name)}
           </div>
           
@@ -88,6 +89,7 @@ export default function PublicProfilePage() {
 
             <div className="pt-2 flex flex-wrap gap-3">
               {profile.linkedin_url && <LinkedInButton url={profile.linkedin_url} />}
+              {profile.twitter_url && <TwitterButton url={profile.twitter_url} />}
             </div>
           </div>
         </div>
