@@ -14,7 +14,7 @@ export default function PublicProfilePage() {
       if (!id) return;
       setLoading(true);
       try {
-        const res = await fetch(`/api/profile/public?id=${id}`);
+        const res = await fetch(`/api/user-actions?id=${id}`);
         if (!res.ok) throw new Error('Profile not found');
         const json = await res.json();
         setData(json);

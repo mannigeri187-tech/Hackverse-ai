@@ -11,7 +11,7 @@ export interface RateLimitCheckResult {
 
 export async function checkAuthRateLimit(action: string, email?: string): Promise<RateLimitCheckResult> {
   try {
-    const res = await fetch('/api/auth/rate-limit', {
+    const res = await fetch('/api/user-actions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -43,7 +43,7 @@ export async function checkAuthRateLimit(action: string, email?: string): Promis
 
 export function reportAuthSuccess(email?: string): void {
   if (!email) return;
-  fetch('/api/auth/rate-limit', {
+  fetch('/api/user-actions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -58,7 +58,7 @@ export function reportAuthSuccess(email?: string): void {
 
 export function reportAuthFailure(email?: string): void {
   if (!email) return;
-  fetch('/api/auth/rate-limit', {
+  fetch('/api/user-actions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

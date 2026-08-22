@@ -140,7 +140,7 @@ export default function ProfilePage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('No session');
 
-      const res = await fetch('/api/auth/delete-account', {
+      const res = await fetch('/api/user-actions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`
