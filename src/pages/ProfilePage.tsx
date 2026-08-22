@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, MapPin, Trophy, Code, Briefcase, Award, PenLine, ExternalLink } from 'lucide-react';
+import { LogOut, MapPin, Trophy, Code, Briefcase, Award, PenLine, ExternalLink, Camera, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import LinkedInButton from '../components/profile/LinkedInButton';
@@ -16,6 +16,7 @@ export default function ProfilePage() {
   
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [editForm, setEditForm] = useState<any>({});
   
   const [showDelete, setShowDelete] = useState(false);
@@ -86,6 +87,54 @@ export default function ProfilePage() {
   const handleSignOut = async () => {
     await signOut();
     navigate('/login');
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+
+    try {
+      setIsUploadingAvatar(true);
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user.id}/${Math.random()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      setEditForm({ ...editForm, avatar_url: publicUrlData.publicUrl });
+      
+      // Auto-save just the avatar so it persists immediately
+      await supabase.auth.updateUser({
+        data: { avatar_url: publicUrlData.publicUrl }
+      });
+      await supabase.from('profiles').upsert({
+        user_id: user.id,
+        avatar_url: publicUrlData.publicUrl
+      }, { onConflict: 'user_id' });
+      
+    } catch (err: any) {
+      console.error('Avatar upload error:', err);
+      alert(err.message || 'Failed to upload avatar');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
   };
 
   const handleSaveProfile = async () => {
@@ -203,11 +252,35 @@ export default function ProfilePage() {
         <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 dark:from-cyan-600/20 dark:to-blue-600/20"></div>
         
         <div className="relative pt-12 flex flex-col md:flex-row gap-8 items-start">
-          <div className="w-32 h-32 bg-cyan-100 dark:bg-cyan-900/50 rounded-full flex items-center justify-center text-cyan-700 dark:text-cyan-300 text-4xl font-black shadow-xl border-4 border-white dark:border-slate-900 shrink-0 overflow-hidden">
-            {profile.avatar_url || profile.profile_image ? (
-              <img src={profile.avatar_url || profile.profile_image} alt={profile.name} className="w-full h-full object-cover" />
+          <div 
+            onClick={() => isEditing && document.getElementById('avatar-upload')?.click()}
+            className={`w-32 h-32 bg-cyan-100 dark:bg-cyan-900/50 rounded-full flex items-center justify-center text-cyan-700 dark:text-cyan-300 text-4xl font-black shadow-xl border-4 border-white dark:border-slate-900 shrink-0 overflow-hidden relative ${isEditing ? 'cursor-pointer group' : ''}`}
+          >
+            {isEditing && (
+              <div className="absolute inset-0 bg-black/50 hidden group-hover:flex flex-col items-center justify-center text-white z-10 transition-all">
+                {isUploadingAvatar ? (
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                ) : (
+                  <>
+                    <Camera className="w-8 h-8 mb-1" />
+                    <span className="text-xs font-bold">Upload</span>
+                  </>
+                )}
+              </div>
+            )}
+            
+            {/* Show local edit state if editing, else show saved profile state */}
+            {(isEditing ? editForm.avatar_url : (profile.avatar_url || profile.profile_image)) ? (
+              <img src={isEditing ? editForm.avatar_url : (profile.avatar_url || profile.profile_image)} alt={profile.name} className="w-full h-full object-cover" />
             ) : getInitials(profile.name)}
           </div>
+          <input 
+            type="file" 
+            id="avatar-upload" 
+            className="hidden" 
+            accept="image/*"
+            onChange={handleAvatarUpload}
+          />
           
           <div className="flex-1 space-y-4 w-full">
             {isEditing ? (
@@ -218,13 +291,6 @@ export default function ProfilePage() {
                   onChange={e => setEditForm({...editForm, name: e.target.value})}
                   className="w-full p-2 text-xl font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="Full Name"
-                />
-                <input 
-                  type="url" 
-                  value={editForm.avatar_url || ''} 
-                  onChange={e => setEditForm({...editForm, avatar_url: e.target.value})}
-                  className="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-                  placeholder="Profile Picture URL (e.g., https://github.com/username.png)"
                 />
                 <input 
                   type="text" 
