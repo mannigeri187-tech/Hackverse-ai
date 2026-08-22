@@ -23,6 +23,7 @@ const HackathonDetailsPage = lazy(() => import('./pages/HackathonDetailsPage'));
 const WorkspacePage = lazy(() => import('./pages/WorkspacePage'));
 const SavedHackathonsPage = lazy(() => import('./pages/SavedHackathonsPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const PublicProfilePage = lazy(() => import('./pages/PublicProfilePage'));
 const ResumeBuilderPage = lazy(() => import('./pages/ResumeBuilderPage'));
 const TeamFinderPage = lazy(() => import('./pages/TeamFinderPage'));
 
@@ -80,6 +81,7 @@ function App() {
                 <Route path="saved" element={<SavedHackathonsPage />} />
                 <Route path="team-finder" element={<TeamFinderPage />} />
                 <Route path="profile" element={<ProfilePage />} />
+                <Route path="profile/:id" element={<PublicProfilePage />} />
                 <Route path="resume" element={<ResumeBuilderPage />} />
               </Route>
             </Route>
