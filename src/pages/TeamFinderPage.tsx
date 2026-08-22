@@ -7,12 +7,14 @@ import {
   Inbox, 
   CheckCircle2, 
   Layers, 
-  UserPlus
+  UserPlus, MessageCircle, UserSearch
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { TeamProfile, TeamRequest, TeammateFilterState } from '../types/teamFinder';
 import { AVAILABLE_SKILLS, AVAILABLE_ROLES } from '../types/teamFinder';
+import { useChat } from '../hooks/useChat';
+import ChatWindow from '../components/chat/ChatWindow';
 import type { HackathonSkill } from '../types/skillGap';
 import { TeamProfileForm } from '../components/TeamProfileForm';
 import { TeammateCard } from '../components/TeammateCard';
@@ -23,7 +25,16 @@ import { calculateTeamMatch } from '../utils/teamMatchingEngine';
 export default function TeamFinderPage() {
   const { user } = useAuth();
   
-  const [activeTab, setActiveTab] = useState<'find' | 'profile' | 'requests'>('find');
+  const [activeTab, setActiveTab] = useState<'find' | 'profile' | 'requests' | 'individuals'>('find');
+  // Individuals Search State
+  const [individualSearch, setIndividualSearch] = useState('');
+  const [individualResults, setIndividualResults] = useState<any[]>([]);
+  const [isSearchingIndividuals, setIsSearchingIndividuals] = useState(false);
+
+  // Chat Overlay State
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [activeChatTitle, setActiveChatTitle] = useState<string>('');
+  const { getOrCreateDirectChannel } = useChat();
   const [myProfile, setMyProfile] = useState<TeamProfile | null>(null);
   const [candidates, setCandidates] = useState<TeamProfile[]>([]);
   const [hackathons, setHackathons] = useState<{ id: string; title: string }[]>([]);
@@ -47,6 +58,39 @@ export default function TeamFinderPage() {
       loadInitialData();
     }
   }, [user]);
+
+    async function searchIndividuals(query: string) {
+    if (!query.trim()) {
+      setIndividualResults([]);
+      return;
+    }
+    setIsSearchingIndividuals(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('user_id, name, username, avatar_url, headline, location, bio')
+        .or(`name.ilike.%${query}%,username.ilike.%${query}%`)
+        .neq('user_id', user?.id)
+        .limit(20);
+
+      if (error) throw error;
+      setIndividualResults(data || []);
+    } catch (err) {
+      console.error('Error searching individuals:', err);
+    } finally {
+      setIsSearchingIndividuals(false);
+    }
+  }
+
+  const handleStartChat = async (otherUserId: string, otherUserName: string) => {
+    const channelId = await getOrCreateDirectChannel(otherUserId);
+    if (channelId) {
+      setActiveChatId(channelId);
+      setActiveChatTitle(otherUserName);
+    } else {
+      alert('Could not start chat. Please check your connection.');
+    }
+  };
 
   async function loadInitialData() {
     setIsLoading(true);
@@ -324,7 +368,82 @@ export default function TeamFinderPage() {
         >
           <Layers className="w-4 h-4" /> My Team Profile
         </button>
+        <button
+          onClick={() => setActiveTab('individuals')}
+          className={`pb-3 px-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
+            activeTab === 'individuals'
+              ? 'border-primary-600 text-primary-600'
+              : 'border-transparent text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          <UserSearch className="w-4 h-4" /> Find Individuals
+        </button>
       </div>
+
+      {/* TAB CONTENT: INDIVIDUALS */}
+      {activeTab === 'individuals' && (
+        <div className="space-y-6">
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search users by name or username..."
+                value={individualSearch}
+                onChange={(e) => setIndividualSearch(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && searchIndividuals(individualSearch)}
+                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 font-medium"
+              />
+            </div>
+            <button
+              onClick={() => searchIndividuals(individualSearch)}
+              disabled={isSearchingIndividuals}
+              className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl disabled:bg-slate-300 transition-colors"
+            >
+              {isSearchingIndividuals ? 'Searching...' : 'Search'}
+            </button>
+          </div>
+
+          {individualResults.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {individualResults.map((u) => (
+                <div key={u.user_id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col gap-4">
+                  <div className="flex items-start gap-4">
+                    <div className="w-14 h-14 bg-primary-100 rounded-full flex items-center justify-center overflow-hidden shrink-0">
+                      {u.avatar_url ? (
+                        <img src={u.avatar_url} alt={u.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-xl font-bold text-primary-700">{u.name?.substring(0, 2).toUpperCase() || 'U'}</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-slate-900 truncate">{u.name || 'Unknown User'}</h4>
+                      <p className="text-sm text-slate-500 truncate">@{u.username || 'user'}</p>
+                      {u.headline && <p className="text-sm font-medium text-slate-700 mt-1 line-clamp-2">{u.headline}</p>}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleStartChat(u.user_id, u.name || u.username || 'User')}
+                    className="w-full mt-auto flex items-center justify-center gap-2 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition-colors"
+                  >
+                    <MessageCircle className="w-4 h-4" /> Message
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : individualSearch && !isSearchingIndividuals ? (
+            <div className="text-center py-12 text-slate-500">
+              No users found matching "{individualSearch}"
+            </div>
+          ) : (
+            <div className="text-center py-12 text-slate-500 bg-white rounded-2xl border border-slate-200 shadow-sm">
+              <UserSearch className="w-12 h-12 mx-auto text-slate-300 mb-4" />
+              <h3 className="text-lg font-bold text-slate-900 mb-2">Find HackVerse Friends</h3>
+              <p className="max-w-md mx-auto">Search for other hackers by their name or username to connect and chat with them directly.</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* TAB CONTENT: PROFILE BUILDER */}
       {activeTab === 'profile' && (
@@ -492,6 +611,17 @@ export default function TeamFinderPage() {
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Global Chat Overlay */}
+      {activeChatId && (
+        <div className="fixed bottom-4 right-4 w-full max-w-sm h-[500px] z-50">
+          <ChatWindow
+            channelId={activeChatId}
+            title={activeChatTitle}
+            onClose={() => setActiveChatId(null)}
+          />
         </div>
       )}
     </div>
