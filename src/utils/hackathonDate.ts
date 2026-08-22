@@ -269,9 +269,14 @@ export function isUpcomingHackathon(hackathon: any): boolean {
     return false;
   }
 
-  // RULE 3: If start date exists and is before today -> REJECT (event already started in past e.g. 1/8/2026, 2/8/2026, 5/8/2026)
+  // RULE 3: If start date exists and is before today -> REJECT (event started in past e.g. 1/8/2026)
+  // UNLESS the event is currently active (end date is in the future)
   if (start && getEndOfDayMs(start) < todayStartMs) {
-    return false;
+    if (end && getEndOfDayMs(end) >= nowMs) {
+      // Event is currently ongoing, do not reject
+    } else {
+      return false;
+    }
   }
 
   // RULE 4: Must have at least one valid future/today date (start or deadline or end)
