@@ -75,8 +75,8 @@ export async function fetchUnstopHackathons() {
         prize: item.prizes?.[0]?.cash ? `₹${item.prizes[0].cash.toLocaleString()}` : (item.regnRequirements?.remain_days || 'Awards & Certificates'),
         team_size: item.regnRequirements?.min_team_size ? `${item.regnRequirements.min_team_size}-${item.regnRequirements.max_team_size || 4} Members` : '1-4 Members',
         eligibility: item.filters?.map(f => f.name).join(', ') || 'College Students & Developers',
-        registration_url: item.seo_url ? `https://unstop.com/${item.seo_url}` : (item.short_url || 'https://unstop.com'),
-        image_url: item.banner_mobile?.url || item.banner_desktop?.url || item.logo_url2 || null,
+        registration_url: item.seo_url ? (item.seo_url.startsWith('http') ? item.seo_url : `https://unstop.com/${item.seo_url}`) : (item.short_url || 'https://unstop.com'),
+        image_url: item.logoUrl2 || item.thumb || null,
         status: status,
         source: 'unstop',
         external_id: String(item.slug || item.id)
