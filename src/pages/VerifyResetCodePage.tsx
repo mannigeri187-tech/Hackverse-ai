@@ -10,7 +10,7 @@ export default function VerifyResetCodePage() {
   
   const email = location.state?.email || '';
   
-  const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '', '', '']);
+  const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -134,14 +134,14 @@ export default function VerifyResetCodePage() {
   };
 
   const code = digits.join('');
-  const isComplete = code.length === 8 && digits.every(d => d !== '');
+  const isComplete = code.length === 6 && digits.every(d => d !== '');
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     const token = code.trim();
 
     if (!isComplete || !/^[0-9]{6}$/.test(token) || loading) {
-      setErrorMsg('Please enter the 8-digit verification code.');
+      setErrorMsg('Please enter the 6-digit verification code.');
       return;
     }
 
@@ -165,7 +165,7 @@ export default function VerifyResetCodePage() {
     }
 
     try {
-      // Verify email OTP token using Supabase Auth (passing strict 8-digit numeric string)
+      // Verify email OTP token using Supabase Auth (passing strict 6-digit numeric string)
       const { data, error } = await supabase.auth.verifyOtp({
         email: cleanEmail,
         token: token,
@@ -238,8 +238,8 @@ export default function VerifyResetCodePage() {
         }
       } else {
         console.log('[AUTH-DEBUG] Resend OTP request completed successfully');
-        setSuccessMsg('A new 8-digit verification code has been sent to your email!');
-        setDigits(['', '', '', '', '', '', '', '']);
+        setSuccessMsg('A new 6-digit verification code has been sent to your email!');
+        setDigits(['', '', '', '', '', '']);
         setResendCooldown(60);
         setExpiresIn(120); // Reset to 02:00
         inputRefs.current[0]?.focus();
@@ -264,7 +264,7 @@ export default function VerifyResetCodePage() {
       </h1>
 
       <p className="text-slate-600 text-sm mb-1">
-        We sent a 8-digit verification code to:
+        We sent a 6-digit verification code to:
       </p>
       
       <p className="font-bold text-slate-900 text-sm sm:text-base mb-6 break-all">
@@ -291,8 +291,8 @@ export default function VerifyResetCodePage() {
             Enter verification code
           </label>
 
-          {/* 8-digit Boxes */}
-          <div className="flex justify-center items-center gap-1.5 sm:gap-2">
+          {/* 6-Digit Boxes */}
+          <div className="flex justify-center items-center gap-2 sm:gap-3">
             {digits.map((digit, index) => (
               <input
                 key={index}
@@ -306,7 +306,7 @@ export default function VerifyResetCodePage() {
                 onKeyDown={(e) => handleKeyDown(index, e)}
                 onPaste={handlePaste}
                 autoFocus={index === 0}
-                className={`w-9 h-11 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-black rounded-xl border transition-all focus:outline-none ${
+                className={`w-11 h-13 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-black rounded-xl border transition-all focus:outline-none ${
                   digit 
                     ? 'border-primary-600 bg-primary-50/40 text-slate-900 ring-2 ring-primary-500/20' 
                     : 'border-slate-300 bg-slate-50 text-slate-900 focus:border-primary-500 focus:bg-white focus:ring-2 focus:ring-primary-500/20'

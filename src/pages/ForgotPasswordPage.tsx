@@ -44,7 +44,7 @@ export default function ForgotPasswordPage() {
     console.log('[AUTH-DEBUG] Email exists:', Boolean(trimmedEmail));
     console.log('[AUTH-DEBUG] Supabase URL configured:', Boolean(import.meta.env.VITE_SUPABASE_URL || 'https://updhbkmjgzighnifabsd.supabase.co'));
 
-    // Request 8-digit email OTP for existing accounts only
+    // Request 6-digit email OTP for existing accounts only
     const { error } = await supabase.auth.signInWithOtp({
       email: trimmedEmail,
       options: {
@@ -98,7 +98,7 @@ export default function ForgotPasswordPage() {
       setLoading(false);
     } else {
       setLoading(false);
-      // Navigate to the dedicated 8-digit OTP verification screen
+      // Navigate to the dedicated 6-digit OTP verification screen
       navigate('/verify-reset-code', { state: { email: trimmedEmail } });
     }
   };
@@ -111,7 +111,7 @@ export default function ForgotPasswordPage() {
 
       <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-2">Forgot Password</h1>
       <p className="text-slate-600 text-sm mb-6 leading-relaxed">
-        Enter your registered email address to receive a secure 8-digit verification code.
+        Enter your registered email address to receive a secure 6-digit verification code.
       </p>
       
       {message && (
