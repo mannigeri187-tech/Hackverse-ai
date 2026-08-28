@@ -1,3 +1,4 @@
+import ReactMarkdown from 'react-markdown';
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -521,8 +522,8 @@ export default function WinningReadinessPage() {
             )}
 
             {aiExplanation && (
-              <div className="p-4 bg-white border border-primary-100 rounded-xl text-xs sm:text-sm text-slate-800 leading-relaxed whitespace-pre-wrap font-medium shadow-inner animate-in fade-in">
-                {aiExplanation}
+              <div className="p-4 bg-white border border-primary-100 rounded-xl text-slate-800 leading-relaxed font-medium shadow-inner animate-in fade-in overflow-hidden">
+                <div className="markdown-content text-xs sm:text-sm"><ReactMarkdown>{aiExplanation}</ReactMarkdown></div>
               </div>
             )}
           </div>

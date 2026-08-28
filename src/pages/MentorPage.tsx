@@ -1,3 +1,4 @@
+import ReactMarkdown from 'react-markdown';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -734,9 +735,13 @@ export default function MentorPage() {
                       : 'bg-slate-50 border border-slate-200 text-slate-800 rounded-tl-sm whitespace-pre-wrap font-medium'
                   }`}
                 >
-                  <div>
+                  <div className="overflow-hidden">
                     {msg.text ? (
-                      msg.text
+                      msg.sender === 'ai' ? (
+                        <div className="markdown-content"><ReactMarkdown>{msg.text}</ReactMarkdown></div>
+                      ) : (
+                        msg.text
+                      )
                     ) : (
                       <span className="flex items-center gap-1.5 text-slate-400 py-0.5">
                         <Loader2 className="w-3.5 h-3.5 animate-spin text-primary-600 inline flex-shrink-0" />
