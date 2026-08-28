@@ -113,7 +113,7 @@ export async function runHackathonIngestion() {
       const batch = validRecordsToUpsert.slice(i, i + BATCH_SIZE);
       const { data, error } = await supabase
         .from('hackathons')
-        .insert(batch)
+        .upsert(batch, { onConflict: 'source,external_id' })
         .select('id');
 
       if (error) {

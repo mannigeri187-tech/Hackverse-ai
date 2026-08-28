@@ -403,7 +403,7 @@ export default function IdeaGeneratorPage() {
           <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-600">
             <div className="space-y-1 max-w-2xl">
               <p className="font-semibold text-slate-800 line-clamp-2">
-                {selectedHackathon.description || 'General innovation & technology hackathon challenge.'}
+                {(selectedHackathon.description?.replace(/<[^>]*>?/gm, ' ') || 'General innovation & technology hackathon challenge.')}
               </p>
               <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 pt-0.5">
                 <span className="font-medium text-slate-700">Organizer: {selectedHackathon.organizer || 'HackVerse'}</span>
@@ -527,8 +527,8 @@ export default function IdeaGeneratorPage() {
 
                     {/* Problem & Solution Preview */}
                     <div className="space-y-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                      <p><strong className="text-slate-900 font-semibold">Problem:</strong> {idea.problem_statement}</p>
-                      <p><strong className="text-slate-900 font-semibold">Solution:</strong> {idea.proposed_solution}</p>
+                      <p><strong className="text-slate-900 font-semibold">Problem:</strong> <span dangerouslySetInnerHTML={{ __html: idea.problem_statement }}></span></p>
+                      <p><strong className="text-slate-900 font-semibold">Solution:</strong> <span dangerouslySetInnerHTML={{ __html: idea.proposed_solution }}></span></p>
                     </div>
 
                     {/* Tech Stack Pills */}
