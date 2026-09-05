@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Search, MapPin, Calendar, Globe, Building2, Clock, ExternalLink } from 'lucide-react';
 import { useHackathons } from '../hooks/useHackathons';
 import { parseHackathonDate, isUpcomingHackathon, removeExpiredHackathons, getHackathonNormalizedStatus } from '../utils/hackathonDate';
+import { ImageWithFallback } from '../components/ImageWithFallback';
 
 export default function HackathonsPage() {
   const [searchInput, setSearchInput] = useState('');
@@ -244,10 +245,12 @@ export default function HackathonsPage() {
                 <div key={hackathon.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group">
                   {/* Card Image Banner - Click stays inside HackVerse AI */}
                   <Link to={`/hackathons/${hackathon.id}`} className="block relative overflow-hidden">
-                    <div 
-                      className="h-32 bg-slate-200 bg-cover bg-center group-hover:scale-105 transition-transform duration-300" 
-                      style={hackathon.image_url ? { backgroundImage: `url(${hackathon.image_url})` } : {}}
-                    ></div>
+                    <ImageWithFallback 
+                      src={hackathon.image_url} 
+                      alt={hackathon.title}
+                      className="h-32 w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      fallbackClassName="h-32 group-hover:scale-105 transition-transform duration-300"
+                    />
                     <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
                       <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider shadow-sm ${
                         normStatus === 'OPEN' || normStatus === 'UPCOMING'

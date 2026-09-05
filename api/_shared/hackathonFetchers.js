@@ -1,5 +1,6 @@
 import https from 'https';
 import { normalizeLocation, normalizeMode, calculateEventStatus, parseSafeIsoDate } from './normalizer.js';
+import { normalizeRegistrationUrl, normalizeImageUrl } from './urlNormalizer.js';
 
 function fetchJson(url, options = {}) {
   return new Promise((resolve) => {
@@ -75,8 +76,8 @@ export async function fetchUnstopHackathons() {
         prize: item.prizes?.[0]?.cash ? `₹${item.prizes[0].cash.toLocaleString()}` : (item.regnRequirements?.remain_days || 'Awards & Certificates'),
         team_size: item.regnRequirements?.min_team_size ? `${item.regnRequirements.min_team_size}-${item.regnRequirements.max_team_size || 4} Members` : '1-4 Members',
         eligibility: item.filters?.map(f => f.name).join(', ') || 'College Students & Developers',
-        registration_url: item.seo_url ? (item.seo_url.startsWith('http') ? item.seo_url : `https://unstop.com/${item.seo_url}`) : (item.short_url || 'https://unstop.com'),
-        image_url: item.logoUrl2 || item.thumb || null,
+        registration_url: normalizeRegistrationUrl(item.seo_url || item.short_url, 'unstop'),
+        image_url: normalizeImageUrl(item.logoUrl2 || item.thumb, 'unstop'),
         status: status,
         source: 'unstop',
         external_id: String(item.slug || item.id)
@@ -128,8 +129,8 @@ export async function fetchDevfolioHackathons() {
         prize: item.prizes_total ? `₹${item.prizes_total.toLocaleString()}` : 'Cash & Swag',
         team_size: item.team_size ? `1-${item.team_size} Members` : '1-4 Members',
         eligibility: item.eligibility || 'Open to all developers',
-        registration_url: item.hackathon_setting?.subdomain ? `https://${item.hackathon_setting.subdomain}.devfolio.co` : (item.url || 'https://devfolio.co'),
-        image_url: item.cover_img || item.logo || null,
+        registration_url: normalizeRegistrationUrl(item.hackathon_setting?.subdomain ? `https://${item.hackathon_setting.subdomain}.devfolio.co` : item.url, 'devfolio'),
+        image_url: normalizeImageUrl(item.cover_img || item.logo, 'devfolio'),
         status: status,
         source: 'devfolio',
         external_id: String(item.slug || item.id)
@@ -174,8 +175,8 @@ export async function fetchHackerEarthHackathons() {
       prize: 'Cash Prizes & Job Opportunities',
       team_size: '1-3 Members',
       eligibility: 'Students & Working Professionals',
-      registration_url: item.url || item.subscribe || 'https://www.hackerearth.com',
-      image_url: item.thumbnail || null,
+      registration_url: normalizeRegistrationUrl(item.url || item.subscribe, 'hackerearth'),
+      image_url: normalizeImageUrl(item.thumbnail, 'hackerearth'),
       status: status,
       source: 'hackerearth',
       external_id: String(item.url || item.title)

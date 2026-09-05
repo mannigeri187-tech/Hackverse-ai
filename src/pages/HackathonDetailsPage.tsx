@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { SafeHtml } from '../components/SafeHtml';
+import { ImageWithFallback } from '../components/ImageWithFallback';
 import { useWorkspaces } from '../hooks/useWorkspaces';
 import { parseHackathonDate, getHackathonNormalizedStatus } from '../utils/hackathonDate';
 
@@ -182,10 +184,12 @@ export default function HackathonDetailsPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      <div 
-        className="h-64 bg-slate-200 rounded-2xl w-full bg-cover bg-center border border-slate-200 shadow-sm"
-        style={hackathon.image_url ? { backgroundImage: `url(${hackathon.image_url})` } : {}}
-      ></div>
+      <ImageWithFallback 
+        src={hackathon.image_url} 
+        alt={hackathon.title}
+        className="h-64 w-full object-cover rounded-2xl border border-slate-200 shadow-sm"
+        fallbackClassName="h-64 rounded-2xl border border-slate-200 shadow-sm"
+      />
       
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -295,9 +299,9 @@ export default function HackathonDetailsPage() {
 
       <div className="bg-white p-6 md:p-8 rounded-xl border border-slate-200 shadow-sm">
         <h2 className="text-2xl font-bold text-slate-900 mb-4">About this hackathon</h2>
-        <div className="prose max-w-none text-slate-600 leading-relaxed">
+        <div className="text-slate-600 leading-relaxed">
           {hackathon.description ? (
-            <p className="whitespace-pre-wrap">{hackathon.description}</p>
+            <SafeHtml html={hackathon.description} />
           ) : (
             <p className="italic text-slate-400">No detailed description provided by the organizer.</p>
           )}
