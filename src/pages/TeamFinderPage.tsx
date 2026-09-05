@@ -66,14 +66,26 @@ export default function TeamFinderPage() {
     }
     setIsSearchingIndividuals(true);
     try {
+      console.log('--- FIND INDIVIDUALS DEBUG ---');
+      console.log('1. Authenticated user ID:', user?.id);
+      console.log('2. Search string:', query.trim());
+
       const { data, error } = await supabase
-        .from('team_profiles')
-        .select('user_id, display_name, bio, skills')
-        .ilike('display_name', `%${query.trim()}%`)
+        .from('profiles')
+        .select('user_id, name, profile_image, college, bio')
+        .ilike('name', `%${query.trim()}%`)
         .neq('user_id', user?.id)
         .limit(20);
 
-      if (error) throw error;
+      console.log('3. Supabase error:', error);
+      console.log('4. Returned rows count:', data?.length);
+      console.log('5. Supabase data:', data);
+      
+      if (error) {
+        console.error('RLS OR QUERY ERROR:', error);
+        throw error;
+      }
+      
       setIndividualResults(data || []);
     } catch (err) {
       console.error('Error searching individuals:', err);
@@ -435,17 +447,13 @@ export default function TeamFinderPage() {
                 <div key={u.user_id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col gap-4">
                   <div className="flex items-start gap-4">
                     <img 
-                      src={`https://ui-avatars.com/api/?name=${encodeURIComponent(u.display_name || 'Anonymous')}&background=0D8ABC&color=fff`}
-                      alt={u.display_name}
+                      src={u.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'Anonymous')}&background=0D8ABC&color=fff`}
+                      alt={u.name}
                       className="w-14 h-14 rounded-full object-cover border-2 border-slate-100"
                     />
                     <div className="flex-1">
-                      <h4 className="font-bold text-slate-900 text-sm">{u.display_name || 'Anonymous User'}</h4>
-                      {u.skills && u.skills.length > 0 && (
-                        <p className="text-xs text-slate-500 font-medium truncate mt-1">
-                          {u.skills.slice(0, 2).join(', ')}
-                        </p>
-                      )}
+                      <h4 className="font-bold text-slate-900 text-sm">{u.name || 'Anonymous User'}</h4>
+                      <p className="text-xs text-slate-500 font-medium">{u.college || 'No college specified'}</p>
                     </div>
                   </div>
                   
@@ -456,7 +464,7 @@ export default function TeamFinderPage() {
                   )}
                   
                   <button
-                    onClick={() => handleStartChat(u.user_id, u.display_name || 'User')}
+                    onClick={() => handleStartChat(u.user_id, u.name || 'User')}
                     className="w-full mt-auto py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2"
                   >
                     <MessageCircle className="w-4 h-4" /> Message
