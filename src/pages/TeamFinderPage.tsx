@@ -59,7 +59,7 @@ export default function TeamFinderPage() {
     }
   }, [user]);
 
-    async function searchIndividuals(query: string) {
+  async function searchIndividuals(query: string) {
     if (!query.trim()) {
       setIndividualResults([]);
       return;
@@ -68,8 +68,10 @@ export default function TeamFinderPage() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('user_id, name, username, avatar_url, headline, location, bio')
-        .or(`name.ilike.%${query}%,username.ilike.%${query}%`)
+        .select('user_id, name, profile_image, college, bio')
+        .ilike('name', `%${query}%`)
+        // In a fully migrated schema, this would be uncommented:
+        // .eq('discoverable', true)
         .neq('user_id', user?.id)
         .limit(20);
 
@@ -104,6 +106,20 @@ export default function TeamFinderPage() {
 
       if (myProf) {
         setMyProfile(myProf as TeamProfile);
+      } else {
+        // Fallback auto-creation for users migrating from older schema
+        const { data: newProf, error: insertError } = await supabase
+          .from('team_profiles')
+          .insert({
+            user_id: user!.id,
+            display_name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Anonymous'
+          })
+          .select()
+          .single();
+          
+        if (newProf && !insertError) {
+          setMyProfile(newProf as TeamProfile);
+        }
       }
 
       // 2. Fetch list of available upcoming hackathons
@@ -420,22 +436,26 @@ export default function TeamFinderPage() {
               {individualResults.map((u) => (
                 <div key={u.user_id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col gap-4">
                   <div className="flex items-start gap-4">
-                    <div className="w-14 h-14 bg-primary-100 rounded-full flex items-center justify-center overflow-hidden shrink-0">
-                      {u.avatar_url ? (
-                        <img src={u.avatar_url} alt={u.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-xl font-bold text-primary-700">{u.name?.substring(0, 2).toUpperCase() || 'U'}</span>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-slate-900 truncate">{u.name || 'Unknown User'}</h4>
-                      <p className="text-sm text-slate-500 truncate">@{u.username || 'user'}</p>
-                      {u.headline && <p className="text-sm font-medium text-slate-700 mt-1 line-clamp-2">{u.headline}</p>}
+                    <img 
+                      src={u.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'Anonymous')}&background=0D8ABC&color=fff`}
+                      alt={u.name}
+                      className="w-14 h-14 rounded-full object-cover border-2 border-slate-100"
+                    />
+                    <div className="flex-1">
+                      <h4 className="font-bold text-slate-900 text-sm">{u.name || 'Anonymous User'}</h4>
+                      <p className="text-xs text-slate-500 font-medium">{u.college || 'No college specified'}</p>
                     </div>
                   </div>
+                  
+                  {u.bio && (
+                    <p className="text-xs text-slate-600 line-clamp-2 bg-slate-50 p-2.5 rounded-lg flex-1">
+                      {u.bio}
+                    </p>
+                  )}
+                  
                   <button
-                    onClick={() => handleStartChat(u.user_id, u.name || u.username || 'User')}
-                    className="w-full mt-auto flex items-center justify-center gap-2 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition-colors"
+                    onClick={() => handleStartChat(u.user_id, u.name || 'User')}
+                    className="w-full mt-auto py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2"
                   >
                     <MessageCircle className="w-4 h-4" /> Message
                   </button>

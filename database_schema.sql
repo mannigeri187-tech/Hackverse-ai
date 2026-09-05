@@ -12,6 +12,7 @@ create table public.profiles (
   college text,
   bio text,
   profile_image text,
+  discoverable boolean default true not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
@@ -23,6 +24,11 @@ alter table public.profiles enable row level security;
 create policy "Users can read own profile" 
   on public.profiles for select 
   using ( auth.uid() = user_id );
+
+create policy "Authenticated users can read discoverable profiles"
+  on public.profiles for select
+  to authenticated
+  using ( discoverable = true );
 
 create policy "Users can update own profile" 
   on public.profiles for update 
@@ -38,6 +44,13 @@ begin
     new.email, 
     new.raw_user_meta_data->>'full_name'
   );
+  
+  insert into public.team_profiles (user_id, display_name)
+  values (
+    new.id,
+    new.raw_user_meta_data->>'full_name'
+  );
+  
   return new;
 end;
 $$ language plpgsql security definer;
