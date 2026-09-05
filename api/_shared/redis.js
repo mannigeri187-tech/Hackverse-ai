@@ -63,21 +63,30 @@ export async function setToCache(key, data, ttl = 300) {
 }
 
 /**
- * Invalidates hackathon search cache keys on ingestion
+ * Invalidates hackathon search and detail cache keys on ingestion safely using SCAN
  */
 export async function clearSearchCache() {
   // Clear L1 memory
   memoryCache.clear();
 
-  // Clear L2 Redis keys if available
+  // Clear L2 Redis keys safely using SCAN if available
   if (redis && redis.status === 'ready') {
     try {
-      const keys = await redis.keys('hackathons:search:*');
-      if (keys && keys.length > 0) {
-        await redis.del(...keys);
+      const patterns = ['hackathons:search:*', 'hackathon:detail:*'];
+      
+      for (const pattern of patterns) {
+        let cursor = '0';
+        do {
+          const [nextCursor, keys] = await redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+          cursor = nextCursor;
+          
+          if (keys && keys.length > 0) {
+            await redis.del(...keys);
+          }
+        } while (cursor !== '0');
       }
     } catch (err) {
-      console.error('⚠️ Error clearing Redis search cache:', err.message);
+      console.error('⚠️ Error clearing Redis cache via SCAN:', err.message);
     }
   }
 }
