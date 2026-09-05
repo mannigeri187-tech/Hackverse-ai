@@ -101,7 +101,9 @@ export async function runHackathonIngestion() {
       eligibility: item.eligibility || 'Open',
       registration_url: finalRegUrl,
       image_url: item.image_url,
-      status: eventStatus
+      status: eventStatus,
+      source: item.source,
+      external_id: item.external_id
     });
   }
 
@@ -184,4 +186,36 @@ export async function runHackathonIngestion() {
     },
     durationMs
   };
+}
+
+export async function repairImages() {
+  const { fetchUnstopHackathons, fetchDevfolioHackathons, fetchHackerEarthHackathons } = await import('./hackathonFetchers.js');
+  const [unstop, devfolio, hackerearth] = await Promise.all([
+    fetchUnstopHackathons(),
+    fetchDevfolioHackathons(),
+    fetchHackerEarthHackathons()
+  ]);
+  const allFresh = [...unstop, ...devfolio, ...hackerearth];
+  
+  const { data: dbHackathons, error } = await supabaseAdmin.from('hackathons').select('id, title, source, external_id, image_url');
+  if (error) return { error };
+
+  const updates = [];
+  for (const dbH of dbHackathons) {
+    const match = allFresh.find(f => f.title === dbH.title);
+    if (match) {
+      if (!dbH.image_url || !dbH.source || !dbH.external_id) {
+        updates.push(
+          supabaseAdmin.from('hackathons').update({
+            image_url: match.image_url,
+            source: match.source,
+            external_id: match.external_id
+          }).eq('id', dbH.id)
+        );
+      }
+    }
+  }
+
+  await Promise.all(updates);
+  return { updatedCount: updates.length, success: true };
 }

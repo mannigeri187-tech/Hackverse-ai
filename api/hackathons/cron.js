@@ -54,6 +54,10 @@ export default async function handler(req, res) {
     } else if (task === 'validate-links') {
       const result = await runDatabaseLinkValidation();
       return res.status(200).json(result);
+    } else if (task === 'repair-images') {
+      const { repairImages } = await import('../_shared/ingestionService.js');
+      const result = await repairImages();
+      return res.status(200).json(result);
     } else {
       return res.status(400).json({ error: 'Invalid task specified.' });
     }
