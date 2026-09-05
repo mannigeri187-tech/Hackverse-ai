@@ -123,7 +123,7 @@ export default function TeamFinderPage() {
         .from('team_profiles')
         .select('*')
         .neq('user_id', user!.id)
-        .limit(60);
+        .limit(1000);
 
       setCandidates((candData || []) as TeamProfile[]);
 
@@ -273,6 +273,11 @@ export default function TeamFinderPage() {
 
   const completionPercent = myProfile ? calculateProfileCompletion(myProfile) : 0;
 
+  // UI Pagination (DOM performance)
+  const [displayCount, setDisplayCount] = useState(24);
+  const displayedCandidates = sortedCandidates.slice(0, displayCount);
+  const hasMoreCandidates = displayCount < sortedCandidates.length;
+
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-12">
       {/* 1. HERO HEADER */}
@@ -295,14 +300,20 @@ export default function TeamFinderPage() {
               onClick={() => setActiveTab('profile')}
               className="px-4 sm:px-5 py-2.5 sm:py-3 bg-primary-500 hover:bg-primary-600 text-white font-bold text-xs sm:text-sm rounded-xl transition-all shadow-md flex items-center gap-2"
             >
-              <CheckCircle2 className="w-4 h-4" />
-              {myProfile ? 'Edit My Team Profile' : 'Complete My Team Profile'}
+              <Layers className="w-4 h-4 sm:w-5 sm:h-5" />
+              My Team Profile
             </button>
             <button
-              onClick={() => setActiveTab('find')}
-              className="px-4 sm:px-5 py-2.5 sm:py-3 bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm rounded-xl transition-all border border-white/10 backdrop-blur-sm flex items-center gap-2"
+              onClick={() => setActiveTab('requests')}
+              className="px-4 sm:px-5 py-2.5 sm:py-3 bg-slate-800/80 hover:bg-slate-700/80 backdrop-blur-md text-white font-bold text-xs sm:text-sm rounded-xl transition-all shadow-md flex items-center gap-2 border border-slate-600/50"
             >
-              <Users className="w-4 h-4" /> Find Teammates
+              <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+              Team Requests
+              {pendingRequestsCount > 0 && (
+                <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold ml-1">
+                  {pendingRequestsCount}
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -592,23 +603,37 @@ export default function TeamFinderPage() {
             </div>
           ) : (
             /* Case 3: Display matching candidate cards */
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {sortedCandidates.map(candidate => {
-                const reqKey = `${candidate.user_id}_${selectedHackathonId}`;
-                const existingReq = sentRequests[reqKey];
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {displayedCandidates.map(candidate => {
+                  const reqKey = `${candidate.user_id}_${selectedHackathonId}`;
+                  const existingReq = sentRequests[reqKey];
 
-                return (
-                  <TeammateCard
-                    key={candidate.user_id}
-                    myProfile={myProfile}
-                    candidate={candidate}
-                    selectedHackathonId={selectedHackathonId}
-                    hackathonRequirements={hackathonRequirements}
-                    existingRequest={existingReq}
-                    onSendRequest={handleSendRequest}
-                  />
-                );
-              })}
+                  return (
+                    <TeammateCard
+                      key={candidate.user_id}
+                      myProfile={myProfile}
+                      candidate={candidate}
+                      selectedHackathonId={selectedHackathonId}
+                      hackathonRequirements={hackathonRequirements}
+                      existingRequest={existingReq}
+                      onSendRequest={handleSendRequest}
+                    />
+                  );
+                })}
+              </div>
+              
+              {hasMoreCandidates && (
+                <div className="flex justify-center pt-4">
+                  <button
+                    onClick={() => setDisplayCount(prev => prev + 24)}
+                    className="px-6 py-3 bg-white hover:bg-slate-50 text-slate-700 text-sm font-bold rounded-xl border border-slate-200 transition-colors shadow-sm flex items-center gap-2"
+                  >
+                    <Users className="w-4 h-4 text-slate-400" />
+                    Load More Hackers
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

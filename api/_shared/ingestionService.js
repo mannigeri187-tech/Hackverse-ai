@@ -188,7 +188,7 @@ export async function runHackathonIngestion() {
   };
 }
 
-export async function repairImages() {
+
   const { fetchUnstopHackathons, fetchDevfolioHackathons, fetchHackerEarthHackathons } = await import('./hackathonFetchers.js');
   const [unstop, devfolio, hackerearth] = await Promise.all([
     fetchUnstopHackathons(),
@@ -197,7 +197,7 @@ export async function repairImages() {
   ]);
   const allFresh = [...unstop, ...devfolio, ...hackerearth];
   
-  const { data: dbHackathons, error } = await supabaseAdmin.from('hackathons').select('id, title, source, external_id, image_url');
+  const { data: dbHackathons, error } = await supabase.from('hackathons').select('id, title, source, external_id, image_url');
   if (error) return { error };
 
   const updates = [];
@@ -206,7 +206,7 @@ export async function repairImages() {
     if (match) {
       if (!dbH.image_url || !dbH.source || !dbH.external_id) {
         updates.push(
-          supabaseAdmin.from('hackathons').update({
+          supabase.from('hackathons').update({
             image_url: match.image_url,
             source: match.source,
             external_id: match.external_id
