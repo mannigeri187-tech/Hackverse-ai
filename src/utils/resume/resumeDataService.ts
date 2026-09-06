@@ -5,44 +5,18 @@ export async function fetchUserResumeData(userId: string): Promise<ResumeData | 
   if (!userId) return null;
 
   try {
-    // 1. Fetch Basic Profile Data
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-
-    // 2. Fetch Team Profile for Skills
-    const { data: teamProfile } = await supabase
-      .from('team_profiles')
-      .select('skills, bio')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    // 3. Fetch Workspaces (which serve as Projects & Hackathon participations)
-    const { data: workspaces } = await supabase
-      .from('workspaces')
-      .select(`
-        id,
-        project_name,
-        problem_statement,
-        solution,
-        tech_stack,
-        github_url,
-        hackathon:hackathons (
-          id,
-          title,
-          start_date,
-          end_date
-        )
-      `)
-      .eq('user_id', userId);
-
-    // 4. Fetch Certificates from Certificate Vault
-    const { data: certificates } = await supabase
-      .from('certificates')
-      .select('*')
-      .eq('user_id', userId);
+    // Fetch all user data in parallel to eliminate network waterfall and improve speed
+    const [
+      { data: profile },
+      { data: teamProfile },
+      { data: workspaces },
+      { data: certificates }
+    ] = await Promise.all([
+      supabase.from('profiles').select('*').eq('user_id', userId).single(),
+      supabase.from('team_profiles').select('skills, bio').eq('user_id', userId).maybeSingle(),
+      supabase.from('workspaces').select('id, project_name, problem_statement, solution, tech_stack, github_url, hackathon:hackathons(id, title, start_date, end_date)').eq('user_id', userId),
+      supabase.from('certificates').select('*').eq('user_id', userId)
+    ]);
 
     // Map Workspaces to Projects
     const projects = (workspaces || []).map(w => ({

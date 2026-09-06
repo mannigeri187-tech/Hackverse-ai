@@ -107,59 +107,45 @@ export default function TeamFinderPage() {
   async function loadInitialData() {
     setIsLoading(true);
     try {
-      // 1. Fetch user's team profile
-      const { data: myProf } = await supabase
-        .from('team_profiles')
-        .select('*')
-        .eq('user_id', user!.id)
-        .maybeSingle();
-
-      if (myProf) {
-        setMyProfile(myProf as TeamProfile);
-      } else {
-        // Fallback auto-creation for users migrating from older schema
-        const { data: newProf, error: insertError } = await supabase
-          .from('team_profiles')
-          .insert({
-            user_id: user!.id,
-            display_name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Anonymous'
-          })
-          .select()
-          .single();
-          
-        if (newProf && !insertError) {
-          setMyProfile(newProf as TeamProfile);
+        // Fetch all initial data in parallel to prevent network waterfall
+        const [
+          { data: myProf },
+          { data: hacks },
+          { data: candData },
+          { data: reqData }
+        ] = await Promise.all([
+          supabase.from('team_profiles').select('*').eq('user_id', user!.id).maybeSingle(),
+          supabase.from('hackathons').select('id, title').order('start_date', { ascending: true }).limit(30),
+          supabase.from('team_profiles').select('*').neq('user_id', user!.id).limit(1000),
+          supabase.from('team_requests').select('*').or(`sender_id.eq.${user!.id},receiver_id.eq.${user!.id}`)
+        ]);
+  
+        if (myProf) {
+          setMyProfile(myProf as TeamProfile);
+        } else {
+          // Fallback auto-creation for users migrating from older schema
+          const { data: newProf, error: insertError } = await supabase
+            .from('team_profiles')
+            .insert({
+              user_id: user!.id,
+              display_name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Anonymous'
+            })
+            .select()
+            .single();
+            
+          if (newProf && !insertError) {
+            setMyProfile(newProf as TeamProfile);
+          }
         }
-      }
-
-      // 2. Fetch list of available upcoming hackathons
-      const { data: hacks } = await supabase
-        .from('hackathons')
-        .select('id, title')
-        .order('start_date', { ascending: true })
-        .limit(30);
-
-      if (hacks && hacks.length > 0) {
-        setHackathons(hacks);
-        setSelectedHackathonId(hacks[0].id);
-      }
-
-      // 3. Fetch candidates (strictly excluding the authenticated user)
-      const { data: candData } = await supabase
-        .from('team_profiles')
-        .select('*')
-        .neq('user_id', user!.id)
-        .limit(1000);
-
-      setCandidates((candData || []) as TeamProfile[]);
-
-      // 4. Fetch sent/received requests
-      const { data: reqData } = await supabase
-        .from('team_requests')
-        .select('*')
-        .or(`sender_id.eq.${user!.id},receiver_id.eq.${user!.id}`);
-
-      if (reqData) {
+  
+        if (hacks && hacks.length > 0) {
+          setHackathons(hacks);
+          setSelectedHackathonId(hacks[0].id);
+        }
+  
+        setCandidates((candData || []) as TeamProfile[]);
+  
+        if (reqData) {
         const sentMap: Record<string, TeamRequest> = {};
         let pendingCount = 0;
 

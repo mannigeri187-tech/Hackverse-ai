@@ -51,12 +51,20 @@ export default function ProfilePage() {
       setIsLoading(true);
       
       try {
-        // Fetch profile
-        const { data: pData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
+        // Fetch all data in parallel to prevent network waterfall
+        const [
+          { data: pData },
+          { data: sData },
+          { data: cData },
+          { count: projectCount },
+          { data: tData }
+        ] = await Promise.all([
+          supabase.from('profiles').select('*').eq('user_id', user.id).single(),
+          supabase.from('user_skills').select('skills ( id, name, category )').eq('user_id', user.id),
+          supabase.from('certificates').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+          supabase.from('workspaces').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
+          supabase.from('team_requests').select('hackathon_id').or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`).eq('status', 'accepted')
+        ]);
           
         let currentProfile = pData || {};
         
@@ -83,35 +91,8 @@ export default function ProfilePage() {
         setProfile(currentProfile);
         setEditForm(currentProfile);
   
-        // Fetch skills
-        const { data: sData } = await supabase
-          .from('user_skills')
-          .select('skills ( id, name, category )')
-          .eq('user_id', user.id);
-          
         setSkills((sData || []).map(s => s.skills).filter(Boolean));
-
-        // Fetch Certificates
-        const { data: cData } = await supabase
-          .from('certificates')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
-        
         setCertificates(cData || []);
-
-        // Fetch Workspaces (Projects)
-        const { count: projectCount } = await supabase
-          .from('workspaces')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id);
-
-        // Fetch Accepted Team Requests to approximate hackathon participation
-        const { data: tData } = await supabase
-          .from('team_requests')
-          .select('hackathon_id')
-          .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-          .eq('status', 'accepted');
         
         const uniqueHackathons = new Set(tData?.map(t => t.hackathon_id) || []);
 

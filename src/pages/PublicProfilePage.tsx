@@ -58,31 +58,21 @@ export default function PublicProfilePage() {
   
         setProfile(currentProfile);
   
-        const { data: sData } = await supabase
-          .from('user_skills')
-          .select('skills ( id, name, category )')
-          .eq('user_id', pData.user_id);
+        // Fetch rest of data in parallel to prevent network waterfall
+        const [
+          { data: sData },
+          { data: cData },
+          { count: projectCount },
+          { data: tData }
+        ] = await Promise.all([
+          supabase.from('user_skills').select('skills ( id, name, category )').eq('user_id', pData.user_id),
+          supabase.from('certificates').select('*').eq('user_id', pData.user_id).order('created_at', { ascending: false }),
+          supabase.from('workspaces').select('*', { count: 'exact', head: true }).eq('user_id', pData.user_id),
+          supabase.from('team_requests').select('hackathon_id').or(`sender_id.eq.${pData.user_id},receiver_id.eq.${pData.user_id}`).eq('status', 'accepted')
+        ]);
           
         setSkills((sData || []).map(s => s.skills).filter(Boolean));
-
-        const { data: cData } = await supabase
-          .from('certificates')
-          .select('*')
-          .eq('user_id', pData.user_id)
-          .order('created_at', { ascending: false });
-        
         setCertificates(cData || []);
-
-        const { count: projectCount } = await supabase
-          .from('workspaces')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', pData.user_id);
-
-        const { data: tData } = await supabase
-          .from('team_requests')
-          .select('hackathon_id')
-          .or(`sender_id.eq.${pData.user_id},receiver_id.eq.${pData.user_id}`)
-          .eq('status', 'accepted');
         
         const uniqueHackathons = new Set(tData?.map(t => t.hackathon_id) || []);
 
