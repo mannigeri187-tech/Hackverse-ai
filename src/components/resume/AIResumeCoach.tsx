@@ -1,27 +1,35 @@
 import { useState } from 'react';
-import { Bot, Sparkles, AlertCircle, Info, CheckCircle, ChevronRight, Loader2, RefreshCw } from 'lucide-react';
+import { Bot, Sparkles, AlertCircle, Info, CheckCircle, Loader2, RefreshCw, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { ResumeData } from '../../types/resumeBuilder';
 import type { ATSScoreResult } from '../../utils/resume/atsScoreEngine';
 
-export interface AICoachSuggestion {
-  section: 'summary' | 'experience' | 'projects';
-  itemId: string;
-  field: 'description' | 'summary';
-  originalText: string;
-  suggestedText: string;
-  reason: string;
-}
-
-export interface AICoachFeedback {
+interface AICoachFeedback {
   section: string;
   severity: 'high' | 'medium' | 'low';
+  feedback: string;
+}
+
+interface AIPrioritySummary {
+  priority: 'high' | 'medium' | 'low';
   issue: string;
   recommendation: string;
 }
 
-export interface AICoachResult {
+interface AICoachSuggestion {
+  section: 'summary' | 'experience' | 'projects';
+  itemId: string | null;
+  severity: 'high' | 'medium' | 'low';
+  issue: string;
+  recommendation: string;
+  originalText: string;
+  suggestedText: string;
+}
+
+interface AICoachResult {
   overallAssessment: string;
+  strengths: string[];
+  prioritySummary: AIPrioritySummary[];
   sectionFeedback: AICoachFeedback[];
   suggestions: AICoachSuggestion[];
 }
@@ -81,7 +89,7 @@ export function AIResumeCoach({ data, atsResult, onChange }: Props) {
   const applySuggestion = (suggestion: AICoachSuggestion) => {
     const newData = { ...data };
 
-    if (suggestion.section === 'summary' && suggestion.itemId === 'summary') {
+    if (suggestion.section === 'summary' && (suggestion.itemId === 'summary' || suggestion.itemId === null)) {
       if (newData.summary?.trim() !== suggestion.originalText.trim()) {
         alert("This resume section has changed since this suggestion was generated. Please review it again.");
         return;
@@ -117,11 +125,11 @@ export function AIResumeCoach({ data, atsResult, onChange }: Props) {
     }
   };
 
-  const getSeverityIcon = (severity: string) => {
-    switch (severity) {
-      case 'high': return <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />;
-      case 'medium': return <Info className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />;
-      case 'low': return <CheckCircle className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />;
+  const getPriorityIcon = (priority: string) => {
+    switch (priority) {
+      case 'high': return <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />;
+      case 'medium': return <Info className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />;
+      case 'low': return <CheckCircle className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />;
       default: return null;
     }
   };
@@ -134,7 +142,7 @@ export function AIResumeCoach({ data, atsResult, onChange }: Props) {
             <Bot className="w-6 h-6" />
             AI Resume Coach
           </h2>
-          <p className="text-slate-400 text-sm">Get intelligent, factual suggestions to strengthen your wording.</p>
+          <p className="text-slate-400 text-sm">Professional evaluation and wording improvements grounded in your experience.</p>
         </div>
         
         <button
@@ -170,7 +178,6 @@ export function AIResumeCoach({ data, atsResult, onChange }: Props) {
         {result && !analyzing && (
           <div className="space-y-8 animate-in fade-in duration-300">
             
-            {/* Overall Assessment */}
             <section>
               <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-3">Overall Assessment</h3>
               <p className="text-slate-300 text-sm leading-relaxed bg-slate-800 p-4 rounded-xl border border-slate-700">
@@ -178,17 +185,30 @@ export function AIResumeCoach({ data, atsResult, onChange }: Props) {
               </p>
             </section>
 
-            {/* Priority Improvements */}
-            {result.sectionFeedback && result.sectionFeedback.length > 0 && (
+            {result.strengths && result.strengths.length > 0 && (
+              <section>
+                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-3">Strengths</h3>
+                <div className="space-y-2">
+                  {result.strengths.map((str, idx) => (
+                    <div key={idx} className="flex gap-2 items-start text-sm text-slate-300">
+                      <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                      <span>{str}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {result.prioritySummary && result.prioritySummary.length > 0 && (
               <section>
                 <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-3">Priority Improvements</h3>
-                <div className="space-y-3">
-                  {result.sectionFeedback.map((fb, idx) => (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {result.prioritySummary.map((item, idx) => (
                     <div key={idx} className="bg-slate-800 border border-slate-700 p-4 rounded-xl flex gap-3 text-sm">
-                      {getSeverityIcon(fb.severity)}
+                      {getPriorityIcon(item.priority)}
                       <div>
-                        <div className="font-bold text-slate-200 capitalize">{fb.section}</div>
-                        <div className="text-slate-400 mt-0.5">{fb.recommendation}</div>
+                        <div className="font-bold text-slate-200 mb-1">{item.issue}</div>
+                        <div className="text-slate-400 leading-relaxed">{item.recommendation}</div>
                       </div>
                     </div>
                   ))}
@@ -196,41 +216,67 @@ export function AIResumeCoach({ data, atsResult, onChange }: Props) {
               </section>
             )}
 
-            {/* Suggestions */}
+            {result.sectionFeedback && result.sectionFeedback.length > 0 && (
+              <section>
+                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-3">Section Feedback</h3>
+                <div className="space-y-3">
+                  {result.sectionFeedback.map((fb, idx) => (
+                    <div key={idx} className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl text-sm">
+                      <div className="flex items-center gap-2 mb-2">
+                        {getPriorityIcon(fb.severity)}
+                        <span className="font-bold text-primary-400 capitalize">{fb.section}</span>
+                      </div>
+                      <p className="text-slate-300 pl-7">{fb.feedback}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {result.suggestions && result.suggestions.length > 0 && (
               <section>
-                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-3">Direct Suggestions</h3>
+                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-3">Suggestions</h3>
                 <div className="space-y-4">
                   {result.suggestions.map((sug, idx) => (
                     <div key={idx} className="bg-slate-800 border border-slate-700 p-5 rounded-xl text-sm">
                       <div className="flex justify-between items-start mb-4">
                         <div className="font-bold text-primary-400 capitalize flex items-center gap-2">
-                          {sug.section} <ChevronRight className="w-3 h-3 text-slate-600" /> {sug.field}
+                          {sug.section}
+                          {sug.severity === 'high' && <span className="bg-red-900/50 text-red-400 text-[10px] uppercase px-2 py-0.5 rounded ml-2">High Priority</span>}
                         </div>
-                        <span className="bg-slate-700 text-slate-300 text-xs px-2 py-1 rounded">
-                          {sug.reason}
+                        <span className="bg-slate-700 text-slate-300 text-xs px-2 py-1 rounded max-w-[250px] truncate" title={sug.issue}>
+                          {sug.issue}
                         </span>
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div className="bg-slate-900 p-3 rounded-lg border border-red-900/30">
-                          <div className="text-xs font-bold text-red-400 mb-2">Current</div>
-                          <p className="text-slate-400 line-through decoration-red-900/50">{sug.originalText}</p>
-                        </div>
-                        <div className="bg-slate-900 p-3 rounded-lg border border-green-900/30">
-                          <div className="text-xs font-bold text-green-400 mb-2">Suggested</div>
-                          <p className="text-slate-200">{sug.suggestedText}</p>
-                        </div>
+                      <div className="text-slate-300 mb-4 bg-slate-900/50 p-3 rounded-lg text-xs border border-slate-700/50">
+                        <span className="font-bold text-slate-400 mr-2">Recommendation:</span>
+                        {sug.recommendation}
                       </div>
+                      
+                      {sug.originalText && sug.suggestedText && sug.itemId && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <div className="bg-slate-900 p-3 rounded-lg border border-red-900/30">
+                            <div className="text-xs font-bold text-red-400 mb-2">Current</div>
+                            <p className="text-slate-400 line-through decoration-red-900/50">{sug.originalText}</p>
+                          </div>
+                          <div className="bg-slate-900 p-3 rounded-lg border border-green-900/30">
+                            <div className="text-xs font-bold text-green-400 mb-2">Suggested</div>
+                            <p className="text-slate-200">{sug.suggestedText}</p>
+                          </div>
+                        </div>
+                      )}
 
-                      <div className="flex justify-end">
-                        <button
-                          onClick={() => applySuggestion(sug)}
-                          className="px-4 py-2 bg-slate-700 hover:bg-primary-600 text-white text-xs font-bold rounded-lg transition-colors"
-                        >
-                          Apply Suggestion
-                        </button>
-                      </div>
+                      {sug.originalText && sug.suggestedText && sug.itemId && (
+                        <div className="flex justify-end">
+                          <button
+                            onClick={() => applySuggestion(sug)}
+                            className="px-4 py-2 bg-slate-700 hover:bg-primary-600 text-white text-xs font-bold rounded-lg transition-colors"
+                          >
+                            Apply Suggestion
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

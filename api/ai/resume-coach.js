@@ -62,45 +62,54 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing required resume data or ATS results.' });
     }
 
-    // Prepare compact prompt payload to save tokens
     const analysisPayload = {
       summary: resumeData.summary || '',
       skills: resumeData.skills || [],
       experience: (resumeData.experience || []).map(e => ({ id: e.id, title: e.title, description: e.description })),
       projects: (resumeData.projects || []).filter(p => p.included).map(p => ({ id: p.id, name: p.name, description: p.description, tech: p.technologies })),
+      hackathons: (resumeData.hackathons || []).filter(h => h.included).map(h => ({ name: h.name, project: h.project })),
+      certifications: (resumeData.certifications || []).filter(c => c.included).map(c => ({ title: c.title })),
+      education: (resumeData.education || []).map(e => ({ degree: e.degree, institution: e.institution })),
       atsScore: atsResult.totalScore,
       atsWeaknesses: atsResult.improvements.slice(0, 3).map(i => i.message)
     };
 
-    const systemPrompt = `You are a strict, professional AI Resume Coach. Analyze the provided JSON resume data and ATS scores.
+    const systemPrompt = `You are a strict, professional AI Resume Coach. Analyze the JSON resume data and ATS scores.
 CRITICAL RULES:
-1. NEVER invent facts, metrics, skills, names, dates, or jobs.
+1. ANTI-HALLUCINATION: NEVER invent numbers, percentages, users, revenue, rankings, awards, employers, job titles, dates, technologies, responsibilities, or degrees. If a metric does not exist, tell the user what is missing; do NOT fabricate it.
 2. Only suggest improvements based strictly on existing text. Do not make up outcomes.
 3. Output MUST be valid JSON matching this schema exactly:
 {
   "overallAssessment": "string (2-3 sentences)",
-  "sectionFeedback": [
+  "strengths": ["string", "string"],
+  "prioritySummary": [
     {
-      "section": "summary|skills|experience|projects|education",
-      "severity": "high|medium|low",
+      "priority": "high" | "medium" | "low",
       "issue": "string",
       "recommendation": "string"
     }
   ],
+  "sectionFeedback": [
+    {
+      "section": "summary" | "skills" | "experience" | "projects" | "hackathons" | "education" | "achievements" | "certifications",
+      "severity": "high" | "medium" | "low",
+      "feedback": "string"
+    }
+  ],
   "suggestions": [
     {
-      "section": "summary|experience|projects",
-      "itemId": "string (the exact id from the payload, or 'summary')",
-      "field": "description|summary",
+      "section": "summary" | "experience" | "projects",
+      "itemId": "string (the exact id from the payload, or null if none)",
+      "severity": "high" | "medium" | "low",
+      "issue": "string",
+      "recommendation": "string",
       "originalText": "string (must exactly match input)",
-      "suggestedText": "string (improved wording WITHOUT inventing new facts)",
-      "reason": "string"
+      "suggestedText": "string (improved wording WITHOUT inventing new facts)"
     }
   ]
 }
 
-Focus primarily on identifying weak verbs, poor formatting, generic descriptions, or missing technical specificity.
-Only provide a maximum of 3 concrete suggestions.`;
+Only provide a maximum of 5 high-priority suggestions, and 10 total.`;
 
     const userPrompt = `Payload: ${JSON.stringify(analysisPayload)}`;
     
@@ -112,20 +121,24 @@ Only provide a maximum of 3 concrete suggestions.`;
     
     const responseText = result.response.text().trim();
     
-    // Validate JSON parsing and structure
     let parsedResponse;
     try {
       parsedResponse = JSON.parse(responseText);
       
       if (!parsedResponse || typeof parsedResponse !== 'object') throw new Error('Not an object');
       
-      if (!Array.isArray(parsedResponse.sectionFeedback)) {
-        parsedResponse.sectionFeedback = [];
-      }
+      if (!Array.isArray(parsedResponse.strengths)) parsedResponse.strengths = [];
+      if (!Array.isArray(parsedResponse.prioritySummary)) parsedResponse.prioritySummary = [];
+      if (!Array.isArray(parsedResponse.sectionFeedback)) parsedResponse.sectionFeedback = [];
+      if (!Array.isArray(parsedResponse.suggestions)) parsedResponse.suggestions = [];
       
-      if (!Array.isArray(parsedResponse.suggestions)) {
-        parsedResponse.suggestions = [];
-      }
+      // Filter out invalid enum shapes
+      parsedResponse.suggestions = parsedResponse.suggestions.filter(s => 
+        ['summary', 'experience', 'projects'].includes(s.section) &&
+        ['high', 'medium', 'low'].includes(s.severity) &&
+        typeof s.originalText === 'string' &&
+        typeof s.suggestedText === 'string'
+      ).slice(0, 10);
       
       // Ensure required string fields exist
       if (typeof parsedResponse.overallAssessment !== 'string') {
