@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import type { ResumeData, ResumeThemeId } from '../types/resumeBuilder';
 import { fetchUserResumeData } from '../utils/resume/resumeDataService';
+import { ATSScoreCard } from '../components/resume/ATSScoreCard';
 import { ResumeEditor } from '../components/resume/ResumeEditor';
 import { ResumeThemeRenderer } from '../components/resume/themes';
 
@@ -137,8 +138,9 @@ export default function ResumeBuilderPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Column: Editor */}
+          {/* Left Column: Editor & ATS Score */}
           <div className="h-[calc(100vh-200px)] overflow-y-auto pr-2 custom-scrollbar">
+            <ATSScoreCard data={resumeData} />
             <ResumeEditor data={resumeData} onChange={setResumeData} />
           </div>
 
