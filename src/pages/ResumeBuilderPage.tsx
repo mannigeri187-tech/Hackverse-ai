@@ -58,8 +58,15 @@ export default function ResumeBuilderPage() {
             achievements: content.achievements || [],
             certifications: content.certifications || []
           } as ResumeData);
+          
+          // Fix: Validate theme ID to prevent ResumeThemeRenderer crashes from legacy/invalid IDs
           if (savedResume.template_id) {
-            setTheme(savedResume.template_id as ResumeThemeId);
+            const validThemeIds = ['ats', 'modern', 'tech', 'minimalist', 'engineering', 'creative'];
+            if (validThemeIds.includes(savedResume.template_id)) {
+              setTheme(savedResume.template_id as ResumeThemeId);
+            } else {
+              console.warn(`Invalid theme ID "${savedResume.template_id}" found in database. Falling back to default.`);
+            }
           }
         } else {
           const freshData = await fetchUserResumeData(user.id);
