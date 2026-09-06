@@ -82,7 +82,7 @@ function App() {
                 <Route path="team-finder" element={<TeamFinderPage />} />
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="profile/:id" element={<PublicProfilePage />} />
-                <Route path="resume" element={<ResumeBuilderPage />} />
+                <Route path="resume-builder" element={<ResumeBuilderPage />} />
               </Route>
             </Route>
           </Routes>

@@ -44,6 +44,16 @@ export default function SignupPage() {
         setError(signUpError.message || 'Signup failed. Please try again.');
         setLoading(false);
       } else if (data?.user) {
+        // Immediately make them discoverable in Team Finder
+        try {
+          await supabase.from('team_profiles').insert({
+            user_id: data.user.id,
+            display_name: fullName.trim() || cleanEmail.split('@')[0],
+          });
+        } catch (profileErr) {
+          console.error('Failed to auto-create team profile:', profileErr);
+        }
+
         navigate('/verify-email', { state: { email: cleanEmail } });
       } else {
         navigate('/login');

@@ -88,7 +88,7 @@ export default function AppLayout() {
     { to: '/certificates', label: 'Certificate Vault', icon: Award },
     { to: '/portfolio', label: 'Hackathon Portfolio', icon: Sparkles },
     { to: '/saved', label: 'Saved Tracker', icon: Bookmark },
-    { to: '/resume', label: 'Resume Builder', icon: FileText },
+    { to: '/resume-builder', label: 'Resume Builder', icon: FileText },
   ];
 
   // All links for mobile navigation drawer

@@ -1,206 +1,135 @@
-import { useState, useEffect, useRef } from 'react';
-import { useReactToPrint } from 'react-to-print';
-import { Save, Download, LayoutTemplate, FileText } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, FileText } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { ResumePreview } from '../components/ResumePreview';
-import ResumeForm from '../components/ResumeForm';
-import { ResumeQualityScore } from '../components/ResumeQualityScore';
-import { defaultResumeContent } from '../types/resume';
-import type { ResumeContent } from '../types/resume';
-
-import { gatherUserResumeData } from '../hooks/useResumeDataImport';
+import type { ResumeData } from '../types/resumeBuilder';
 
 export default function ResumeBuilderPage() {
   const { user } = useAuth();
-  const [content, setContent] = useState<ResumeContent>(defaultResumeContent);
-  const [template, setTemplate] = useState<'modern' | 'classic'>('modern');
-  const [resumeId, setResumeId] = useState<string | null>(null);
-  const [isImporting, setIsImporting] = useState(false);
-  const [importSummary, setImportSummary] = useState<string | null>(null);
-  
-  const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const navigate = useNavigate();
+  const [resumeData, setResumeData] = useState<ResumeData | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const printRef = useRef<HTMLDivElement>(null);
-
-  const handlePrint = useReactToPrint({
-    documentTitle: content.name ? `${content.name}_Resume` : 'Resume',
-    contentRef: printRef,
-  });
-
-  // Load existing resume
   useEffect(() => {
-    async function loadResume() {
+    async function loadData() {
       if (!user) return;
-      setIsLoading(true);
       
-      const { data } = await supabase
-        .from('resumes')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      try {
+        // Fetch profile data
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
 
-      if (data) {
-        setResumeId(data.id);
-        setTemplate(data.template_id as 'modern' | 'classic');
-        if (data.content) {
-          // Merge with defaults to ensure all array fields exist
-          setContent({ ...defaultResumeContent, ...data.content });
-        }
-      } else {
-        // NEW RESUME: Auto-gather profile data
-        setIsImporting(true);
-        const gatheredData = await gatherUserResumeData(user.id);
+        // Fetch team profile data for skills
+        const { data: teamProfile } = await supabase
+          .from('team_profiles')
+          .select('skills')
+          .eq('user_id', user.id)
+          .single();
+
+        const data: ResumeData = {
+          personal: {
+            name: profile?.name || 'Your Name',
+            email: profile?.email || user.email,
+            phone: profile?.phone || '',
+            location: profile?.college || '',
+            profileImage: profile?.profile_image || ''
+          },
+          summary: profile?.bio || 'Add your professional summary here.',
+          education: [],
+          experience: [],
+          projects: [],
+          skills: teamProfile?.skills || [],
+          hackathons: [],
+          achievements: [],
+          certifications: []
+        };
         
-        // Fallback for name/email if still empty
-        if (!gatheredData.email) gatheredData.email = user.email || '';
-        if (!gatheredData.name) gatheredData.name = user.user_metadata?.full_name || user.email?.split('@')[0] || '';
-        
-        setContent(gatheredData);
-        
-        // Create summary
-        const summaryParts = [];
-        if (gatheredData.projects.length) summaryParts.push(`${gatheredData.projects.length} Projects`);
-        if (gatheredData.hackathons.length) summaryParts.push(`${gatheredData.hackathons.length} Hackathons`);
-        if (gatheredData.skills) summaryParts.push(`Skills`);
-        if (gatheredData.certifications) summaryParts.push(`Certifications`);
-        
-        if (summaryParts.length > 0) {
-           setImportSummary(`Imported: Profile, ${summaryParts.join(', ')}`);
-        }
-        setIsImporting(false);
+        setResumeData(data);
+      } catch (err) {
+        console.error('Error fetching resume data:', err);
+      } finally {
+        setLoading(false);
       }
-      setIsLoading(false);
     }
-    
-    loadResume();
+    loadData();
   }, [user]);
 
-  const handleSave = async () => {
-    if (!user) return;
-    setIsSaving(true);
-    setSaveMessage(null);
-
-    try {
-      if (resumeId) {
-        // Update
-        const { error } = await supabase
-          .from('resumes')
-          .update({ content, template_id: template, updated_at: new Date().toISOString() })
-          .eq('id', resumeId)
-          .eq('user_id', user.id);
-          
-        if (error) throw error;
-      } else {
-        // Insert
-        const { data, error } = await supabase
-          .from('resumes')
-          .insert([{ user_id: user.id, content, template_id: template }])
-          .select()
-          .single();
-          
-        if (error) throw error;
-        if (data) setResumeId(data.id);
-      }
-      setSaveMessage({ type: 'success', text: 'Resume saved successfully!' });
-    } catch (err: any) {
-      console.error('Error saving resume:', err);
-      setSaveMessage({ type: 'error', text: err.message || 'Failed to save resume' });
-    } finally {
-      setIsSaving(false);
-      setTimeout(() => setSaveMessage(null), 3000);
-    }
-  };
-
-  const validateAndPrint = () => {
-    if (!content.name || !content.email) {
-      alert("Please enter at least your Name and Email before downloading.");
-      return;
-    }
-    handlePrint();
-  };
-
-  if (isLoading || isImporting) {
-    return (
-      <div className="flex flex-col justify-center items-center h-64 text-slate-500 font-medium">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mb-4"></div>
-        {isImporting ? 'Importing your HackVerse AI profile...' : 'Loading Resume Builder...'}
-      </div>
-    );
+  if (loading) {
+    return <div className="flex justify-center items-center h-64">Loading...</div>;
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
-      {/* Top Toolbar */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+    <div className="max-w-4xl mx-auto py-8 px-4">
+      <div className="flex items-center mb-8">
+        <button onClick={() => navigate(-1)} className="mr-4 text-slate-500 hover:text-slate-800 transition-colors">
+          <ArrowLeft className="w-6 h-6" />
+        </button>
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 flex items-center">
-            <FileText className="w-8 h-8 mr-2 text-primary-600" />
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <FileText className="w-6 h-6 text-primary-600" />
             Resume Builder
           </h1>
-          <p className="text-slate-600">Build, preview, and download your professional resume.</p>
-          {importSummary && (
-             <div className="mt-2 text-sm text-green-700 bg-green-50 px-3 py-1.5 rounded border border-green-200">
-               {importSummary}
-             </div>
-          )}
-        </div>
-        
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          <div className="flex bg-slate-200 rounded-lg p-1 mr-2">
-            <button 
-              onClick={() => setTemplate('modern')}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center transition-colors ${template === 'modern' ? 'bg-white shadow text-primary-700' : 'text-slate-600 hover:text-slate-900'}`}
-            >
-              <LayoutTemplate className="w-4 h-4 mr-1.5" /> Modern
-            </button>
-            <button 
-              onClick={() => setTemplate('classic')}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md flex items-center transition-colors ${template === 'classic' ? 'bg-white shadow text-primary-700' : 'text-slate-600 hover:text-slate-900'}`}
-            >
-              <LayoutTemplate className="w-4 h-4 mr-1.5" /> Classic
-            </button>
-          </div>
-
-          {saveMessage && (
-            <span className={`text-sm font-medium ${saveMessage.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
-              {saveMessage.text}
-            </span>
-          )}
-
-          <button 
-            onClick={handleSave} 
-            disabled={isSaving}
-            className="px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg font-medium transition-colors flex items-center shadow-sm disabled:opacity-50"
-          >
-            <Save className="w-4 h-4 mr-2" /> {isSaving ? 'Saving...' : 'Save'}
-          </button>
-          
-          <button 
-            onClick={validateAndPrint}
-            className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors flex items-center shadow-sm"
-          >
-            <Download className="w-4 h-4 mr-2" /> Download PDF
-          </button>
+          <p className="text-slate-500 text-sm">Professional resume generator</p>
         </div>
       </div>
 
-      {/* Main Split Layout */}
-      <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
-        {/* Editor Pane */}
-        <div className="w-full lg:w-[45%] flex-shrink-0 lg:overflow-hidden h-full">
-          <ResumeForm content={content} onChange={setContent} />
-        </div>
-        
-        {/* Preview Pane */}
-        <div className="w-full lg:w-[55%] bg-slate-200 rounded-xl border border-slate-300 overflow-y-auto p-4 md:p-8 flex flex-col gap-4 relative">
-          <ResumeQualityScore content={content} />
-          <ResumePreview ref={printRef} content={content} template={template} />
-        </div>
+      <div className="mb-8">
+        <h2 className="text-xl font-bold text-slate-900 mb-2">Build Your Professional Resume</h2>
+        <p className="text-slate-600">
+          Turn your HackVerse profile, projects, hackathons and achievements into a professional resume.
+        </p>
+      </div>
+
+      {/* Resume Preview Placeholder */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 mb-8">
+        {!resumeData ? (
+          <div className="text-center py-12 text-slate-500">Add your profile information</div>
+        ) : (
+          <div>
+            <div className="border-b border-slate-200 pb-6 mb-6">
+              <h3 className="text-3xl font-bold text-slate-900">{resumeData.personal.name}</h3>
+              <div className="text-slate-500 mt-2 flex gap-4 text-sm">
+                {resumeData.personal.email && <span>{resumeData.personal.email}</span>}
+                {resumeData.personal.phone && <span>{resumeData.personal.phone}</span>}
+                {resumeData.personal.location && <span>{resumeData.personal.location}</span>}
+              </div>
+            </div>
+
+            {resumeData.summary && (
+              <div className="mb-6">
+                <h4 className="text-lg font-bold text-slate-900 mb-2 uppercase tracking-wider text-xs">Summary</h4>
+                <p className="text-slate-700 text-sm">{resumeData.summary}</p>
+              </div>
+            )}
+
+            {resumeData.skills && resumeData.skills.length > 0 && (
+              <div className="mb-6">
+                <h4 className="text-lg font-bold text-slate-900 mb-2 uppercase tracking-wider text-xs">Skills</h4>
+                <div className="flex flex-wrap gap-2">
+                  {resumeData.skills.map((skill, i) => (
+                    <span key={i} className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-medium">
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="text-slate-400 text-sm italic mt-8 text-center border-t border-slate-100 pt-8">
+              Education, Experience, Projects, and Hackathons will appear here once added to your profile.
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="flex justify-end">
+        <button className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl transition-colors shadow-sm">
+          Create My Resume
+        </button>
       </div>
     </div>
   );
