@@ -182,14 +182,6 @@ export default function ResumeBuilderPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-[70vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-7xl mx-auto py-8 px-4">
       {/* Header */}
@@ -247,7 +239,19 @@ export default function ResumeBuilderPage() {
         </div>
       )}
 
-      {!resumeData ? (
+      {loading ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="h-[calc(100vh-200px)] bg-white rounded-2xl border border-slate-200 p-8 flex items-center justify-center shadow-sm">
+            <div className="flex flex-col items-center gap-4 text-slate-400">
+              <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+              <p>Preparing your resume...</p>
+            </div>
+          </div>
+          <div className="h-[calc(100vh-200px)] bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-center animate-pulse">
+            <div className="w-[70%] h-[80%] bg-white rounded-xl shadow-sm border border-slate-100"></div>
+          </div>
+        </div>
+      ) : !resumeData ? (
         <div className="bg-white p-8 rounded-2xl text-center border border-slate-200">
           <p className="text-slate-500">Could not initialize resume data.</p>
         </div>
