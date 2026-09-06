@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { Mail, ArrowRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 export default function VerifyEmailPage() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [otp, setOtp] = useState('');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
   const email = location.state?.email || '';
@@ -22,6 +25,37 @@ export default function VerifyEmailPage() {
       if (timer) window.clearInterval(timer);
     };
   }, [cooldown]);
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      setMessage({ type: 'error', text: 'Email not found. Please log in again.' });
+      return;
+    }
+    if (otp.length !== 6) {
+      setMessage({ type: 'error', text: 'Please enter the 6-digit code.' });
+      return;
+    }
+
+    setVerifying(true);
+    setMessage(null);
+
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: otp,
+      type: 'signup'
+    });
+
+    if (error) {
+      setMessage({ type: 'error', text: error.message });
+      setVerifying(false);
+    } else {
+      setMessage({ type: 'success', text: 'Email verified successfully! Redirecting...' });
+      setTimeout(() => {
+        navigate('/login');
+      }, 1500);
+    }
+  };
 
   const handleResend = async () => {
     if (!email) {
@@ -40,12 +74,11 @@ export default function VerifyEmailPage() {
 
     if (error) {
       setMessage({ type: 'error', text: error.message });
-      // If we hit a rate limit error, still trigger cooldown to prevent spamming
       if (error.status === 429) {
         setCooldown(60);
       }
     } else {
-      setMessage({ type: 'success', text: 'Verification email resent! Please check your inbox.' });
+      setMessage({ type: 'success', text: 'Verification code resent! Please check your inbox.' });
       setCooldown(60);
     }
     setLoading(false);
@@ -58,8 +91,8 @@ export default function VerifyEmailPage() {
       </div>
       <h1 className="text-3xl font-bold mb-4 text-slate-900">Check your email</h1>
       <p className="text-slate-600 mb-8 leading-relaxed">
-        We sent a verification link to <span className="font-semibold text-slate-900">{email || 'your email'}</span>. 
-        Please click the link to verify your account and access the platform.
+        We sent a 6-digit verification code to <span className="font-semibold text-slate-900">{email || 'your email'}</span>. 
+        Please enter it below to verify your account.
       </p>
 
       {message && (
@@ -68,17 +101,40 @@ export default function VerifyEmailPage() {
         </div>
       )}
 
+      <form onSubmit={handleVerifyOtp} className="space-y-4 mb-6">
+        <div>
+          <input
+            type="text"
+            value={otp}
+            onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ''))}
+            maxLength={6}
+            inputMode="numeric"
+            pattern="[0-9]{6}"
+            placeholder="000000"
+            className="w-full text-center text-3xl tracking-[1em] font-mono py-4 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 transition-all outline-none"
+            required
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={verifying || otp.length !== 6}
+          className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {verifying ? 'Verifying...' : 'Verify Email'}
+        </button>
+      </form>
+
       <div className="space-y-4">
         <button 
           onClick={handleResend}
           disabled={loading || cooldown > 0}
           className="w-full py-3 px-4 bg-white border-2 border-slate-200 hover:border-primary-500 text-slate-700 hover:text-primary-600 font-semibold rounded-xl transition-all disabled:opacity-50"
         >
-          {loading ? 'Sending...' : cooldown > 0 ? `Resend available in ${cooldown}s` : 'Resend verification email'}
+          {loading ? 'Sending...' : cooldown > 0 ? `Resend available in ${cooldown}s` : 'Resend verification code'}
         </button>
         <Link 
           to="/login"
-          className="w-full flex items-center justify-center py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-all"
+          className="w-full flex items-center justify-center py-3 px-4 text-slate-600 hover:text-primary-600 font-semibold transition-all"
         >
           Return to Login <ArrowRight className="w-4 h-4 ml-2" />
         </Link>
