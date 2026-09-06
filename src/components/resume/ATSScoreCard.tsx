@@ -1,16 +1,11 @@
-import { useMemo } from 'react';
 import { Target, CheckCircle, AlertCircle, Info } from 'lucide-react';
-import { calculateATSScore } from '../../utils/resume/atsScoreEngine';
-import type { ATSImprovementPriority } from '../../utils/resume/atsScoreEngine';
-import type { ResumeData } from '../../types/resumeBuilder';
+import type { ATSScoreResult, ATSImprovementPriority } from '../../utils/resume/atsScoreEngine';
 
 interface Props {
-  data: ResumeData;
+  atsResult: ATSScoreResult;
 }
 
-export function ATSScoreCard({ data }: Props) {
-  const result = useMemo(() => calculateATSScore(data), [data]);
-
+export function ATSScoreCard({ atsResult }: Props) {
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-500';
     if (score >= 60) return 'text-yellow-500';
@@ -48,8 +43,8 @@ export function ATSScoreCard({ data }: Props) {
         <div className="flex items-center gap-4 shrink-0">
           <div className="text-right hidden sm:block">
             <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Score</div>
-            <div className={`text-sm font-medium ${result.totalScore >= 80 ? 'text-green-400' : 'text-yellow-400'}`}>
-              {result.totalScore >= 80 ? 'Excellent' : result.totalScore >= 60 ? 'Needs Work' : 'Incomplete'}
+            <div className={`text-sm font-medium ${atsResult.totalScore >= 80 ? 'text-green-400' : 'text-yellow-400'}`}>
+              {atsResult.totalScore >= 80 ? 'Excellent' : atsResult.totalScore >= 60 ? 'Needs Work' : 'Incomplete'}
             </div>
           </div>
           <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
@@ -62,9 +57,9 @@ export function ATSScoreCard({ data }: Props) {
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
               />
               <path
-                className={getScoreColor(result.totalScore)}
+                className={getScoreColor(atsResult.totalScore)}
                 strokeWidth="3"
-                strokeDasharray={`${result.totalScore}, 100`}
+                strokeDasharray={`${atsResult.totalScore}, 100`}
                 stroke="currentColor"
                 fill="none"
                 strokeLinecap="round"
@@ -72,13 +67,13 @@ export function ATSScoreCard({ data }: Props) {
               />
             </svg>
             <div className="absolute flex flex-col items-center justify-center">
-              <span className="text-xl font-extrabold">{result.totalScore}</span>
+              <span className="text-xl font-extrabold">{atsResult.totalScore}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {result.totalScore === 0 ? (
+      {atsResult.totalScore === 0 ? (
         <div className="p-8 text-center text-slate-500">
           Start building your resume to see your ATS score.
         </div>
@@ -89,7 +84,7 @@ export function ATSScoreCard({ data }: Props) {
           <div>
             <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest mb-4">Category Breakdown</h3>
             <div className="space-y-3">
-              {result.categories.map(cat => (
+              {atsResult.categories.map(cat => (
                 <div key={cat.id} className="flex justify-between items-center text-sm">
                   <span className="text-slate-600">{cat.name}</span>
                   <div className="flex items-center gap-3">
@@ -109,14 +104,14 @@ export function ATSScoreCard({ data }: Props) {
           {/* Recommendations */}
           <div>
             <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest mb-4">How to Improve</h3>
-            {result.improvements.length === 0 ? (
+            {atsResult.improvements.length === 0 ? (
               <div className="bg-green-50 text-green-800 border border-green-200 p-4 rounded-xl flex gap-3 text-sm font-medium">
                 <CheckCircle className="w-5 h-5 shrink-0" />
                 Your resume looks structurally excellent! No major ATS recommendations right now.
               </div>
             ) : (
               <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                {result.improvements.map((imp, idx) => (
+                {atsResult.improvements.map((imp, idx) => (
                   <div key={idx} className={`p-3 rounded-lg border flex gap-3 text-sm ${getPriorityClass(imp.priority)}`}>
                     {getPriorityIcon(imp.priority)}
                     <span className="font-medium">{imp.message}</span>

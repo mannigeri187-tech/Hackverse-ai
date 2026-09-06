@@ -6,6 +6,8 @@ import { supabase } from '../lib/supabase';
 import type { ResumeData, ResumeThemeId } from '../types/resumeBuilder';
 import { fetchUserResumeData } from '../utils/resume/resumeDataService';
 import { ATSScoreCard } from '../components/resume/ATSScoreCard';
+import { AIResumeCoach } from '../components/resume/AIResumeCoach';
+import { calculateATSScore } from '../utils/resume/atsScoreEngine';
 import { ResumeEditor } from '../components/resume/ResumeEditor';
 import { ResumeThemeRenderer } from '../components/resume/themes';
 
@@ -138,9 +140,10 @@ export default function ResumeBuilderPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Column: Editor & ATS Score */}
+          {/* Left Column: Editor, Coach & ATS Score */}
           <div className="h-[calc(100vh-200px)] overflow-y-auto pr-2 custom-scrollbar">
-            <ATSScoreCard data={resumeData} />
+            <ATSScoreCard atsResult={calculateATSScore(resumeData)} />
+            <AIResumeCoach data={resumeData} atsResult={calculateATSScore(resumeData)} onChange={setResumeData} />
             <ResumeEditor data={resumeData} onChange={setResumeData} />
           </div>
 
