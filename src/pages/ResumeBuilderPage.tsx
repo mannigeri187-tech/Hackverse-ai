@@ -33,8 +33,10 @@ export default function ResumeBuilderPage() {
         if (savedResume && savedResume.content && Object.keys(savedResume.content).length > 0) {
           setResumeId(savedResume.id);
           setResumeData(savedResume.content as ResumeData);
-          if (savedResume.template_id) {
+          if (savedResume.template_id && ['ats-pro', 'modern', 'tech'].includes(savedResume.template_id)) {
             setTheme(savedResume.template_id as ResumeThemeId);
+          } else {
+            setTheme('ats-pro');
           }
         } else {
           const freshData = await fetchUserResumeData(user.id);
