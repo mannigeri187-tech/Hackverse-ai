@@ -2,9 +2,9 @@ import { Mail, Phone, MapPin, Globe } from 'lucide-react';
 import type { ResumeData } from '../../../types/resumeBuilder';
 
 export function EngineeringTheme({ data }: { data: ResumeData }) {
-  const visibleProjects = data.projects.filter(p => p.included);
-  const visibleHackathons = data.hackathons.filter(h => h.included);
-  const visibleCertifications = data.certifications.filter(c => c.included);
+  const visibleProjects = (data.projects || []).filter(p => p.included);
+  const visibleHackathons = (data.hackathons || []).filter(h => h.included);
+  const visibleCertifications = (data.certifications || []).filter(c => c.included);
 
   return (
     <div className="bg-white text-gray-800 font-serif max-w-4xl mx-auto h-full shadow-lg overflow-hidden text-sm p-10 border-t-8 border-blue-900">
@@ -12,17 +12,17 @@ export function EngineeringTheme({ data }: { data: ResumeData }) {
       {/* Header */}
       <header className="border-b-2 border-gray-200 pb-6 mb-6">
         <h1 className="text-3xl font-bold text-gray-900 mb-1 uppercase tracking-wide">
-          {data.personal.name || 'Your Name'}
+          {data.personal?.name || 'Your Name'}
         </h1>
-        {data.personal.title && <div className="text-blue-900 font-semibold mb-3">{data.personal.title}</div>}
+        {data.personal?.title && <div className="text-blue-900 font-semibold mb-3">{data.personal?.title}</div>}
         
         <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-600 font-sans">
-          {data.personal.email && <div className="flex items-center gap-1"><Mail className="w-3 h-3" /> {data.personal.email}</div>}
-          {data.personal.phone && <div className="flex items-center gap-1"><Phone className="w-3 h-3" /> {data.personal.phone}</div>}
-          {data.personal.location && <div className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {data.personal.location}</div>}
-          {data.personal.github && <div className="flex items-center gap-1"><Globe className="w-3 h-3" /> <a href={data.personal.github}>GitHub</a></div>}
-          {data.personal.linkedin && <div className="flex items-center gap-1"><Globe className="w-3 h-3" /> <a href={data.personal.linkedin}>LinkedIn</a></div>}
-          {data.personal.portfolio && <div className="flex items-center gap-1"><Globe className="w-3 h-3" /> <a href={data.personal.portfolio}>Portfolio</a></div>}
+          {data.personal?.email && <div className="flex items-center gap-1"><Mail className="w-3 h-3" /> {data.personal?.email}</div>}
+          {data.personal?.phone && <div className="flex items-center gap-1"><Phone className="w-3 h-3" /> {data.personal?.phone}</div>}
+          {data.personal?.location && <div className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {data.personal?.location}</div>}
+          {data.personal?.github && <div className="flex items-center gap-1"><Globe className="w-3 h-3" /> <a href={data.personal?.github}>GitHub</a></div>}
+          {data.personal?.linkedin && <div className="flex items-center gap-1"><Globe className="w-3 h-3" /> <a href={data.personal?.linkedin}>LinkedIn</a></div>}
+          {data.personal?.portfolio && <div className="flex items-center gap-1"><Globe className="w-3 h-3" /> <a href={data.personal?.portfolio}>Portfolio</a></div>}
         </div>
       </header>
 
@@ -41,7 +41,7 @@ export function EngineeringTheme({ data }: { data: ResumeData }) {
           <section>
             <h2 className="text-sm font-bold uppercase text-gray-900 mb-3 border-b border-gray-300 pb-1">Education</h2>
             <div className="space-y-3">
-              {data.education.map(edu => (
+              {(data.education || []).map(edu => (
                 <div key={edu.id} className="font-sans">
                   <div className="flex justify-between items-start font-bold text-gray-900">
                     <div>{edu.institution}</div>
@@ -62,7 +62,7 @@ export function EngineeringTheme({ data }: { data: ResumeData }) {
             <h2 className="text-sm font-bold uppercase text-gray-900 mb-2 border-b border-gray-300 pb-1">Technical Skills</h2>
             <div className="font-sans text-gray-700">
                <div className="flex flex-wrap gap-2">
-                 {data.skills.map((skill, i) => (
+                 {(data.skills || []).map((skill, i) => (
                    <span key={i} className="bg-gray-100 px-2 py-1 rounded text-xs font-medium border border-gray-200">
                      {skill}
                    </span>
@@ -118,7 +118,7 @@ export function EngineeringTheme({ data }: { data: ResumeData }) {
           <section>
             <h2 className="text-sm font-bold uppercase text-gray-900 mb-3 border-b border-gray-300 pb-1">Professional Experience</h2>
             <div className="space-y-4">
-              {data.experience.map(exp => (
+              {(data.experience || []).map(exp => (
                 <div key={exp.id} className="font-sans">
                   <div className="flex justify-between items-baseline font-bold text-gray-900">
                     <div>{exp.title}</div>

@@ -1,24 +1,24 @@
 import type { ResumeData } from '../../../types/resumeBuilder';
 
 export function ATSProTheme({ data }: { data: ResumeData }) {
-  const visibleProjects = data.projects.filter(p => p.included);
-  const visibleHackathons = data.hackathons.filter(h => h.included);
-  const visibleCertifications = data.certifications.filter(c => c.included);
+  const visibleProjects = (data.projects || []).filter(p => p.included);
+  const visibleHackathons = (data.hackathons || []).filter(h => h.included);
+  const visibleCertifications = (data.certifications || []).filter(c => c.included);
 
   return (
     <div className="bg-white text-black p-8 font-serif max-w-4xl mx-auto h-full shadow-sm border border-slate-200">
       {/* Header */}
       <header className="text-center border-b-2 border-black pb-4 mb-4">
-        <h1 className="text-3xl font-bold uppercase tracking-wider mb-1">{data.personal.name || 'Your Name'}</h1>
-        {data.personal.title && <p className="text-lg mb-2">{data.personal.title}</p>}
+        <h1 className="text-3xl font-bold uppercase tracking-wider mb-1">{data.personal?.name || 'Your Name'}</h1>
+        {data.personal?.title && <p className="text-lg mb-2">{data.personal?.title}</p>}
         
         <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm">
-          {data.personal.email && <span>{data.personal.email}</span>}
-          {data.personal.phone && <span>• {data.personal.phone}</span>}
-          {data.personal.location && <span>• {data.personal.location}</span>}
-          {data.personal.linkedin && <span>• LinkedIn</span>}
-          {data.personal.github && <span>• GitHub</span>}
-          {data.personal.portfolio && <span>• Portfolio</span>}
+          {data.personal?.email && <span>{data.personal?.email}</span>}
+          {data.personal?.phone && <span>• {data.personal?.phone}</span>}
+          {data.personal?.location && <span>• {data.personal?.location}</span>}
+          {data.personal?.linkedin && <span>• LinkedIn</span>}
+          {data.personal?.github && <span>• GitHub</span>}
+          {data.personal?.portfolio && <span>• Portfolio</span>}
         </div>
       </header>
 
@@ -45,7 +45,7 @@ export function ATSProTheme({ data }: { data: ResumeData }) {
         <section className="mb-4">
           <h2 className="text-sm font-bold uppercase border-b border-black mb-2 tracking-wider">Professional Experience</h2>
           <div className="space-y-3">
-            {data.experience.map(exp => (
+            {(data.experience || []).map(exp => (
               <div key={exp.id}>
                 <div className="flex justify-between items-baseline font-bold text-sm">
                   <span>{exp.title}</span>
@@ -104,7 +104,7 @@ export function ATSProTheme({ data }: { data: ResumeData }) {
         <section className="mb-4">
           <h2 className="text-sm font-bold uppercase border-b border-black mb-2 tracking-wider">Education</h2>
           <div className="space-y-2">
-            {data.education.map(edu => (
+            {(data.education || []).map(edu => (
               <div key={edu.id}>
                 <div className="flex justify-between items-baseline font-bold text-sm">
                   <span>{edu.institution}</span>

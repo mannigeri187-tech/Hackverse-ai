@@ -2,8 +2,8 @@ import { Mail, Phone, MapPin, Globe } from 'lucide-react';
 import type { ResumeData } from '../../../types/resumeBuilder';
 
 export function CreativeTheme({ data }: { data: ResumeData }) {
-  const visibleProjects = data.projects.filter(p => p.included);
-  const visibleCertifications = data.certifications.filter(c => c.included);
+  const visibleProjects = (data.projects || []).filter(p => p.included);
+  const visibleCertifications = (data.certifications || []).filter(c => c.included);
 
   return (
     <div className="bg-stone-50 text-stone-800 font-sans max-w-4xl mx-auto h-full shadow-lg overflow-hidden text-sm flex">
@@ -13,34 +13,34 @@ export function CreativeTheme({ data }: { data: ResumeData }) {
         
         <header>
           <h1 className="text-4xl font-black text-white mb-2 leading-tight tracking-tighter">
-            {data.personal.name ? data.personal.name.split(' ').map((n, i) => <div key={i}>{n}</div>) : 'Your Name'}
+            {data.personal?.name ? data.personal?.name.split(' ').map((n, i) => <div key={i}>{n}</div>) : 'Your Name'}
           </h1>
-          {data.personal.title && <div className="text-amber-500 font-medium tracking-wide uppercase text-xs mt-4">{data.personal.title}</div>}
+          {data.personal?.title && <div className="text-amber-500 font-medium tracking-wide uppercase text-xs mt-4">{data.personal?.title}</div>}
         </header>
 
         <section className="space-y-3 text-xs">
-          {data.personal.email && <div className="flex items-center gap-3"><Mail className="w-4 h-4 text-stone-500" /> <span className="break-all">{data.personal.email}</span></div>}
-          {data.personal.phone && <div className="flex items-center gap-3"><Phone className="w-4 h-4 text-stone-500" /> <span>{data.personal.phone}</span></div>}
-          {data.personal.location && <div className="flex items-center gap-3"><MapPin className="w-4 h-4 text-stone-500" /> <span>{data.personal.location}</span></div>}
+          {data.personal?.email && <div className="flex items-center gap-3"><Mail className="w-4 h-4 text-stone-500" /> <span className="break-all">{data.personal?.email}</span></div>}
+          {data.personal?.phone && <div className="flex items-center gap-3"><Phone className="w-4 h-4 text-stone-500" /> <span>{data.personal?.phone}</span></div>}
+          {data.personal?.location && <div className="flex items-center gap-3"><MapPin className="w-4 h-4 text-stone-500" /> <span>{data.personal?.location}</span></div>}
         </section>
 
         <section className="space-y-3 text-xs">
-          {data.personal.portfolio && (
+          {data.personal?.portfolio && (
             <div className="flex items-center gap-3">
               <Globe className="w-4 h-4 text-amber-500" /> 
-              <a href={data.personal.portfolio} className="text-white hover:text-amber-500 font-medium break-all">{data.personal.portfolio.replace(/^https?:\/\//, '')}</a>
+              <a href={data.personal?.portfolio} className="text-white hover:text-amber-500 font-medium break-all">{data.personal?.portfolio.replace(/^https?:\/\//, '')}</a>
             </div>
           )}
-          {data.personal.linkedin && (
+          {data.personal?.linkedin && (
             <div className="flex items-center gap-3">
               <Globe className="w-4 h-4 text-stone-500" /> 
-              <a href={data.personal.linkedin} className="hover:text-white break-all">LinkedIn</a>
+              <a href={data.personal?.linkedin} className="hover:text-white break-all">LinkedIn</a>
             </div>
           )}
-          {data.personal.github && (
+          {data.personal?.github && (
             <div className="flex items-center gap-3">
               <Globe className="w-4 h-4 text-stone-500" /> 
-              <a href={data.personal.github} className="hover:text-white break-all">GitHub</a>
+              <a href={data.personal?.github} className="hover:text-white break-all">GitHub</a>
             </div>
           )}
         </section>
@@ -49,7 +49,7 @@ export function CreativeTheme({ data }: { data: ResumeData }) {
           <section className="mt-4">
             <h2 className="text-xs font-bold text-white uppercase tracking-widest mb-4">Expertise</h2>
             <div className="flex flex-wrap gap-2">
-              {data.skills.map((skill, i) => (
+              {(data.skills || []).map((skill, i) => (
                 <span key={i} className="bg-stone-800 text-stone-300 px-3 py-1.5 rounded-full text-[10px] font-medium border border-stone-700">
                   {skill}
                 </span>
@@ -91,7 +91,7 @@ export function CreativeTheme({ data }: { data: ResumeData }) {
               <span className="w-6 h-px bg-amber-500 mr-3"></span> Experience
             </h2>
             <div className="space-y-8">
-              {data.experience.map(exp => (
+              {(data.experience || []).map(exp => (
                 <div key={exp.id} className="relative pl-6 border-l border-stone-200">
                   <div className="absolute w-2.5 h-2.5 bg-white border-2 border-amber-500 rounded-full -left-[5px] top-1.5"></div>
                   <div className="text-xs font-bold text-amber-600 mb-1">
@@ -138,7 +138,7 @@ export function CreativeTheme({ data }: { data: ResumeData }) {
               <span className="w-6 h-px bg-amber-500 mr-3"></span> Education
             </h2>
             <div className="space-y-4">
-              {data.education.map(edu => (
+              {(data.education || []).map(edu => (
                 <div key={edu.id} className="flex justify-between items-start">
                   <div>
                     <h3 className="font-bold text-stone-900">{edu.degree} {edu.field && `in ${edu.field}`}</h3>

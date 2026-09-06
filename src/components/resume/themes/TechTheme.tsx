@@ -2,9 +2,9 @@ import { Terminal } from 'lucide-react';
 import type { ResumeData } from '../../../types/resumeBuilder';
 
 export function TechTheme({ data }: { data: ResumeData }) {
-  const visibleProjects = data.projects.filter(p => p.included);
-  const visibleHackathons = data.hackathons.filter(h => h.included);
-  const visibleCertifications = data.certifications.filter(c => c.included);
+  const visibleProjects = (data.projects || []).filter(p => p.included);
+  const visibleHackathons = (data.hackathons || []).filter(h => h.included);
+  const visibleCertifications = (data.certifications || []).filter(c => c.included);
 
   return (
     <div className="bg-slate-900 text-slate-300 font-mono max-w-4xl mx-auto h-full shadow-lg border border-slate-700 overflow-hidden text-sm">
@@ -14,16 +14,16 @@ export function TechTheme({ data }: { data: ResumeData }) {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
           <div>
             <h1 className="text-3xl font-bold text-green-400 mb-1 flex items-center gap-2">
-              <Terminal className="w-6 h-6" /> {data.personal.name || 'guest@hackverse'}
+              <Terminal className="w-6 h-6" /> {data.personal?.name || 'guest@hackverse'}
             </h1>
-            {data.personal.title && <div className="text-slate-400 text-lg">~/{data.personal.title.toLowerCase().replace(/ /g, '-')}</div>}
+            {data.personal?.title && <div className="text-slate-400 text-lg">~/{data.personal?.title.toLowerCase().replace(/ /g, '-')}</div>}
           </div>
           
           <div className="text-xs space-y-1 text-slate-400 text-right">
-            {data.personal.email && <div>{data.personal.email}</div>}
-            {data.personal.github && <div className="text-green-400">{data.personal.github}</div>}
-            {data.personal.portfolio && <div className="text-blue-400">{data.personal.portfolio}</div>}
-            {data.personal.linkedin && <div>{data.personal.linkedin}</div>}
+            {data.personal?.email && <div>{data.personal?.email}</div>}
+            {data.personal?.github && <div className="text-green-400">{data.personal?.github}</div>}
+            {data.personal?.portfolio && <div className="text-blue-400">{data.personal?.portfolio}</div>}
+            {data.personal?.linkedin && <div>{data.personal?.linkedin}</div>}
           </div>
         </div>
       </header>
@@ -43,7 +43,7 @@ export function TechTheme({ data }: { data: ResumeData }) {
           <section>
             <div className="text-green-400 font-bold mb-3">$ ls ./skills/</div>
             <div className="flex flex-wrap gap-2 pl-4">
-              {data.skills.map((skill, i) => (
+              {(data.skills || []).map((skill, i) => (
                 <span key={i} className="bg-slate-800 text-green-300 px-2 py-0.5 rounded border border-slate-700">
                   {skill}
                 </span>
@@ -57,7 +57,7 @@ export function TechTheme({ data }: { data: ResumeData }) {
           <section>
             <div className="text-green-400 font-bold mb-4">$ ./experience.sh</div>
             <div className="space-y-6 pl-4">
-              {data.experience.map(exp => (
+              {(data.experience || []).map(exp => (
                 <div key={exp.id} className="relative">
                   <div className="absolute -left-5 top-1.5 w-2 h-2 bg-slate-700 rounded-full"></div>
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-baseline mb-1">
@@ -120,7 +120,7 @@ export function TechTheme({ data }: { data: ResumeData }) {
             <section>
               <div className="text-green-400 font-bold mb-4">$ ./education.sh</div>
               <div className="space-y-3 pl-4">
-                {data.education.map(edu => (
+                {(data.education || []).map(edu => (
                   <div key={edu.id}>
                     <div className="font-bold text-slate-200">{edu.degree} {edu.field && `in ${edu.field}`}</div>
                     <div className="text-slate-400 text-xs my-1">{edu.institution}</div>
