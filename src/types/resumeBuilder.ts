@@ -80,4 +80,4 @@ export type ResumeData = {
   certifications: ResumeCertification[];
 };
 
-export type ResumeThemeId = 'ats-pro' | 'modern' | 'tech' | 'minimalist' | 'engineering' | 'creative';
+export type ResumeThemeId = 'ats' | 'modern' | 'tech' | 'minimalist' | 'engineering' | 'creative';

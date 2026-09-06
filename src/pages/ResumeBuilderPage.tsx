@@ -9,7 +9,7 @@ import { ResumeEditor } from '../components/resume/ResumeEditor';
 import { ResumeThemeRenderer } from '../components/resume/themes';
 
 const THEMES: { id: ResumeThemeId; name: string; description: string; badge?: string }[] = [
-  { id: 'ats-pro', name: 'ATS Classic', description: 'ATS-friendly and optimized for traditional job applications.', badge: 'ATS-Friendly' },
+  { id: 'ats', name: 'ATS Classic', description: 'ATS-friendly and optimized for traditional job applications.', badge: 'ATS-Friendly' },
   { id: 'modern', name: 'Modern Professional', description: 'Balanced modern design for almost any career.', badge: 'Recommended' },
   { id: 'tech', name: 'Tech Professional', description: 'Designed for developers, engineers and technical roles.', badge: 'For Developers' },
   { id: 'minimalist', name: 'Minimalist', description: 'Clean, elegant and distraction-free.', badge: 'Clean' },

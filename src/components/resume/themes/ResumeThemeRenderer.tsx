@@ -23,7 +23,7 @@ export function ResumeThemeRenderer({ data, theme }: Props) {
       return <EngineeringTheme data={data} />;
     case 'creative':
       return <CreativeTheme data={data} />;
-    case 'ats-pro':
+    case 'ats':
     default:
       return <ATSProTheme data={data} />;
   }
