@@ -79,3 +79,5 @@ export type ResumeData = {
   achievements: ResumeAchievement[];
   certifications: ResumeCertification[];
 };
+
+export type ResumeThemeId = 'ats-pro' | 'modern' | 'tech';

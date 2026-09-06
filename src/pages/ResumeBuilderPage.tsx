@@ -1,18 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileText, Save, Loader2 } from 'lucide-react';
+import { ArrowLeft, FileText, Save, Loader2, LayoutTemplate } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import type { ResumeData } from '../types/resumeBuilder';
+import type { ResumeData, ResumeThemeId } from '../types/resumeBuilder';
 import { fetchUserResumeData } from '../utils/resume/resumeDataService';
 import { ResumeEditor } from '../components/resume/ResumeEditor';
-import { ResumePreview } from '../components/resume/ResumePreview';
+import { ResumeThemeRenderer } from '../components/resume/themes';
 
 export default function ResumeBuilderPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [resumeData, setResumeData] = useState<ResumeData | null>(null);
   const [resumeId, setResumeId] = useState<string | null>(null);
+  const [theme, setTheme] = useState<ResumeThemeId>('ats-pro');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -21,7 +22,6 @@ export default function ResumeBuilderPage() {
     async function loadData() {
       if (!user) return;
       try {
-        // First check if user has an existing saved resume in public.resumes
         const { data: savedResume } = await supabase
           .from('resumes')
           .select('*')
@@ -32,10 +32,11 @@ export default function ResumeBuilderPage() {
 
         if (savedResume && savedResume.content && Object.keys(savedResume.content).length > 0) {
           setResumeId(savedResume.id);
-          // Load the saved resume state
           setResumeData(savedResume.content as ResumeData);
+          if (savedResume.template_id) {
+            setTheme(savedResume.template_id as ResumeThemeId);
+          }
         } else {
-          // If no saved resume, bootstrap from HackVerse AI data sources
           const freshData = await fetchUserResumeData(user.id);
           if (freshData) {
             setResumeData(freshData);
@@ -57,20 +58,18 @@ export default function ResumeBuilderPage() {
 
     try {
       if (resumeId) {
-        // Update existing resume
         const { error } = await supabase
           .from('resumes')
-          .update({ content: resumeData, updated_at: new Date().toISOString() })
+          .update({ content: resumeData, template_id: theme, updated_at: new Date().toISOString() })
           .eq('id', resumeId);
         if (error) throw error;
       } else {
-        // Insert new resume
         const { data, error } = await supabase
           .from('resumes')
           .insert({
             user_id: user.id,
             title: 'My Professional Resume',
-            template_id: 'modern',
+            template_id: theme,
             content: resumeData
           })
           .select()
@@ -141,10 +140,31 @@ export default function ResumeBuilderPage() {
             <ResumeEditor data={resumeData} onChange={setResumeData} />
           </div>
 
-          {/* Right Column: Preview */}
-          <div className="h-[calc(100vh-200px)] overflow-y-auto sticky top-4">
-            <div className="transform origin-top lg:scale-[0.85] xl:scale-95 transition-transform">
-              <ResumePreview data={resumeData} />
+          {/* Right Column: Preview & Theme Selector */}
+          <div className="h-[calc(100vh-200px)] overflow-y-auto sticky top-4 flex flex-col gap-4">
+            
+            {/* Theme Selector */}
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+              <div className="flex items-center gap-2 text-slate-700 font-bold text-sm">
+                <LayoutTemplate className="w-4 h-4" />
+                Theme
+              </div>
+              <div className="flex gap-2">
+                {(['ats-pro', 'modern', 'tech'] as const).map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setTheme(t)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors capitalize ${theme === t ? 'bg-primary-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                  >
+                    {t === 'ats-pro' ? 'ATS Pro (Recommended)' : t}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Theme Preview */}
+            <div className="transform origin-top lg:scale-[0.85] xl:scale-95 transition-transform flex-1">
+              <ResumeThemeRenderer data={resumeData} theme={theme} />
             </div>
           </div>
         </div>
