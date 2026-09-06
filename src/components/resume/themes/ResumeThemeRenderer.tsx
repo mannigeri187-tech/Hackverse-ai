@@ -24,7 +24,8 @@ export function ResumeThemeRenderer({ data, theme }: Props) {
     case 'creative':
       return <CreativeTheme data={data} />;
     case 'ats':
-    default:
       return <ATSProTheme data={data} />;
+    default:
+      throw new Error(`ResumeThemeRenderer: Missing theme mapping for ID "${theme}"`);
   }
 }
