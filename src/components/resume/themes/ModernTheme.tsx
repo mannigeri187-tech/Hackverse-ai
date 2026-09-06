@@ -7,7 +7,7 @@ export function ModernTheme({ data }: { data: ResumeData }) {
   const visibleCertifications = data.certifications.filter(c => c.included);
 
   return (
-    <div className="bg-white text-slate-800 font-sans max-w-4xl mx-auto min-h-full shadow-sm border border-slate-200 overflow-hidden print:overflow-visible print:border-none print:shadow-none print:min-h-0 flex flex-col md:flex-row">
+    <div className="bg-white text-slate-800 font-sans max-w-4xl mx-auto h-full shadow-sm border border-slate-200 overflow-hidden flex flex-col md:flex-row">
       
       {/* Left Column (Sidebar) */}
       <div className="w-full md:w-1/3 bg-slate-50 p-6 md:p-8 border-r border-slate-200 flex flex-col gap-8">

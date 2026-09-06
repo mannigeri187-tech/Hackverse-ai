@@ -6,7 +6,7 @@ export function ATSProTheme({ data }: { data: ResumeData }) {
   const visibleCertifications = data.certifications.filter(c => c.included);
 
   return (
-    <div className="bg-white text-black p-8 font-serif max-w-4xl mx-auto min-h-full shadow-sm border border-slate-200 print:min-h-0 print:border-none print:shadow-none print:p-0">
+    <div className="bg-white text-black p-8 font-serif max-w-4xl mx-auto h-full shadow-sm border border-slate-200">
       {/* Header */}
       <header className="text-center border-b-2 border-black pb-4 mb-4">
         <h1 className="text-3xl font-bold uppercase tracking-wider mb-1">{data.personal.name || 'Your Name'}</h1>
