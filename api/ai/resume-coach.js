@@ -112,10 +112,26 @@ Only provide a maximum of 3 concrete suggestions.`;
     
     const responseText = result.response.text().trim();
     
-    // Validate JSON parsing
+    // Validate JSON parsing and structure
     let parsedResponse;
     try {
       parsedResponse = JSON.parse(responseText);
+      
+      if (!parsedResponse || typeof parsedResponse !== 'object') throw new Error('Not an object');
+      
+      if (!Array.isArray(parsedResponse.sectionFeedback)) {
+        parsedResponse.sectionFeedback = [];
+      }
+      
+      if (!Array.isArray(parsedResponse.suggestions)) {
+        parsedResponse.suggestions = [];
+      }
+      
+      // Ensure required string fields exist
+      if (typeof parsedResponse.overallAssessment !== 'string') {
+        parsedResponse.overallAssessment = "Analysis complete. Review the suggestions below.";
+      }
+      
     } catch (parseErr) {
       console.error('Failed to parse AI Coach response:', responseText);
       return res.status(500).json({ error: 'AI returned malformed data.' });
