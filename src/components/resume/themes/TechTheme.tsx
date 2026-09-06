@@ -11,7 +11,7 @@ export function TechTheme({ data }: { data: ResumeData }) {
       
       {/* Header */}
       <header className="bg-slate-950 p-6 border-b border-slate-700">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
           <div>
             <h1 className="text-3xl font-bold text-green-400 mb-1 flex items-center gap-2">
               <Terminal className="w-6 h-6" /> {data.personal?.name || 'guest@hackverse'}

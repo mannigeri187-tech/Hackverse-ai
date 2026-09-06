@@ -9,13 +9,13 @@ export function CreativeTheme({ data }: { data: ResumeData }) {
     <div className="bg-stone-50 text-stone-800 font-sans max-w-4xl mx-auto h-full shadow-lg overflow-hidden text-sm flex">
       
       {/* Left Column */}
-      <div className="w-1/3 bg-stone-900 text-stone-300 p-8 flex flex-col gap-8">
+      <div className="w-1/3 bg-stone-900 text-stone-300 p-6 flex flex-col gap-8 min-w-0">
         
-        <header>
-          <h1 className="text-4xl font-black text-white mb-2 leading-tight tracking-tighter">
-            {data.personal?.name ? data.personal?.name.split(' ').map((n, i) => <div key={i}>{n}</div>) : 'Your Name'}
+        <header className="w-full mb-6">
+          <h1 className="text-3xl font-black text-white mb-2 leading-tight tracking-tighter break-all w-full min-w-0">
+            {data.personal?.name ? data.personal?.name.split(' ').map((n, i) => <div key={i} className="break-all w-full min-w-0">{n}</div>) : 'Your Name'}
           </h1>
-          {data.personal?.title && <div className="text-amber-500 font-medium tracking-wide uppercase text-xs mt-4">{data.personal?.title}</div>}
+          {data.personal?.title && <div className="text-amber-500 font-medium tracking-wide uppercase text-xs mt-4 break-words">{data.personal?.title}</div>}
         </header>
 
         <section className="space-y-3 text-xs">

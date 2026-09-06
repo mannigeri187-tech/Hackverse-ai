@@ -14,7 +14,7 @@ export function MinimalistTheme({ data }: { data: ResumeData }) {
         </h1>
         {data.personal?.title && <div className="text-slate-500 uppercase tracking-widest text-xs font-semibold mb-4">{data.personal?.title}</div>}
         
-        <div className="flex flex-wrap justify-center gap-4 text-xs text-slate-500">
+        <div className="flex flex-wrap justify-center gap-4 text-xs text-slate-500 mt-6">
           {data.personal?.email && <span>{data.personal?.email}</span>}
           {data.personal?.phone && <span>{data.personal?.phone}</span>}
           {data.personal?.location && <span>{data.personal?.location}</span>}

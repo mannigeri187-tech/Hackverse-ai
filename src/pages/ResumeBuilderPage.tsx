@@ -265,12 +265,12 @@ export default function ResumeBuilderPage() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column: Editor */}
-          <div className="flex flex-col gap-6">
+          <div className="h-[calc(100vh-200px)] overflow-y-auto pr-2 custom-scrollbar">
             <ResumeEditor data={resumeData} onChange={setResumeData} />
           </div>
 
           {/* Right Column: Preview & Theme Selector */}
-          <div className="flex flex-col gap-8">
+          <div className="h-[calc(100vh-200px)] overflow-y-auto sticky top-4 flex flex-col gap-4">
             
             {/* Theme Selector */}
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
@@ -281,29 +281,34 @@ export default function ResumeBuilderPage() {
                 <p className="text-xs text-slate-500 mt-1">Choose a professional design that matches your career goals.</p>
               </div>
               
-              <div className="p-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              <div className="p-4 flex gap-4 overflow-x-auto custom-scrollbar pb-4">
                 {THEMES.map(t => (
                   <button
                     key={t.id}
                     onClick={() => setTheme(t.id)}
-                    className={`text-left p-4 rounded-xl border transition-all ${theme === t.id ? 'border-primary-500 bg-primary-50 shadow-sm ring-1 ring-primary-500' : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'}`}
+                    className={`flex-shrink-0 w-64 text-left p-4 rounded-xl border transition-all ${theme === t.id ? 'border-primary-500 bg-primary-50 shadow-sm ring-1 ring-primary-500' : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'}`}
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="font-bold text-slate-900">{t.name}</div>
-                      {t.badge && (
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold whitespace-nowrap ${theme === t.id ? 'bg-primary-100 text-primary-700' : 'bg-slate-100 text-slate-600'}`}>
-                          {t.badge}
-                        </span>
-                      )}
+                    <div className="flex flex-col gap-2 mb-2 min-h-[40px]">
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="font-bold text-slate-900 leading-tight flex-1 break-words">{t.name}</div>
+                        {t.badge && (
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold whitespace-nowrap shrink-0 ${theme === t.id ? 'bg-primary-100 text-primary-700' : 'bg-slate-100 text-slate-600'}`}>
+                              {t.badge}
+                            </span>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-xs text-slate-500 leading-relaxed">{t.description}</p>
+                    <p className="text-xs text-slate-500 mb-4 line-clamp-2 h-8">{t.description}</p>
+                    <div className={`text-xs font-bold text-center py-1.5 rounded-lg w-full ${theme === t.id ? 'bg-primary-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                      {theme === t.id ? 'Selected' : 'Select'}
+                    </div>
                   </button>
                 ))}
               </div>
             </div>
 
             {/* Theme Preview */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden w-full">
+            <div className="transform origin-top lg:scale-[0.85] xl:scale-95 transition-transform flex-1">
               <ResumeThemeRenderer data={resumeData} theme={theme} />
             </div>
           </div>

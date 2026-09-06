@@ -10,14 +10,14 @@ export function ModernTheme({ data }: { data: ResumeData }) {
     <div className="bg-white text-slate-800 font-sans max-w-4xl mx-auto h-full shadow-sm border border-slate-200 overflow-hidden flex flex-col md:flex-row">
       
       {/* Left Column (Sidebar) */}
-      <div className="w-full md:w-1/3 bg-slate-50 p-6 md:p-8 border-r border-slate-200 flex flex-col gap-8">
+      <div className="w-full md:w-1/3 bg-slate-50 p-6 md:p-8 border-r border-slate-200 flex flex-col gap-8 min-w-0">
         
         {/* Personal Details */}
         <div className="text-sm space-y-3 break-words">
           {data.personal?.email && (
-            <div className="flex items-start gap-2">
+            <div className="flex items-start gap-2 min-w-0">
               <Mail className="w-4 h-4 text-primary-600 shrink-0 mt-0.5" />
-              <span>{data.personal?.email}</span>
+              <span className="break-all min-w-0">{data.personal?.email}</span>
             </div>
           )}
           {data.personal?.phone && (
@@ -103,7 +103,7 @@ export function ModernTheme({ data }: { data: ResumeData }) {
       </div>
 
       {/* Main Column */}
-      <div className="w-full md:w-2/3 p-6 md:p-8 flex flex-col gap-6">
+      <div className="w-full md:w-2/3 p-6 md:p-8 flex flex-col gap-6 min-w-0">
         
         <header>
           <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight mb-2">{data.personal?.name || 'Your Name'}</h1>

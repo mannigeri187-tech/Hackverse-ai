@@ -16,7 +16,7 @@ export function EngineeringTheme({ data }: { data: ResumeData }) {
         </h1>
         {data.personal?.title && <div className="text-blue-900 font-semibold mb-3">{data.personal?.title}</div>}
         
-        <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-600 font-sans">
+        <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-600 font-sans mt-5">
           {data.personal?.email && <div className="flex items-center gap-1"><Mail className="w-3 h-3" /> {data.personal?.email}</div>}
           {data.personal?.phone && <div className="flex items-center gap-1"><Phone className="w-3 h-3" /> {data.personal?.phone}</div>}
           {data.personal?.location && <div className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {data.personal?.location}</div>}
