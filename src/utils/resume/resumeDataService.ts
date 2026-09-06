@@ -50,7 +50,8 @@ export async function fetchUserResumeData(userId: string): Promise<ResumeData | 
       name: w.project_name || 'Untitled Project',
       description: w.solution || w.problem_statement || '',
       technologies: Array.isArray(w.tech_stack) ? w.tech_stack : [],
-      githubUrl: w.github_url || ''
+      githubUrl: w.github_url || '',
+      included: true
     }));
 
     // Map Workspaces to Hackathons (participated)
@@ -63,7 +64,8 @@ export async function fetchUserResumeData(userId: string): Promise<ResumeData | 
           name: h?.title || 'Unknown Hackathon',
           project: w.project_name || 'N/A',
           date: h?.start_date || '',
-          url: w.github_url || ''
+          url: w.github_url || '',
+          included: true
         };
       });
 
@@ -73,7 +75,8 @@ export async function fetchUserResumeData(userId: string): Promise<ResumeData | 
       title: c.title,
       issuer: c.issuer || 'HackVerse AI',
       date: c.certificate_date || c.created_at,
-      url: c.certificate_url || ''
+      url: c.certificate_url || '',
+      included: true
     }));
 
     const data: ResumeData = {

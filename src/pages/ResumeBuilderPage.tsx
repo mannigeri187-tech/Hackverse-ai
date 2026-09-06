@@ -1,26 +1,48 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileText, User, Globe, MapPin, Mail, Phone, Briefcase, Award, GraduationCap, Code } from 'lucide-react';
+import { ArrowLeft, FileText, Save, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 import type { ResumeData } from '../types/resumeBuilder';
 import { fetchUserResumeData } from '../utils/resume/resumeDataService';
+import { ResumeEditor } from '../components/resume/ResumeEditor';
+import { ResumePreview } from '../components/resume/ResumePreview';
 
 export default function ResumeBuilderPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [resumeData, setResumeData] = useState<ResumeData | null>(null);
+  const [resumeId, setResumeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   useEffect(() => {
     async function loadData() {
       if (!user) return;
       try {
-        const data = await fetchUserResumeData(user.id);
-        if (data) {
-          setResumeData(data);
+        // First check if user has an existing saved resume in public.resumes
+        const { data: savedResume } = await supabase
+          .from('resumes')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (savedResume && savedResume.content && Object.keys(savedResume.content).length > 0) {
+          setResumeId(savedResume.id);
+          // Load the saved resume state
+          setResumeData(savedResume.content as ResumeData);
+        } else {
+          // If no saved resume, bootstrap from HackVerse AI data sources
+          const freshData = await fetchUserResumeData(user.id);
+          if (freshData) {
+            setResumeData(freshData);
+          }
         }
       } catch (err) {
-        console.error('Error in ResumeBuilderPage:', err);
+        console.error('Error in ResumeBuilderPage loadData:', err);
       } finally {
         setLoading(false);
       }
@@ -28,191 +50,105 @@ export default function ResumeBuilderPage() {
     loadData();
   }, [user]);
 
+  const handleSave = async () => {
+    if (!user || !resumeData) return;
+    setSaving(true);
+    setMessage(null);
+
+    try {
+      if (resumeId) {
+        // Update existing resume
+        const { error } = await supabase
+          .from('resumes')
+          .update({ content: resumeData, updated_at: new Date().toISOString() })
+          .eq('id', resumeId);
+        if (error) throw error;
+      } else {
+        // Insert new resume
+        const { data, error } = await supabase
+          .from('resumes')
+          .insert({
+            user_id: user.id,
+            title: 'My Professional Resume',
+            template_id: 'modern',
+            content: resumeData
+          })
+          .select()
+          .single();
+        if (error) throw error;
+        if (data) setResumeId(data.id);
+      }
+      setMessage({ type: 'success', text: 'Resume saved successfully!' });
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err: any) {
+      console.error('Error saving resume:', err);
+      setMessage({ type: 'error', text: err.message || 'Failed to save resume' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      <div className="flex justify-center items-center h-[70vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
-      <div className="flex items-center mb-8">
-        <button onClick={() => navigate(-1)} className="mr-4 text-slate-500 hover:text-slate-800 transition-colors">
-          <ArrowLeft className="w-6 h-6" />
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <FileText className="w-6 h-6 text-primary-600" />
-            Resume Builder
-          </h1>
-          <p className="text-slate-500 text-sm">Professional resume generator</p>
+    <div className="max-w-7xl mx-auto py-8 px-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+        <div className="flex items-center">
+          <button onClick={() => navigate(-1)} className="mr-4 text-slate-500 hover:text-slate-800 transition-colors">
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+              <FileText className="w-6 h-6 text-primary-600" />
+              Resume Builder
+            </h1>
+            <p className="text-slate-500 text-sm">Professional resume generator</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {message && (
+            <span className={`text-sm font-medium ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+              {message.text}
+            </span>
+          )}
+          <button 
+            onClick={handleSave} 
+            disabled={saving || !resumeData}
+            className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition-colors shadow-sm disabled:opacity-70"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {saving ? 'Saving...' : 'Save Resume'}
+          </button>
         </div>
       </div>
 
-      <div className="mb-8">
-        <h2 className="text-xl font-bold text-slate-900 mb-2">Build Your Professional Resume</h2>
-        <p className="text-slate-600">
-          Turn your HackVerse profile, projects, hackathons and achievements into a professional resume.
-        </p>
-      </div>
-
-      {/* Resume Preview Placeholder */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 mb-8 relative overflow-hidden">
-        {/* Background Accent */}
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary-500 to-indigo-600"></div>
-        
-        {!resumeData ? (
-          <div className="text-center py-12 text-slate-500">Add your profile information</div>
-        ) : (
-          <div>
-            <div className="border-b border-slate-200 pb-6 mb-6">
-              <h3 className="text-3xl font-bold text-slate-900">{resumeData.personal.name}</h3>
-              {resumeData.personal.title && (
-                <p className="text-lg text-primary-600 font-medium mt-1">{resumeData.personal.title}</p>
-              )}
-              
-              <div className="text-slate-500 mt-4 flex flex-wrap gap-4 text-sm">
-                {resumeData.personal.email && (
-                  <div className="flex items-center gap-1.5"><Mail className="w-4 h-4"/> {resumeData.personal.email}</div>
-                )}
-                {resumeData.personal.phone && (
-                  <div className="flex items-center gap-1.5"><Phone className="w-4 h-4"/> {resumeData.personal.phone}</div>
-                )}
-                {resumeData.personal.location && (
-                  <div className="flex items-center gap-1.5"><MapPin className="w-4 h-4"/> {resumeData.personal.location}</div>
-                )}
-                {resumeData.personal.github && (
-                  <div className="flex items-center gap-1.5"><Globe className="w-4 h-4"/> GitHub</div>
-                )}
-                {resumeData.personal.linkedin && (
-                  <div className="flex items-center gap-1.5"><Globe className="w-4 h-4"/> LinkedIn</div>
-                )}
-                {resumeData.personal.portfolio && (
-                  <div className="flex items-center gap-1.5"><Globe className="w-4 h-4"/> Portfolio</div>
-                )}
-              </div>
-            </div>
-
-            {resumeData.summary && (
-              <div className="mb-8">
-                <h4 className="text-sm font-bold text-slate-900 mb-3 uppercase tracking-wider flex items-center gap-2">
-                  <User className="w-4 h-4 text-slate-400" /> Summary
-                </h4>
-                <p className="text-slate-700 text-sm leading-relaxed">{resumeData.summary}</p>
-              </div>
-            )}
-
-            {resumeData.skills && resumeData.skills.length > 0 && (
-              <div className="mb-8">
-                <h4 className="text-sm font-bold text-slate-900 mb-3 uppercase tracking-wider flex items-center gap-2">
-                  <Code className="w-4 h-4 text-slate-400" /> Skills
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {resumeData.skills.map((skill, i) => (
-                    <span key={i} className="px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium border border-slate-200">
-                      {skill}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="mb-8">
-              <h4 className="text-sm font-bold text-slate-900 mb-3 uppercase tracking-wider flex items-center gap-2">
-                <Briefcase className="w-4 h-4 text-slate-400" /> Projects
-              </h4>
-              {resumeData.projects && resumeData.projects.length > 0 ? (
-                <div className="space-y-4">
-                  {resumeData.projects.map((proj, i) => (
-                    <div key={i} className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                      <div className="flex justify-between items-start mb-2">
-                        <h5 className="font-bold text-slate-900">{proj.name}</h5>
-                        {proj.githubUrl && <a href={proj.githubUrl} target="_blank" rel="noreferrer" className="text-primary-600 hover:underline text-xs">View Code</a>}
-                      </div>
-                      <p className="text-sm text-slate-600 mb-3 line-clamp-2">{proj.description}</p>
-                      {proj.technologies && proj.technologies.length > 0 && (
-                        <div className="flex gap-2 flex-wrap">
-                          {proj.technologies.map((tech: string, j: number) => (
-                            <span key={j} className="text-[10px] uppercase font-bold text-slate-500 bg-white px-2 py-0.5 rounded shadow-sm border border-slate-200">
-                              {tech}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-slate-400 italic">No projects added yet</p>
-              )}
-            </div>
-
-            <div className="mb-8">
-              <h4 className="text-sm font-bold text-slate-900 mb-3 uppercase tracking-wider flex items-center gap-2">
-                <Award className="w-4 h-4 text-slate-400" /> Hackathons
-              </h4>
-              {resumeData.hackathons && resumeData.hackathons.length > 0 ? (
-                <div className="space-y-3">
-                  {resumeData.hackathons.map((hack, i) => (
-                    <div key={i} className="flex justify-between items-center border-b border-slate-100 pb-3 last:border-0">
-                      <div>
-                        <h5 className="font-bold text-slate-900 text-sm">{hack.name}</h5>
-                        <p className="text-xs text-slate-500 mt-1">Project: {hack.project}</p>
-                      </div>
-                      <div className="text-xs font-medium bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full">
-                        {hack.date ? new Date(hack.date).toLocaleDateString() : 'Participant'}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-slate-400 italic">No hackathons participated yet</p>
-              )}
-            </div>
-
-            <div className="mb-8">
-              <h4 className="text-sm font-bold text-slate-900 mb-3 uppercase tracking-wider flex items-center gap-2">
-                <Award className="w-4 h-4 text-slate-400" /> Certifications
-              </h4>
-              {resumeData.certifications && resumeData.certifications.length > 0 ? (
-                <ul className="list-disc pl-5 space-y-2">
-                  {resumeData.certifications.map((cert, i) => (
-                    <li key={i} className="text-sm text-slate-700">
-                      <span className="font-semibold text-slate-900">{cert.title}</span> — {cert.issuer}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-slate-400 italic">No certifications added yet</p>
-              )}
-            </div>
-
-            {/* Missing Data Sections */}
-            <div className="mb-8">
-              <h4 className="text-sm font-bold text-slate-900 mb-3 uppercase tracking-wider flex items-center gap-2">
-                <GraduationCap className="w-4 h-4 text-slate-400" /> Education
-              </h4>
-              <p className="text-sm text-slate-400 italic">No education history added yet</p>
-            </div>
-
-            <div className="mb-8">
-              <h4 className="text-sm font-bold text-slate-900 mb-3 uppercase tracking-wider flex items-center gap-2">
-                <Briefcase className="w-4 h-4 text-slate-400" /> Experience
-              </h4>
-              <p className="text-sm text-slate-400 italic">No work experience added yet</p>
-            </div>
-
+      {!resumeData ? (
+        <div className="bg-white p-8 rounded-2xl text-center border border-slate-200">
+          <p className="text-slate-500">Could not initialize resume data.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Column: Editor */}
+          <div className="h-[calc(100vh-200px)] overflow-y-auto pr-2 custom-scrollbar">
+            <ResumeEditor data={resumeData} onChange={setResumeData} />
           </div>
-        )}
-      </div>
 
-      <div className="flex justify-end">
-        <button className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl transition-colors shadow-sm">
-          Create My Resume
-        </button>
-      </div>
+          {/* Right Column: Preview */}
+          <div className="h-[calc(100vh-200px)] overflow-y-auto sticky top-4">
+            <div className="transform origin-top lg:scale-[0.85] xl:scale-95 transition-transform">
+              <ResumePreview data={resumeData} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
