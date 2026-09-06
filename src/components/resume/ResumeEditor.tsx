@@ -107,7 +107,7 @@ export function ResumeEditor({ data, onChange }: Props) {
     <div className="space-y-8 pb-8">
       {/* 1. Personal Information */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-        <h3 className="text-lg font-bold text-slate-900 mb-4">1. Personal Information</h3>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2"><h3 className="text-lg font-bold text-slate-900">1. Personal Information</h3><span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase font-bold tracking-wider self-start sm:self-auto">Imported from HackVerse Profile</span></div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Full Name</label>
@@ -160,7 +160,7 @@ export function ResumeEditor({ data, onChange }: Props) {
 
       {/* 3. Skills */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-        <h3 className="text-lg font-bold text-slate-900 mb-4">3. Skills</h3>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2"><h3 className="text-lg font-bold text-slate-900">3. Skills</h3><span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase font-bold tracking-wider self-start sm:self-auto">Imported from Team Profile</span></div>
         <div className="flex flex-wrap gap-2 mb-4">
           {(data.skills || []).map((skill, i) => (
             <div key={i} className="flex items-center gap-1 bg-primary-50 text-primary-700 px-3 py-1 rounded-full text-sm font-medium">
@@ -188,7 +188,7 @@ export function ResumeEditor({ data, onChange }: Props) {
 
       {/* 4. Projects */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-        <h3 className="text-lg font-bold text-slate-900 mb-4">4. Projects</h3>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2"><h3 className="text-lg font-bold text-slate-900">4. Projects</h3><span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase font-bold tracking-wider self-start sm:self-auto">Imported from Workspaces</span></div>
         {data.projects.length === 0 ? (
           <p className="text-sm text-slate-500 italic">No projects found. Add them to HackVerse first.</p>
         ) : (
@@ -210,7 +210,7 @@ export function ResumeEditor({ data, onChange }: Props) {
 
       {/* 5. Hackathons */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-        <h3 className="text-lg font-bold text-slate-900 mb-4">5. Hackathons</h3>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2"><h3 className="text-lg font-bold text-slate-900">5. Hackathons</h3><span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase font-bold tracking-wider self-start sm:self-auto">Imported from Workspaces</span></div>
         {data.hackathons.length === 0 ? (
           <p className="text-sm text-slate-500 italic">No hackathons found.</p>
         ) : (

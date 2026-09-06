@@ -61,7 +61,8 @@ export default function DashboardPage() {
           </div>
           <div>
             <h3 className="text-slate-500 font-medium mb-1">Resume Builder</h3>
-            <Link to="/resume-builder" className="text-sm font-medium text-primary-600 hover:text-primary-700 mt-2 block">
+            <p className="text-xs text-slate-400 mb-2">Create a professional resume with AI-powered assistance.</p>
+            <Link to="/resume-builder" className="text-sm font-medium text-primary-600 hover:text-primary-700 block">
               Edit Resume →
             </Link>
           </div>

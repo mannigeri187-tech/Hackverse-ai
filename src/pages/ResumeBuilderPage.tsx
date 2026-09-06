@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileText, Save, Loader2, LayoutTemplate } from 'lucide-react';
+import { ArrowLeft, FileText, Save, Loader2, LayoutTemplate, RefreshCw, X, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import type { ResumeData, ResumeThemeId } from '../types/resumeBuilder';
@@ -26,6 +26,11 @@ export default function ResumeBuilderPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  
+  const [isFirstTime, setIsFirstTime] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncData, setSyncData] = useState<ResumeData | null>(null);
+  const [syncSelections, setSyncSelections] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     async function loadData() {
@@ -60,6 +65,7 @@ export default function ResumeBuilderPage() {
           const freshData = await fetchUserResumeData(user.id);
           if (freshData) {
             setResumeData(freshData);
+            setIsFirstTime(true);
           }
         }
       } catch (err) {
@@ -70,6 +76,75 @@ export default function ResumeBuilderPage() {
     }
     loadData();
   }, [user]);
+
+  const handleSyncProfile = async () => {
+    if (!user) return;
+    setSyncing(true);
+    try {
+      const freshData = await fetchUserResumeData(user.id);
+      if (freshData) {
+        setSyncData(freshData);
+        setSyncSelections({
+          personal: true,
+          summary: false, // Don't replace summary by default to preserve edits
+          skills: true,
+          projects: true,
+          hackathons: true,
+          certifications: true,
+          education: true,
+          experience: true
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const applySync = () => {
+    if (!syncData || !resumeData) return;
+    const merged = { ...resumeData };
+    
+    if (syncSelections.personal) {
+      merged.personal = { ...merged.personal, ...syncData.personal };
+    }
+    if (syncSelections.summary) {
+      merged.summary = syncData.summary || merged.summary;
+    }
+    if (syncSelections.skills) {
+      merged.skills = Array.from(new Set([...merged.skills, ...syncData.skills]));
+    }
+    if (syncSelections.projects) {
+      const existingIds = new Set(merged.projects.map(p => p.id));
+      const newProjects = syncData.projects.filter(p => !existingIds.has(p.id));
+      merged.projects = [...merged.projects, ...newProjects];
+    }
+    if (syncSelections.hackathons) {
+      const existingIds = new Set(merged.hackathons.map(h => h.id));
+      const newHackathons = syncData.hackathons.filter(h => !existingIds.has(h.id));
+      merged.hackathons = [...merged.hackathons, ...newHackathons];
+    }
+    if (syncSelections.certifications) {
+      const existingIds = new Set(merged.certifications.map(c => c.id));
+      const newCerts = syncData.certifications.filter(c => !existingIds.has(c.id));
+      merged.certifications = [...merged.certifications, ...newCerts];
+    }
+    // Also merge education and experience preventing duplicates by ID
+    if (syncSelections.education) {
+      const existingIds = new Set(merged.education.map(e => e.id));
+      const newEdu = syncData.education.filter(e => !existingIds.has(e.id));
+      merged.education = [...merged.education, ...newEdu];
+    }
+    if (syncSelections.experience) {
+      const existingIds = new Set(merged.experience.map(e => e.id));
+      const newExp = syncData.experience.filter(e => !existingIds.has(e.id));
+      merged.experience = [...merged.experience, ...newExp];
+    }
+    
+    setResumeData(merged);
+    setSyncData(null);
+  };
 
   const handleSave = async () => {
     if (!user || !resumeData) return;
@@ -139,6 +214,14 @@ export default function ResumeBuilderPage() {
             </span>
           )}
           <button 
+            onClick={handleSyncProfile} 
+            disabled={syncing || !resumeData}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 font-bold rounded-xl transition-colors shadow-sm disabled:opacity-70"
+          >
+            {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4 text-primary-600" />}
+            <span className="hidden sm:inline">Sync Profile</span>
+          </button>
+          <button 
             onClick={handleSave} 
             disabled={saving || !resumeData}
             className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition-colors shadow-sm disabled:opacity-70"
@@ -148,6 +231,21 @@ export default function ResumeBuilderPage() {
           </button>
         </div>
       </div>
+
+      {isFirstTime && (
+        <div className="mb-6 bg-primary-50 border border-primary-200 text-primary-800 p-4 rounded-xl flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">✨</span>
+            <div>
+              <p className="text-sm font-bold">We've filled your resume using your HackVerse profile.</p>
+              <p className="text-xs text-primary-600 mt-0.5">You can now edit, reorder, or customize the sections before saving.</p>
+            </div>
+          </div>
+          <button onClick={() => setIsFirstTime(false)} className="text-primary-600 hover:bg-primary-100 p-2 rounded-lg transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {!resumeData ? (
         <div className="bg-white p-8 rounded-2xl text-center border border-slate-200">
@@ -199,6 +297,58 @@ export default function ResumeBuilderPage() {
             {/* Theme Preview */}
             <div className="transform origin-top lg:scale-[0.85] xl:scale-95 transition-transform flex-1">
               <ResumeThemeRenderer data={resumeData} theme={theme} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sync Profile Modal */}
+      {syncData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h3 className="font-bold text-lg text-slate-900 flex items-center gap-2">
+                <RefreshCw className="w-5 h-5 text-primary-600" /> Sync from Profile
+              </h3>
+              <button onClick={() => setSyncData(null)} className="text-slate-400 hover:bg-slate-200 p-1.5 rounded-lg transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-slate-600">Select the information you want to import from your HackVerse AI profile into your resume. Existing manual edits will not be overwritten for unselected items.</p>
+              
+              <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                {Object.keys(syncSelections).map((key) => (
+                  <label key={key} className="flex items-center gap-3 cursor-pointer group">
+                    <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors ${syncSelections[key] ? 'bg-primary-600 border-primary-600' : 'bg-white border-slate-300 group-hover:border-primary-400'}`}>
+                      {syncSelections[key] && <Check className="w-3 h-3 text-white" />}
+                    </div>
+                    <input 
+                      type="checkbox" 
+                      className="hidden"
+                      checked={syncSelections[key]}
+                      onChange={() => setSyncSelections(prev => ({ ...prev, [key]: !prev[key] }))}
+                    />
+                    <span className="text-sm font-medium text-slate-700 capitalize">Update {key}</span>
+                  </label>
+                ))}
+              </div>
+              
+              <div className="pt-2 flex justify-end gap-3">
+                <button 
+                  onClick={() => setSyncData(null)}
+                  className="px-4 py-2 font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={applySync}
+                  className="px-4 py-2 font-bold text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-colors shadow-sm"
+                >
+                  Apply Selected Updates
+                </button>
+              </div>
             </div>
           </div>
         </div>
