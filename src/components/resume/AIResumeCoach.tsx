@@ -6,12 +6,12 @@ import type { ATSScoreResult } from '../../utils/resume/atsScoreEngine';
 
 interface AICoachFeedback {
   section: string;
-  severity: 'high' | 'medium' | 'low';
+  severity: 'high' | 'medium' | 'low' | 'info';
   feedback: string;
 }
 
 interface AIPrioritySummary {
-  priority: 'high' | 'medium' | 'low';
+  priority: 'high' | 'medium' | 'low' | 'info';
   issue: string;
   recommendation: string;
 }
@@ -19,7 +19,7 @@ interface AIPrioritySummary {
 interface AICoachSuggestion {
   section: 'summary' | 'experience' | 'projects';
   itemId: string | null;
-  severity: 'high' | 'medium' | 'low';
+  severity: 'high' | 'medium' | 'low' | 'info';
   issue: string;
   recommendation: string;
   originalText: string;
@@ -130,6 +130,7 @@ export function AIResumeCoach({ data, atsResult, onChange }: Props) {
       case 'high': return <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />;
       case 'medium': return <Info className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />;
       case 'low': return <CheckCircle className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />;
+      case 'info': return <Info className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />;
       default: return null;
     }
   };
