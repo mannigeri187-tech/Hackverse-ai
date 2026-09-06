@@ -9,8 +9,12 @@ export function useResumePdfExporter(resumeData: ResumeData | null) {
 
   const generateFilename = (name?: string) => {
     if (!name || !name.trim()) return 'Resume';
-    const sanitized = name.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
-    return `${sanitized}_Resume`;
+    // Replace illegal Windows/Unix filename characters and collapse spaces/underscores
+    const sanitized = name
+      .replace(/[\\/:*?"<>|]/g, '')
+      .replace(/[\s_]+/g, '_')
+      .replace(/^_|_$/g, '');
+    return sanitized ? `${sanitized}_Resume` : 'Resume';
   };
 
   const handlePrint = useReactToPrint({
@@ -32,6 +36,7 @@ export function useResumePdfExporter(resumeData: ResumeData | null) {
   });
 
   const exportPdf = () => {
+    if (isExporting) return;
     if (!printRef.current) {
       setExportError("Resume preview is not ready.");
       return;

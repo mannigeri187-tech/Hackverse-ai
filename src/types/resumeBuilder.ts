@@ -81,3 +81,7 @@ export type ResumeData = {
 };
 
 export type ResumeThemeId = 'ats-pro' | 'modern' | 'tech';
+
+export function isValidResumeThemeId(val: unknown): val is ResumeThemeId {
+  return typeof val === 'string' && ['ats-pro', 'modern', 'tech'].includes(val);
+}

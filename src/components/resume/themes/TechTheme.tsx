@@ -7,7 +7,7 @@ export function TechTheme({ data }: { data: ResumeData }) {
   const visibleCertifications = data.certifications.filter(c => c.included);
 
   return (
-    <div className="bg-slate-900 text-slate-300 font-mono max-w-4xl mx-auto h-full shadow-lg border border-slate-700 overflow-hidden text-sm">
+    <div className="bg-slate-900 text-slate-300 font-mono max-w-4xl mx-auto min-h-full shadow-lg border border-slate-700 overflow-hidden print:overflow-visible print:border-none print:shadow-none print:min-h-0 text-sm">
       
       {/* Header */}
       <header className="bg-slate-950 p-6 border-b border-slate-700">

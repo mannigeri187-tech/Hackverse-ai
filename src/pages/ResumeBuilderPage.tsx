@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, FileText, Save, Loader2, LayoutTemplate, Download } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import type { ResumeData, ResumeThemeId } from '../types/resumeBuilder';
+import { isValidResumeThemeId, type ResumeData, type ResumeThemeId } from '../types/resumeBuilder';
 import { fetchUserResumeData } from '../utils/resume/resumeDataService';
 import { useResumePdfExporter } from '../utils/resume/useResumePdfExporter';
 import { ATSScoreCard } from '../components/resume/ATSScoreCard';
@@ -39,8 +39,8 @@ export default function ResumeBuilderPage() {
         if (savedResume && savedResume.content && Object.keys(savedResume.content).length > 0) {
           setResumeId(savedResume.id);
           setResumeData(savedResume.content as ResumeData);
-          if (savedResume.template_id && ['ats-pro', 'modern', 'tech'].includes(savedResume.template_id)) {
-            setTheme(savedResume.template_id as ResumeThemeId);
+          if (isValidResumeThemeId(savedResume.template_id)) {
+            setTheme(savedResume.template_id);
           } else {
             setTheme('ats-pro');
           }
