@@ -41,7 +41,18 @@ export default function ResumeBuilderPage() {
 
         if (savedResume && savedResume.content && Object.keys(savedResume.content).length > 0) {
           setResumeId(savedResume.id);
-          setResumeData(savedResume.content as ResumeData);
+          const content = savedResume.content as Partial<ResumeData>;
+          setResumeData({
+            ...content,
+            personal: content.personal || { name: 'Your Name' },
+            education: content.education || [],
+            experience: content.experience || [],
+            projects: content.projects || [],
+            skills: content.skills || [],
+            hackathons: content.hackathons || [],
+            achievements: content.achievements || [],
+            certifications: content.certifications || []
+          } as ResumeData);
           if (savedResume.template_id) {
             setTheme(savedResume.template_id as ResumeThemeId);
           }

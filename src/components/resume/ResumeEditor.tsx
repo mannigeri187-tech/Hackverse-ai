@@ -15,14 +15,14 @@ export function ResumeEditor({ data, onChange }: Props) {
   };
 
   const handleAddSkill = () => {
-    if (newSkill.trim() && !data.skills.includes(newSkill.trim())) {
+    if (newSkill.trim() && !(data.skills || []).includes(newSkill.trim())) {
       onChange({ ...data, skills: [...data.skills, newSkill.trim()] });
       setNewSkill('');
     }
   };
 
   const handleRemoveSkill = (skillToRemove: string) => {
-    onChange({ ...data, skills: data.skills.filter(s => s !== skillToRemove) });
+    onChange({ ...data, skills: (data.skills || []).filter(s => s !== skillToRemove) });
   };
 
   const addEducation = () => {
@@ -40,12 +40,12 @@ export function ResumeEditor({ data, onChange }: Props) {
   const updateEducation = (id: string, field: keyof ResumeEducation, value: string) => {
     onChange({
       ...data,
-      education: data.education.map(e => e.id === id ? { ...e, [field]: value } : e)
+      education: (data.education || []).map(e => e.id === id ? { ...e, [field]: value } : e)
     });
   };
 
   const removeEducation = (id: string) => {
-    onChange({ ...data, education: data.education.filter(e => e.id !== id) });
+    onChange({ ...data, education: (data.education || []).filter(e => e.id !== id) });
   };
 
   const addExperience = () => {
@@ -65,12 +65,12 @@ export function ResumeEditor({ data, onChange }: Props) {
   const updateExperience = (id: string, field: keyof ResumeExperience, value: any) => {
     onChange({
       ...data,
-      experience: data.experience.map(e => e.id === id ? { ...e, [field]: value } : e)
+      experience: (data.experience || []).map(e => e.id === id ? { ...e, [field]: value } : e)
     });
   };
 
   const removeExperience = (id: string) => {
-    onChange({ ...data, experience: data.experience.filter(e => e.id !== id) });
+    onChange({ ...data, experience: (data.experience || []).filter(e => e.id !== id) });
   };
 
   const addAchievement = () => {
@@ -87,12 +87,12 @@ export function ResumeEditor({ data, onChange }: Props) {
   const updateAchievement = (id: string, field: keyof ResumeAchievement, value: string) => {
     onChange({
       ...data,
-      achievements: data.achievements.map(a => a.id === id ? { ...a, [field]: value } : a)
+      achievements: (data.achievements || []).map(a => a.id === id ? { ...a, [field]: value } : a)
     });
   };
 
   const removeAchievement = (id: string) => {
-    onChange({ ...data, achievements: data.achievements.filter(a => a.id !== id) });
+    onChange({ ...data, achievements: (data.achievements || []).filter(a => a.id !== id) });
   };
 
   const toggleInclude = (list: 'projects' | 'hackathons' | 'certifications', id: string) => {
@@ -162,7 +162,7 @@ export function ResumeEditor({ data, onChange }: Props) {
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
         <h3 className="text-lg font-bold text-slate-900 mb-4">3. Skills</h3>
         <div className="flex flex-wrap gap-2 mb-4">
-          {data.skills.map((skill, i) => (
+          {(data.skills || []).map((skill, i) => (
             <div key={i} className="flex items-center gap-1 bg-primary-50 text-primary-700 px-3 py-1 rounded-full text-sm font-medium">
               {skill}
               <button onClick={() => handleRemoveSkill(skill)} className="text-primary-400 hover:text-primary-800 transition-colors ml-1">
@@ -193,7 +193,7 @@ export function ResumeEditor({ data, onChange }: Props) {
           <p className="text-sm text-slate-500 italic">No projects found. Add them to HackVerse first.</p>
         ) : (
           <div className="space-y-3">
-            {data.projects.map(proj => (
+            {(data.projects || []).map(proj => (
               <div key={proj.id} className="flex items-center justify-between p-3 border border-slate-100 rounded-xl bg-slate-50">
                 <div>
                   <div className="font-bold text-sm text-slate-900">{proj.name}</div>
@@ -215,7 +215,7 @@ export function ResumeEditor({ data, onChange }: Props) {
           <p className="text-sm text-slate-500 italic">No hackathons found.</p>
         ) : (
           <div className="space-y-3">
-            {data.hackathons.map(hack => (
+            {(data.hackathons || []).map(hack => (
               <div key={hack.id} className="flex items-center justify-between p-3 border border-slate-100 rounded-xl bg-slate-50">
                 <div>
                   <div className="font-bold text-sm text-slate-900">{hack.name}</div>
@@ -239,7 +239,7 @@ export function ResumeEditor({ data, onChange }: Props) {
           </button>
         </div>
         <div className="space-y-4">
-          {data.education.map(edu => (
+          {(data.education || []).map(edu => (
             <div key={edu.id} className="p-4 border border-slate-200 rounded-xl relative">
               <button onClick={() => removeEducation(edu.id)} className="absolute top-4 right-4 text-slate-400 hover:text-red-500 transition-colors">
                 <Trash2 className="w-4 h-4" />
@@ -287,7 +287,7 @@ export function ResumeEditor({ data, onChange }: Props) {
           </button>
         </div>
         <div className="space-y-4">
-          {data.experience.map(exp => (
+          {(data.experience || []).map(exp => (
             <div key={exp.id} className="p-4 border border-slate-200 rounded-xl relative">
               <button onClick={() => removeExperience(exp.id)} className="absolute top-4 right-4 text-slate-400 hover:text-red-500 transition-colors">
                 <Trash2 className="w-4 h-4" />
@@ -337,7 +337,7 @@ export function ResumeEditor({ data, onChange }: Props) {
           </button>
         </div>
         <div className="space-y-4">
-          {data.achievements.map(ach => (
+          {(data.achievements || []).map(ach => (
             <div key={ach.id} className="p-4 border border-slate-200 rounded-xl relative">
               <button onClick={() => removeAchievement(ach.id)} className="absolute top-4 right-4 text-slate-400 hover:text-red-500 transition-colors">
                 <Trash2 className="w-4 h-4" />
@@ -369,7 +369,7 @@ export function ResumeEditor({ data, onChange }: Props) {
           <p className="text-sm text-slate-500 italic">No certificates found in vault.</p>
         ) : (
           <div className="space-y-3">
-            {data.certifications.map(cert => (
+            {(data.certifications || []).map(cert => (
               <div key={cert.id} className="flex items-center justify-between p-3 border border-slate-100 rounded-xl bg-slate-50">
                 <div>
                   <div className="font-bold text-sm text-slate-900">{cert.title}</div>
