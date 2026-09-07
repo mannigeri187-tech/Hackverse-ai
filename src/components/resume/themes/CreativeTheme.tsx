@@ -12,8 +12,13 @@ export function CreativeTheme({ data }: { data: ResumeData }) {
       <div className="w-1/3 bg-stone-900 text-stone-300 p-6 flex flex-col gap-8 min-w-0">
         
         <header className="w-full mb-6">
-          <h1 className="text-3xl font-black text-white mb-2 leading-tight tracking-tighter break-all w-full min-w-0">
-            {data.personal?.name ? data.personal?.name.split(' ').map((n, i) => <div key={i} className="break-all w-full min-w-0">{n}</div>) : 'Your Name'}
+          <h1 
+            className="font-black text-white mb-2 leading-tight tracking-tighter whitespace-nowrap overflow-visible"
+            style={{ 
+              fontSize: `${Math.max(0.75, 2.25 * Math.min(1, 11 / Math.max(1, (data.personal?.name || 'Your Name').length)))}rem` 
+            }}
+          >
+            {data.personal?.name || 'Your Name'}
           </h1>
           {data.personal?.title && <div className="text-amber-500 font-medium tracking-wide uppercase text-xs mt-4 break-words">{data.personal?.title}</div>}
         </header>
