@@ -11,7 +11,13 @@ export function CreativeTheme({ data }: { data: ResumeData }) {
       {/* Left Column */}
       <div className="w-1/3 bg-stone-900 text-stone-300 p-6 flex flex-col gap-8 min-w-0">
         
-        <header className="w-full mb-6">
+        <header className="w-full mb-6 flex flex-col gap-5">
+          {data.personal?.profileImage && (
+            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-sm shrink-0">
+              <img src={data.personal.profileImage} alt="Profile" className="w-full h-full object-cover" />
+            </div>
+          )}
+          <div>
           <h1 
             className="font-black text-white mb-2 leading-tight tracking-tighter whitespace-nowrap overflow-visible"
             style={{ 
@@ -21,6 +27,7 @@ export function CreativeTheme({ data }: { data: ResumeData }) {
             {data.personal?.name || 'Your Name'}
           </h1>
           {data.personal?.title && <div className="text-amber-500 font-medium tracking-wide uppercase text-xs mt-4 break-words">{data.personal?.title}</div>}
+          </div>
         </header>
 
         <section className="space-y-3 text-xs">
