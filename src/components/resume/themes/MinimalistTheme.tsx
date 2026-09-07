@@ -8,7 +8,12 @@ export function MinimalistTheme({ data }: { data: ResumeData }) {
     <div className="bg-white text-slate-800 font-sans max-w-4xl mx-auto h-full shadow-lg overflow-hidden text-sm p-12">
       
       {/* Header */}
-      <header className="mb-10 text-center">
+      <header className="mb-10 text-center flex flex-col items-center">
+        {data.personal?.profileImage && (
+          <div className="w-24 h-24 rounded-full overflow-hidden mb-6 shrink-0">
+            <img src={data.personal.profileImage} alt="Profile" className="w-full h-full object-cover grayscale" />
+          </div>
+        )}
         <h1 className="text-4xl font-light text-slate-900 tracking-tight mb-2">
           {data.personal?.name || 'Your Name'}
         </h1>

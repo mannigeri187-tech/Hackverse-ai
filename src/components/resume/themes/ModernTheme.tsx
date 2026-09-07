@@ -12,6 +12,13 @@ export function ModernTheme({ data }: { data: ResumeData }) {
       {/* Left Column (Sidebar) */}
       <div className="w-full md:w-1/3 bg-slate-50 p-6 md:p-8 border-r border-slate-200 flex flex-col gap-8 min-w-0">
         
+        {/* Profile Photo */}
+        {data.personal?.profileImage && (
+          <div className="w-32 h-32 mx-auto md:mx-0 rounded-full overflow-hidden border-4 border-white shadow-sm shrink-0">
+            <img src={data.personal.profileImage} alt="Profile" className="w-full h-full object-cover" />
+          </div>
+        )}
+
         {/* Personal Details */}
         <div className="text-sm space-y-3 break-words">
           {data.personal?.email && (

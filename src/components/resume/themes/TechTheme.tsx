@@ -10,16 +10,23 @@ export function TechTheme({ data }: { data: ResumeData }) {
     <div className="bg-slate-900 text-slate-300 font-mono max-w-4xl mx-auto h-full shadow-lg border border-slate-700 overflow-hidden text-sm">
       
       {/* Header */}
-      <header className="bg-slate-950 p-6 border-b border-slate-700">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
-          <div>
-            <h1 className="text-3xl font-bold text-green-400 mb-1 flex items-center gap-2">
-              <Terminal className="w-6 h-6" /> {data.personal?.name || 'guest@hackverse'}
-            </h1>
-            {data.personal?.title && <div className="text-slate-400 text-lg">~/{data.personal?.title.toLowerCase().replace(/ /g, '-')}</div>}
-          </div>
-          
-          <div className="text-xs space-y-1 text-slate-400 text-right">
+        <header className="border-b border-slate-700 p-6 bg-slate-900/50">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
+            <div className="flex items-center gap-6">
+              {data.personal?.profileImage && (
+                <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.3)] shrink-0">
+                  <img src={data.personal.profileImage} alt="Profile" className="w-full h-full object-cover" />
+                </div>
+              )}
+              <div>
+                <h1 className="text-3xl font-bold text-green-400 mb-1 flex items-center gap-2">
+                  <Terminal className="w-6 h-6" /> {data.personal?.name || 'guest@hackverse'}
+                </h1>
+                {data.personal?.title && <div className="text-slate-400 text-lg">~/{data.personal?.title.toLowerCase().replace(/ /g, '-')}</div>}
+              </div>
+            </div>
+            
+            <div className="text-xs space-y-1 text-slate-400 text-right">
             {data.personal?.email && <div>{data.personal?.email}</div>}
             {data.personal?.github && <div className="text-green-400">{data.personal?.github}</div>}
             {data.personal?.portfolio && <div className="text-blue-400">{data.personal?.portfolio}</div>}

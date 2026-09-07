@@ -28,15 +28,11 @@ export function ResumeEditor({ data, onChange }: Props) {
       return;
     }
 
-    // Safe instant preview using object URL
-    const objectUrl = URL.createObjectURL(file);
-    updatePersonal('profileImage', objectUrl);
-
-    // Read as Base64 for local architecture persistence
     const reader = new FileReader();
     reader.onloadend = () => {
-      updatePersonal('profileImage', reader.result as string);
-      URL.revokeObjectURL(objectUrl); // Clean up the object URL when appropriate
+      if (reader.result) {
+        updatePersonal('profileImage', reader.result as string);
+      }
     };
     reader.readAsDataURL(file);
   };

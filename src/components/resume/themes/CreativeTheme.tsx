@@ -10,7 +10,7 @@ export function CreativeTheme({ data }: { data: ResumeData }) {
       {/* Top Header */}
       <header className="w-full bg-stone-900 text-white p-8 md:px-10 flex flex-col sm:flex-row items-center sm:items-start gap-6 border-b border-stone-800">
         {data.personal?.profileImage && (
-          <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-white shadow-md shrink-0">
+          <div className="w-28 h-28 min-w-[7rem] min-h-[7rem] rounded-full overflow-hidden border-4 border-white shadow-md shrink-0">
             <img src={data.personal.profileImage} alt="Profile" className="w-full h-full object-cover" />
           </div>
         )}
