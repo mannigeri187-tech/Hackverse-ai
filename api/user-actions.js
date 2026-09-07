@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', process.env.FRONTEND_URL || 'https://hackverse-ai.vercel.app');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST,DELETE');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
@@ -31,7 +31,8 @@ export default async function handler(req, res) {
       });
 
       let profile = null;
-      const { data: pData } = await adminClient.from('profiles').select('*').eq('user_id', id).single();
+      const { data: pData } = await adminClient.from('profiles').select('user_id, name, bio, college, profile_image, discoverable').eq('user_id', id).single();
+      if (pData && pData.discoverable === false) return res.status(403).json({ error: 'Profile is private.' });
       if (pData) profile = pData;
 
       const { data: userData } = await adminClient.auth.admin.getUserById(id);

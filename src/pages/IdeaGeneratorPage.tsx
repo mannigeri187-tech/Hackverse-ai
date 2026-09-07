@@ -527,8 +527,8 @@ export default function IdeaGeneratorPage() {
 
                     {/* Problem & Solution Preview */}
                     <div className="space-y-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                      <p><strong className="text-slate-900 font-semibold">Problem:</strong> <span dangerouslySetInnerHTML={{ __html: idea.problem_statement }}></span></p>
-                      <p><strong className="text-slate-900 font-semibold">Solution:</strong> <span dangerouslySetInnerHTML={{ __html: idea.proposed_solution }}></span></p>
+                      <div className="flex gap-1"><strong className="text-slate-900 font-semibold">Problem:</strong> <SafeHtml html={idea.problem_statement} className="inline" /></div>
+                      <div className="flex gap-1"><strong className="text-slate-900 font-semibold">Solution:</strong> <SafeHtml html={idea.proposed_solution} className="inline" /></div>
                     </div>
 
                     {/* Tech Stack Pills */}
