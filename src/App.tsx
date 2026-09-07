@@ -36,6 +36,7 @@ const CertificateVaultPage = lazy(() => import('./pages/CertificateVaultPage'));
 const HackathonPortfolioPage = lazy(() => import('./pages/HackathonPortfolioPage'));
 const MentorPage = lazy(() => import('./pages/MentorPage'));
 const SkillGapPage = lazy(() => import('./pages/SkillGapPage'));
+const AdminSettingsPage = lazy(() => import('./pages/AdminSettingsPage'));
 
 function PageLoader() {
   return (
@@ -82,6 +83,7 @@ function App() {
                 <Route path="team-finder" element={<TeamFinderPage />} />
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="profile/:id" element={<PublicProfilePage />} />
+                <Route path="admin" element={<AdminSettingsPage />} />
                 <Route path="resume-builder" element={<ResumeBuilderPage />} />
               </Route>
             </Route>
