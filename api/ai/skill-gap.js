@@ -1,3 +1,4 @@
+import { checkFeatureAccess } from '../_shared/usage.js';
 import { authenticateServerRequest, sanitizeEnvString } from '../_shared/supabase.js';
 import { applyRateLimit } from '../_shared/rateLimiter.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -26,6 +27,11 @@ export default async function handler(req, res) {
   try {
     // 1. Authenticate user from Bearer token
     const { user, error: authError } = await authenticateServerRequest(req);
+
+    const usageCheck = await checkFeatureAccess({ userId: user?.id, feature: 'ai_generation' });
+    if (!usageCheck.allowed) {
+      return res.status(usageCheck.status).json(usageCheck);
+    }
     if (authError || !user) {
       return res.status(401).json({ error: authError || 'Unauthorized user session.' });
     }
@@ -139,3 +145,4 @@ Return ONLY raw valid JSON. Do NOT wrap with markdown fences or extra commentary
     return res.status(500).json({ error: 'AI recommendations are temporarily unavailable. Please try again.' });
   }
 }
+

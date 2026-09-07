@@ -129,41 +129,36 @@ export function useCertificates() {
     setError(null);
 
     try {
-      const { data, error: insertError } = await supabase
-        .from('certificates')
-        .insert([
-          {
-            user_id: user.id,
-            hackathon_id: payload.hackathon_id,
-            title: payload.title,
-            issuer: payload.issuer || null,
-            certificate_url: payload.certificate_url || null,
-            certificate_date: payload.certificate_date || new Date().toISOString(),
-            description: payload.description || null,
-          }
-        ])
-        .select(`
-          id,
-          user_id,
-          hackathon_id,
-          title,
-          issuer,
-          certificate_url,
-          certificate_date,
-          description,
-          created_at,
-          updated_at,
-          hackathon:hackathons (
-            id,
-            title,
-            organizer,
-            start_date,
-            end_date,
-            mode,
-            image_url
-          )
-        `)
-        .single();
+      const insertPayload = {
+        hackathon_id: payload.hackathon_id,
+        title: payload.title,
+        issuer: payload.issuer || null,
+        certificate_url: payload.certificate_url || null,
+        certificate_date: payload.certificate_date || new Date().toISOString(),
+        description: payload.description || null,
+      };
+
+      const session = await supabase.auth.getSession();
+      const res = await fetch('/api/resources/create', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.data.session?.access_token}`
+        },
+        body: JSON.stringify({
+          table: 'certificates',
+          payload: insertPayload,
+          selectQuery: 'id, user_id, hackathon_id, title, issuer, certificate_url, certificate_date, description, created_at, updated_at, hackathon:hackathons(id, title, organizer, start_date, end_date, mode, image_url)'
+        })
+      });
+      
+      let insertError: any = null;
+      let data = null;
+      if (!res.ok) {
+        insertError = await res.json();
+      } else {
+        data = await res.json();
+      }
 
       if (insertError) throw insertError;
 

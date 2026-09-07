@@ -185,23 +185,27 @@ export function useWorkspaces(workspaceId?: string) {
         progress_percentage: 0,
       };
 
-      const { data, error: insertError } = await supabase
-        .from('workspaces')
-        .insert(insertData)
-        .select(`
-          *,
-          hackathon:hackathons (
-            id,
-            title,
-            description,
-            start_date,
-            end_date,
-            location,
-            mode,
-            image_url
-          )
-        `)
-        .single();
+      const session = await supabase.auth.getSession();
+      const res = await fetch('/api/resources/create', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.data.session?.access_token}`
+        },
+        body: JSON.stringify({
+          table: 'workspaces',
+          payload: insertData,
+          selectQuery: '*, hackathon:hackathons(id, title, description, start_date, end_date, location, mode, image_url)'
+        })
+      });
+      
+      let insertError: any = null;
+      let data = null;
+      if (!res.ok) {
+        insertError = await res.json();
+      } else {
+        data = await res.json();
+      }
 
       if (insertError) {
         // Handle unique constraint (duplicate workspace for user + hackathon) gracefully

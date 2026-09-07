@@ -1,3 +1,4 @@
+import { checkFeatureAccess } from '../_shared/usage.js';
 import { authenticateServerRequest, getSupabaseServerClient, sanitizeEnvString } from '../_shared/supabase.js';
 import { applyRateLimit } from '../_shared/rateLimiter.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -16,6 +17,11 @@ export default async function handler(req, res) {
 
   try {
     const { user, error: authError } = await authenticateServerRequest(req);
+
+    const usageCheck = await checkFeatureAccess({ userId: user?.id, feature: 'ai_generation' });
+    if (!usageCheck.allowed) {
+      return res.status(usageCheck.status).json(usageCheck);
+    }
     if (authError || !user) {
       return res.status(401).json({ error: authError || 'Unauthorized session or invalid auth token' });
     }
@@ -207,3 +213,4 @@ Return ONLY valid JSON. Do not include markdown formatting or extra text.`;
     return res.status(500).json({ error: error?.message || 'Internal server error' });
   }
 }
+

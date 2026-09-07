@@ -162,6 +162,18 @@ export default function ProfilePage() {
       const fileExt = file.name.split('.').pop();
       const filePath = `${user.id}/${Math.random()}.${fileExt}`;
 
+      // Check usage quota before uploading
+      const session = await supabase.auth.getSession();
+      const checkRes = await fetch('/api/resources/pre-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.data.session?.access_token}` },
+        body: JSON.stringify({ feature: 'certificate_upload' })
+      });
+      if (!checkRes.ok) {
+        const err = await checkRes.json();
+        throw new Error(`Upload limit reached: ${err.error}`);
+      }
+
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, { upsert: true });

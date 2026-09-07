@@ -1,3 +1,4 @@
+import { checkFeatureAccess } from '../_shared/usage.js';
 import { authenticateServerRequest, sanitizeEnvString } from '../_shared/supabase.js';
 import { applyRateLimit } from '../_shared/rateLimiter.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -49,6 +50,11 @@ export default async function handler(req, res) {
     // 1. Fast Auth Verification
     const tAuthStart = performance.now();
     const { user, error: authError } = await authenticateServerRequest(req);
+
+    const usageCheck = await checkFeatureAccess({ userId: user?.id, feature: 'ai_generation' });
+    if (!usageCheck.allowed) {
+      return res.status(usageCheck.status).json(usageCheck);
+    }
     const authDuration = performance.now() - tAuthStart;
 
     if (authError || !user) {
@@ -220,6 +226,7 @@ ${contextParts || 'General Hackathon Guidance'}`;
     });
   }
 }
+
 
 
 

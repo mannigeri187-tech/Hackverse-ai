@@ -166,17 +166,29 @@ export default function ResumeBuilderPage() {
           .eq('id', resumeId);
         if (error) throw error;
       } else {
-        const { data, error } = await supabase
-          .from('resumes')
-          .insert({
-            user_id: user.id,
-            title: 'My Professional Resume',
-            template_id: theme,
-            content: resumeData
+        const session = await supabase.auth.getSession();
+        const res = await fetch('/api/resources/create', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.data.session?.access_token}`
+          },
+          body: JSON.stringify({
+            table: 'resumes',
+            payload: {
+              title: 'My Professional Resume',
+              template_id: theme,
+              content: resumeData
+            },
+            selectQuery: '*'
           })
-          .select()
-          .single();
-        if (error) throw error;
+        });
+        
+        if (!res.ok) {
+          const errData = await res.json();
+          throw errData;
+        }
+        const data = await res.json();
         if (data) setResumeId(data.id);
       }
       setMessage({ type: 'success', text: 'Resume saved successfully!' });
