@@ -278,7 +278,7 @@ export default function ProfilePage() {
                   <img src={isEditing ? editForm.avatar_url : profile.avatar_url} alt={profile.name} className="w-full h-full object-cover" />
                 ) : getInitials(profile.name)}
               </div>
-              <input type="file" id="avatar-upload" className="hidden" accept="image/*" onChange={handleAvatarUpload} />
+              <input type="file" id="avatar-upload" className="hidden" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" onChange={handleAvatarUpload} />
 
               {/* Profile Details */}
               <div className="flex-1 w-full space-y-4 pt-2">

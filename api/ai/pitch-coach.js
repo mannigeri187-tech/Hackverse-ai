@@ -30,13 +30,37 @@ export default async function handler(req, res) {
   try {
     // 1. Authenticate user from Bearer token
     const { user, error: authError } = await authenticateServerRequest(req);
-
-    const usageCheck = await checkFeatureAccess({ userId: user?.id, feature: 'ai_generation' });
-    if (!usageCheck.allowed) {
-      return res.status(usageCheck.status).json(usageCheck);
-    }
     if (authError || !user) {
       return res.status(401).json({ error: authError || 'Unauthorized user session.' });
+    }
+
+    // 2. Strict Payload Size Validation BEFORE Quota Check
+    const bodyStr = JSON.stringify(req.body || {});
+    if (bodyStr.length > 25000) {
+      return res.status(400).json({ error: 'Payload exceeds 25,000 characters limit. Please shorten your input.' });
+    }
+
+    const { userMessage, chatHistory, prompt } = req.body || {};
+    if (userMessage && typeof userMessage === 'string' && userMessage.length > 2000) {
+      return res.status(400).json({ error: 'Message exceeds 2000 character limit.' });
+    }
+    if (prompt && typeof prompt === 'string' && prompt.length > 5000) {
+      return res.status(400).json({ error: 'Prompt exceeds 5000 character limit.' });
+    }
+    if (Array.isArray(chatHistory)) {
+      if (chatHistory.length > 50) return res.status(400).json({ error: 'Chat history too long.' });
+      for (const msg of chatHistory) {
+        if (msg && msg.text && msg.text.length > 2000) {
+          return res.status(400).json({ error: 'A chat history message exceeds 2000 characters.' });
+        }
+      }
+    }
+
+    // 3. Quota Enforcement
+    const usageCheck = await checkFeatureAccess({ userId: user.id, feature: 'ai_generation' });
+    if (!usageCheck.allowed) {
+      return res.status(usageCheck.status).json(usageCheck);
+    });
     }
 
     // 2. Apply AI Tier Rate Limiting (by user.id)
