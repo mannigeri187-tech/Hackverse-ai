@@ -6,30 +6,32 @@ export function CreativeTheme({ data }: { data: ResumeData }) {
   const visibleCertifications = (data.certifications || []).filter(c => c.included);
 
   return (
-    <div className="bg-stone-50 text-stone-800 font-sans max-w-4xl mx-auto h-full shadow-lg overflow-hidden text-sm flex">
-      
-      {/* Left Column */}
-      <div className="w-1/3 bg-stone-900 text-stone-300 p-6 flex flex-col gap-8 min-w-0">
-        
-        <header className="w-full mb-6 flex flex-col gap-5">
-          {data.personal?.profileImage && (
-            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-sm shrink-0">
-              <img src={data.personal.profileImage} alt="Profile" className="w-full h-full object-cover" />
-            </div>
-          )}
-          <div>
-          <h1 
-            className="font-black text-white mb-2 leading-tight tracking-tighter whitespace-nowrap overflow-visible"
-            style={{ 
-              fontSize: `${Math.max(0.5, 2.25 * Math.min(1, 11 / Math.max(1, (data.personal?.name || 'Your Name').length)))}rem` 
-            }}
-          >
+    <div className="bg-stone-50 text-stone-800 font-sans max-w-4xl mx-auto h-full shadow-lg overflow-hidden text-sm flex flex-col">
+      {/* Top Header */}
+      <header className="w-full bg-stone-900 text-white p-8 md:px-10 flex flex-col sm:flex-row items-center sm:items-start gap-6 border-b border-stone-800">
+        {data.personal?.profileImage && (
+          <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-white shadow-md shrink-0">
+            <img src={data.personal.profileImage} alt="Profile" className="w-full h-full object-cover" />
+          </div>
+        )}
+        <div className="flex-1 min-w-0 w-full text-center sm:text-left mt-2 sm:mt-0">
+          <h1 className="font-black text-white mb-2 leading-tight tracking-tighter whitespace-nowrap overflow-visible"
+              style={{ 
+                fontSize: `${Math.max(0.5, 3 * Math.min(1, 20 / Math.max(1, (data.personal?.name || 'Your Name').length)))}rem` 
+              }}>
             {data.personal?.name || 'Your Name'}
           </h1>
-          {data.personal?.title && <div className="text-amber-500 font-medium tracking-wide uppercase text-xs mt-4 break-words">{data.personal?.title}</div>}
-          </div>
-        </header>
+          {data.personal?.title && <div className="text-amber-500 font-medium tracking-wide uppercase text-sm break-words">{data.personal?.title}</div>}
+        </div>
+      </header>
 
+      {/* Columns Wrapper */}
+      <div className="flex flex-1 min-h-0 flex-col sm:flex-row">
+
+      
+      {/* Left Column */}
+      <div className="w-full sm:w-1/3 bg-stone-900 text-stone-300 p-8 flex flex-col gap-8 min-w-0">
+        
         <section className="space-y-3 text-xs">
           {data.personal?.email && <div className="flex items-center gap-3"><Mail className="w-4 h-4 text-stone-500" /> <span className="break-all">{data.personal?.email}</span></div>}
           {data.personal?.phone && <div className="flex items-center gap-3"><Phone className="w-4 h-4 text-stone-500" /> <span>{data.personal?.phone}</span></div>}
@@ -86,7 +88,7 @@ export function CreativeTheme({ data }: { data: ResumeData }) {
       </div>
 
       {/* Right Column */}
-      <div className="w-2/3 p-10 bg-white">
+      <div className="w-full sm:w-2/3 p-10 bg-white min-w-0">
         
         {data.summary && (
           <section className="mb-10">
@@ -165,6 +167,7 @@ export function CreativeTheme({ data }: { data: ResumeData }) {
           </section>
         )}
 
+      </div>
       </div>
     </div>
   );
