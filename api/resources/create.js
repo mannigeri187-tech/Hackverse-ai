@@ -24,12 +24,14 @@ export default async function handler(req, res) {
       user_skills: 'max_skills'
     };
     
+    if (!Object.keys(featureMap).includes(table)) {
+      return res.status(403).json({ error: 'Forbidden. Table insertion not allowed via this endpoint.' });
+    }
+
     const feature = featureMap[table];
-    if (feature) {
-      const usageCheck = await checkFeatureAccess({ userId: user.id, feature });
-      if (!usageCheck.allowed) {
-        return res.status(usageCheck.status).json(usageCheck);
-      }
+    const usageCheck = await checkFeatureAccess({ userId: user.id, feature });
+    if (!usageCheck.allowed) {
+      return res.status(usageCheck.status).json(usageCheck);
     }
 
     // Also trigger resume_generation quota if generating a new resume
