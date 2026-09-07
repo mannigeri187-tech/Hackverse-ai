@@ -11,19 +11,38 @@ export function ResumeEditor({ data, onChange }: Props) {
   const [newSkill, setNewSkill] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [photoError, setPhotoError] = useState<string>('');
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPhotoError('');
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        updatePersonal('profileImage', reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    if (!file.type.match(/image\/(jpeg|jpg|png|webp)/)) {
+      setPhotoError('Please select a valid image (JPG, PNG, WEBP).');
+      return;
     }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setPhotoError('File size is too large. Maximum size is 2MB.');
+      return;
+    }
+
+    // Safe instant preview using object URL
+    const objectUrl = URL.createObjectURL(file);
+    updatePersonal('profileImage', objectUrl);
+
+    // Read as Base64 for local architecture persistence
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      updatePersonal('profileImage', reader.result as string);
+      URL.revokeObjectURL(objectUrl); // Clean up the object URL when appropriate
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleRemovePhoto = () => {
+    setPhotoError('');
     updatePersonal('profileImage', '');
   };
 
@@ -146,6 +165,9 @@ export function ResumeEditor({ data, onChange }: Props) {
             )}
             <input type="file" ref={fileInputRef} onChange={handlePhotoUpload} accept="image/*" className="hidden" />
           </div>
+          {photoError && (
+            <p className="mt-2 text-xs text-red-600 font-medium">{photoError}</p>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
