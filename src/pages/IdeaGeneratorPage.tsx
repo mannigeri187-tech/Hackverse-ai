@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { SafeHtml } from '../components/SafeHtml';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
   Lightbulb, 

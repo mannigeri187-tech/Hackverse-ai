@@ -189,7 +189,7 @@ export async function runHackathonIngestion() {
 }
 
 
-  const { fetchUnstopHackathons, fetchDevfolioHackathons, fetchHackerEarthHackathons } = await import('./hackathonFetchers.js');
+export async function tempFixImageUrls() {
   const [unstop, devfolio, hackerearth] = await Promise.all([
     fetchUnstopHackathons(),
     fetchDevfolioHackathons(),

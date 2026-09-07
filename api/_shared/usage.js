@@ -15,7 +15,7 @@ const redis = (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_R
 const ratelimiters = new Map();
 
 function getRatelimiter(limit, windowStr) {
-  const key = \\_\\;
+  const key = limit + '_' + windowStr;
   if (!ratelimiters.has(key)) {
     if (!redis) {
       console.warn('UPSTASH_REDIS_REST_URL is missing. Using permissive fallback.');
@@ -132,7 +132,7 @@ export async function checkFeatureAccess({ userId, feature, action = 'consume', 
       .eq('user_id', userId);
 
     if (error) {
-      console.error(\Error counting \:\, error);
+      console.error('Error counting:', error);
       return { allowed: false, error: 'INTERNAL_ERROR', status: 500 };
     }
 
@@ -144,7 +144,7 @@ export async function checkFeatureAccess({ userId, feature, action = 'consume', 
 
   const { limit, window } = limitConfig;
   const limiter = getRatelimiter(limit, window);
-  const identifierKey = \usage:\:\\;
+  const identifierKey = 'usage:' + feature + ':' + userId;
 
   try {
     const { success, pending, limit: maxLimit, remaining, reset } = await limiter.limit(identifierKey);
@@ -159,3 +159,5 @@ export async function checkFeatureAccess({ userId, feature, action = 'consume', 
     return { allowed: true };
   }
 }
+
+

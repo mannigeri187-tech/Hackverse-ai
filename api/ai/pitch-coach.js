@@ -40,16 +40,16 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Payload exceeds 25,000 characters limit. Please shorten your input.' });
     }
 
-    const { userMessage, chatHistory, prompt } = req.body || {};
-    if (userMessage && typeof userMessage === 'string' && userMessage.length > 2000) {
+    const __aiBody = req.body || {}; const __aiMsg = __aiBody.userMessage; const __aiHist = __aiBody.chatHistory; const __aiPrompt = __aiBody.prompt;
+    if (__aiMsg && typeof __aiMsg === 'string' && __aiMsg.length > 2000) {
       return res.status(400).json({ error: 'Message exceeds 2000 character limit.' });
     }
-    if (prompt && typeof prompt === 'string' && prompt.length > 5000) {
+    if (__aiPrompt && typeof __aiPrompt === 'string' && __aiPrompt.length > 5000) {
       return res.status(400).json({ error: 'Prompt exceeds 5000 character limit.' });
     }
-    if (Array.isArray(chatHistory)) {
-      if (chatHistory.length > 50) return res.status(400).json({ error: 'Chat history too long.' });
-      for (const msg of chatHistory) {
+    if (Array.isArray(__aiHist)) {
+      if (__aiHist.length > 50) return res.status(400).json({ error: 'Chat history too long.' });
+      for (const msg of __aiHist) {
         if (msg && msg.text && msg.text.length > 2000) {
           return res.status(400).json({ error: 'A chat history message exceeds 2000 characters.' });
         }
@@ -60,7 +60,6 @@ export default async function handler(req, res) {
     const usageCheck = await checkFeatureAccess({ userId: user.id, feature: 'ai_generation' });
     if (!usageCheck.allowed) {
       return res.status(usageCheck.status).json(usageCheck);
-    });
     }
 
     // 2. Apply AI Tier Rate Limiting (by user.id)

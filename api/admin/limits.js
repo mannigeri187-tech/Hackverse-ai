@@ -48,7 +48,7 @@ export default async function handler(req, res) {
         
         const validateInt = (val) => Number.isInteger(val) && val >= 0 && val <= 1000000;
         if (!validateInt(free_limit) || !validateInt(pro_limit) || !validateInt(premium_limit)) {
-          return res.status(400).json({ error: \Invalid limits for feature: \\ });
+          return res.status(400).json({ error: 'Invalid limits for feature: ' + feature });
         }
 
         const { error } = await supabase
