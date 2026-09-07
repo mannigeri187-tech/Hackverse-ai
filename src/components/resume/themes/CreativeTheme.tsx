@@ -15,7 +15,7 @@ export function CreativeTheme({ data }: { data: ResumeData }) {
           <h1 
             className="font-black text-white mb-2 leading-tight tracking-tighter whitespace-nowrap overflow-visible"
             style={{ 
-              fontSize: `${Math.max(0.75, 2.25 * Math.min(1, 11 / Math.max(1, (data.personal?.name || 'Your Name').length)))}rem` 
+              fontSize: `${Math.max(0.5, 2.25 * Math.min(1, 11 / Math.max(1, (data.personal?.name || 'Your Name').length)))}rem` 
             }}
           >
             {data.personal?.name || 'Your Name'}
