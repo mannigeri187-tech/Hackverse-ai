@@ -81,9 +81,13 @@ export default function AppLayout() {
     { to: '/github-analyzer', label: 'GitHub', icon: GitBranch },
   ];
 
+  // Public top navigation links
+  const publicNavLinks = [
+    { to: '/pricing', label: 'Pricing', icon: Sparkles },
+  ];
+
   // Secondary tools dropdown items
   const secondaryNavLinks = [
-    { to: '/pricing', label: 'Pricing', icon: Sparkles },
     { to: '/skill-gap', label: 'Skill Gap Analyzer', icon: Award },
     { to: '/team-finder', label: 'Team Finder', icon: Users },
     { to: '/certificates', label: 'Certificate Vault', icon: Award },
@@ -113,6 +117,25 @@ export default function AppLayout() {
             
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center space-x-1 xl:space-x-2">
+              {publicNavLinks.map(link => {
+                const Icon = link.icon;
+                const isActive = location.pathname === link.to;
+                return (
+                  <Link 
+                    key={link.to} 
+                    to={link.to} 
+                    className={`px-2.5 py-1.5 rounded-lg font-semibold text-xs xl:text-sm transition-all flex items-center gap-1.5 ${
+                      isActive 
+                        ? 'bg-primary-50 text-primary-600 font-bold' 
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span>{link.label}</span>
+                  </Link>
+                );
+              })}
+
               {user && (
                 <>
                   {primaryNavLinks.map(link => {
@@ -234,6 +257,26 @@ export default function AppLayout() {
         {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
           <div className="lg:hidden border-t border-slate-200 bg-white px-4 pt-2 pb-6 space-y-2 shadow-lg max-h-[85vh] overflow-y-auto">
+            {publicNavLinks.map(link => {
+              const Icon = link.icon;
+              const isActive = location.pathname === link.to;
+              return (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
+                    isActive
+                      ? 'bg-primary-50 text-primary-600 font-bold'
+                      : 'text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  <span>{link.label}</span>
+                </Link>
+              );
+            })}
+            
             {user ? (
               <>
                 {allNavLinks.map(link => {
