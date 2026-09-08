@@ -169,7 +169,7 @@ export default function PricingPage() {
             <div className="p-8 sm:p-10 flex-grow">
               <h3 className="text-2xl font-bold text-slate-900 mb-2">Free</h3>
               <div className="flex items-baseline gap-2 mb-6">
-                <span className="text-4xl font-extrabold text-slate-900">?0</span>
+                <span className="text-4xl font-extrabold text-slate-900">₹0</span>
                 <span className="text-slate-500 font-medium">/ month</span>
               </div>
               <p className="text-slate-600 mb-8 leading-relaxed">
@@ -217,44 +217,44 @@ export default function PricingPage() {
             </div>
           </div>
 
-          <div className="bg-primary-950 rounded-3xl shadow-xl border border-primary-800 overflow-hidden flex flex-col relative transform md:-translate-y-4">
+          <div className="bg-white rounded-3xl shadow-xl border-2 border-primary-500 overflow-hidden flex flex-col relative transform md:-translate-y-4">
             <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-amber-400 via-primary-500 to-amber-400"></div>
             
             <div className="p-8 sm:p-10 flex-grow">
               <div className="flex justify-between items-center mb-2">
-                <h3 className="text-2xl font-bold text-white">Pro</h3>
-                <span className="px-3 py-1 bg-primary-900 border border-primary-700 text-primary-300 text-xs font-bold rounded-full uppercase tracking-wider flex items-center gap-1">
+                <h3 className="text-2xl font-bold text-slate-900">Pro</h3>
+                <span className="px-3 py-1 bg-primary-50 border border-primary-200 text-primary-700 text-xs font-bold rounded-full uppercase tracking-wider flex items-center gap-1">
                   <Sparkles className="w-3.5 h-3.5" />
                   Recommended
                 </span>
               </div>
               <div className="flex items-baseline gap-2 mb-6">
-                <span className="text-4xl font-extrabold text-white">?499</span>
-                <span className="text-primary-300 font-medium">/ month</span>
+                <span className="text-4xl font-extrabold text-slate-900">₹499</span>
+                <span className="text-slate-500 font-medium">/ month</span>
               </div>
-              <p className="text-primary-200 mb-8 leading-relaxed">
+              <p className="text-slate-600 mb-8 leading-relaxed">
                 Unlock more power for your hackathon journey with advanced AI tools and extended limits.
               </p>
               
-              <ul className="space-y-4 text-sm text-primary-100 mb-8">
+              <ul className="space-y-4 text-sm text-slate-700 mb-8">
                 <li className="flex gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-primary-400 flex-shrink-0" />
-                  <span className="font-semibold text-white">{proLimits.ai_generation.limit} AI Generations per day</span>
+                  <CheckCircle2 className="w-5 h-5 text-primary-500 flex-shrink-0" />
+                  <span className="font-semibold text-slate-900">{proLimits.ai_generation.limit} AI Generations per day</span>
                 </li>
                 <li className="flex gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-primary-400 flex-shrink-0" />
+                  <CheckCircle2 className="w-5 h-5 text-primary-500 flex-shrink-0" />
                   <span>{proLimits.max_projects.limit} Workspaces / Projects</span>
                 </li>
                 <li className="flex gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-primary-400 flex-shrink-0" />
+                  <CheckCircle2 className="w-5 h-5 text-primary-500 flex-shrink-0" />
                   <span>{proLimits.max_resumes.limit} AI-Generated Resumes</span>
                 </li>
                 <li className="flex gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-primary-400 flex-shrink-0" />
+                  <CheckCircle2 className="w-5 h-5 text-primary-500 flex-shrink-0" />
                   <span>{proLimits.max_certificates.limit} Verified Certificates</span>
                 </li>
                 <li className="flex gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-primary-400 flex-shrink-0" />
+                  <CheckCircle2 className="w-5 h-5 text-primary-500 flex-shrink-0" />
                   <span>Priority API Rate Limits ({proLimits.api_request.limit}/min)</span>
                 </li>
               </ul>
@@ -262,11 +262,11 @@ export default function PricingPage() {
             
             <div className="p-8 sm:p-10 pt-0 mt-auto">
               {loading || authLoading ? (
-                <div className="h-12 bg-primary-900 rounded-xl animate-pulse"></div>
+                <div className="h-12 bg-slate-100 rounded-xl animate-pulse"></div>
               ) : isPro ? (
                 <button 
                   disabled
-                  className="w-full py-3.5 px-4 rounded-xl font-bold text-white bg-primary-800 border border-primary-700 cursor-default flex justify-center items-center gap-2"
+                  className="w-full py-3.5 px-4 rounded-xl font-bold text-slate-700 bg-slate-100 border border-slate-200 cursor-default flex justify-center items-center gap-2"
                 >
                   <CheckCircle2 className="w-5 h-5" />
                   You're on Pro
