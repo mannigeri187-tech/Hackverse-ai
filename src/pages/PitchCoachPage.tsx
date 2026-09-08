@@ -131,7 +131,7 @@ export default function PitchCoachPage() {
 
       if (!token) throw new Error('Session expired. Please log in again.');
 
-      const res = await fetch('/api/ai/pitch-coach', {
+      const res = await fetch('/api/ai?action=pitch-coach', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -189,7 +189,7 @@ export default function PitchCoachPage() {
 
       if (!token) throw new Error('Session expired. Please log in again.');
 
-      const res = await fetch('/api/ai/pitch-coach', {
+      const res = await fetch('/api/ai?action=pitch-coach', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -231,7 +231,7 @@ export default function PitchCoachPage() {
 
       if (!token) throw new Error('Session expired. Please log in again.');
 
-      const res = await fetch('/api/ai/pitch-coach', {
+      const res = await fetch('/api/ai?action=pitch-coach', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

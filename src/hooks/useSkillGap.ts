@@ -157,7 +157,7 @@ export function useSkillGap() {
         throw new Error('Authentication token not available');
       }
 
-      const res = await fetch('/api/ai/skill-gap', {
+      const res = await fetch('/api/ai?action=skill-gap', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

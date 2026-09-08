@@ -1,6 +1,6 @@
-import { checkFeatureAccess } from '../_shared/usage.js';
-import { authenticateServerRequest, sanitizeEnvString } from '../_shared/supabase.js';
-import { applyRateLimit } from '../_shared/rateLimiter.js';
+import { checkFeatureAccess } from '../usage.js';
+import { authenticateServerRequest, sanitizeEnvString } from '../supabase.js';
+import { applyRateLimit } from '../rateLimiter.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Groq } from 'groq-sdk';
 

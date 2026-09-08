@@ -28,7 +28,7 @@ export default function ResumeForm({ content, onChange }: ResumeFormProps) {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const res = await fetch('/api/ai/improve', {
+      const res = await fetch('/api/ai?action=improve', {
         method: 'POST',
         headers,
         body: JSON.stringify({ section, text })

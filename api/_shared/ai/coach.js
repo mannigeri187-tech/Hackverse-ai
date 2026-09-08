@@ -1,6 +1,6 @@
-import { checkFeatureAccess } from '../_shared/usage.js';
-import { authenticateServerRequest, getSupabaseServerClient, sanitizeEnvString } from '../_shared/supabase.js';
-import { applyRateLimit } from '../_shared/rateLimiter.js';
+import { checkFeatureAccess } from '../usage.js';
+import { authenticateServerRequest, getSupabaseServerClient, sanitizeEnvString } from '../supabase.js';
+import { applyRateLimit } from '../rateLimiter.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export default async function handler(req, res) {

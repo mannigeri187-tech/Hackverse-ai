@@ -96,7 +96,7 @@ export default function GitHubAnalyzerPage() {
         throw new Error('Authentication session expired. Please sign in again.');
       }
 
-      const res = await fetch('/api/ai/github-analyzer', {
+      const res = await fetch('/api/ai?action=github-analyzer', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -136,7 +136,7 @@ export function DailyCoach() {
         return;
       }
 
-      const response = await fetch(`/api/ai/coach?date=${todayStr}`, {
+      const response = await fetch(`/api/ai?action=coach&date=${todayStr}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -148,7 +148,7 @@ export function DailyCoach() {
         const errorJson = await response.json().catch(() => ({ error: 'Request failed' }));
         console.error('Daily tasks generation failed:', {
           status: response.status,
-          endpoint: '/api/ai/coach',
+          endpoint: '/api/ai?action=coach',
           message: errorJson.error || response.statusText
         });
         throw new Error(errorJson.error || 'Failed to generate daily tasks');

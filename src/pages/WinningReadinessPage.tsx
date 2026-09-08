@@ -168,7 +168,7 @@ export default function WinningReadinessPage() {
 
       if (!token) throw new Error('Session expired. Please sign in again.');
 
-      const res = await fetch('/api/ai/winning-readiness', {
+      const res = await fetch('/api/ai?action=winning-readiness', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

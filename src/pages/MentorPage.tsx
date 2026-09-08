@@ -412,7 +412,7 @@ export default function MentorPage() {
         ? userSkillsData.slice(0, 6).map(s => s.skill?.name || s.name || 'Skill')
         : [];
 
-      const res = await fetch('/api/ai/mentor', {
+      const res = await fetch('/api/ai?action=mentor', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

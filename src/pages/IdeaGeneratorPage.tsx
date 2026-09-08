@@ -183,7 +183,7 @@ export default function IdeaGeneratorPage() {
 
       const generationNonce = `${Date.now()}-${Math.random()}`;
 
-      const requestUrl = '/api/ai/idea-generator';
+      const requestUrl = '/api/ai?action=idea-generator';
       const requestPayload = {
         hackathon: selectedHackathon ? {
           title: selectedHackathon.title,

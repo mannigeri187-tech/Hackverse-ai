@@ -1,6 +1,6 @@
-import { checkFeatureAccess } from '../_shared/usage.js';
-import { authenticateServerRequest, sanitizeEnvString } from '../_shared/supabase.js';
-import { applyRateLimit } from '../_shared/rateLimiter.js';
+import { checkFeatureAccess } from '../usage.js';
+import { authenticateServerRequest, sanitizeEnvString } from '../supabase.js';
+import { applyRateLimit } from '../rateLimiter.js';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 
 // Strict OpenAPI-compliant structured response schema
