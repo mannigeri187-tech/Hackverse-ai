@@ -17,6 +17,7 @@ const VerifyResetCodePage = lazy(() => import('./pages/VerifyResetCodePage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 
 // Lazy-loaded core protected dashboard & hackathon pages
+const PricingPage = lazy(() => import('./pages/PricingPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const HackathonsPage = lazy(() => import('./pages/HackathonsPage'));
 const HackathonDetailsPage = lazy(() => import('./pages/HackathonDetailsPage'));
@@ -58,6 +59,8 @@ function App() {
             {/* Public Layout */}
             <Route path="/" element={<AppLayout />}>
               <Route index element={<LandingPage />} />
+              <Route path="pricing" element={<PricingPage />} />
+              <Route path="success" element={<PricingPage />} />
               <Route path="login" element={<LoginPage />} />
               <Route path="signup" element={<SignupPage />} />
               <Route path="verify-email" element={<VerifyEmailPage />} />

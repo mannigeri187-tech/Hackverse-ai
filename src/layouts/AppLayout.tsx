@@ -83,6 +83,7 @@ export default function AppLayout() {
 
   // Secondary tools dropdown items
   const secondaryNavLinks = [
+    { to: '/pricing', label: 'Pricing', icon: Sparkles },
     { to: '/skill-gap', label: 'Skill Gap Analyzer', icon: Award },
     { to: '/team-finder', label: 'Team Finder', icon: Users },
     { to: '/certificates', label: 'Certificate Vault', icon: Award },
