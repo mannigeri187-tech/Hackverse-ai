@@ -1,3 +1,4 @@
+import ProUpgradePrompt from '../components/ProUpgradePrompt';
 import { useState, useEffect, useRef } from 'react';
 import { SafeHtml } from '../components/SafeHtml';
 import { useNavigate, Link } from 'react-router-dom';
@@ -436,13 +437,18 @@ export default function IdeaGeneratorPage() {
         )}
       </div>
 
-      {/* Global Error Banner */}
-      {(generateError || actionError) && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-xs sm:text-sm text-red-700 flex items-center gap-3 font-medium animate-in fade-in">
-          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-          <span>{generateError || actionError}</span>
-        </div>
-      )}
+      {/* Limit Errors vs Regular Errors */}
+        {(generateError === 'FEATURE_LIMIT_REACHED' || actionError === 'RESOURCE_LIMIT_REACHED') ? (
+          <ProUpgradePrompt 
+            title="You've reached your limit" 
+            message="You've used your included free capacity. Upgrade to HackVerse Pro for higher limits and priority access." 
+          />
+        ) : (generateError || actionError) && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-xs sm:text-sm text-red-700 flex items-center gap-3 font-medium animate-in fade-in">
+            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+            <span>{generateError === 'FEATURE_LIMIT_REACHED' ? 'AI limit reached' : (generateError || actionError)}</span>
+          </div>
+        )}
 
       {/* 3. LOADING STATE */}
       {isGenerating && (

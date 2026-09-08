@@ -1,3 +1,4 @@
+import ProUpgradePrompt from '../components/ProUpgradePrompt';
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
@@ -38,7 +39,7 @@ export default function HackathonDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { workspaces, createWorkspace } = useWorkspaces();
+  const { workspaces, createWorkspace, error: workspaceError } = useWorkspaces();
 
   const [hackathon, setHackathon] = useState<HackathonDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -140,11 +141,11 @@ export default function HackathonDetailsPage() {
       if (workspace) {
         navigate(`/workspace/${workspace.id}`);
       } else {
-        alert('Could not initialize workspace. Please try again.');
+        // Handle error contextually in UI
       }
     } catch (err) {
       console.error('Participate error:', err);
-      alert('Error creating workspace.');
+      // Handled by UI
     } finally {
       setIsParticipating(false);
     }
@@ -219,26 +220,34 @@ export default function HackathonDetailsPage() {
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           {user && (
             <>
-              {/* I'm Participating / Open Workspace Button */}
-              <button
-                onClick={handleParticipate}
-                disabled={isParticipating}
-                className="flex-1 md:flex-none px-5 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl font-bold transition-all shadow-sm flex items-center justify-center gap-2 text-sm"
-              >
-                {isParticipating ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" /> Preparing Workspace...
-                  </>
-                ) : existingWorkspaceId ? (
-                  <>
-                    <Rocket className="w-4 h-4" /> Open Workspace
-                  </>
-                ) : (
-                  <>
-                    <Rocket className="w-4 h-4" /> I'm Participating
-                  </>
-                )}
-              </button>
+              {workspaceError === 'RESOURCE_LIMIT_REACHED' ? (
+                <div className="w-full md:w-auto mb-2 md:mb-0">
+                  <ProUpgradePrompt 
+                    title="Workspace Limit Reached" 
+                    message="Upgrade to HackVerse Pro to create more workspaces and participate in more hackathons." 
+                  />
+                </div>
+              ) : (
+                <button
+                  onClick={handleParticipate}
+                  disabled={isParticipating}
+                  className="flex-1 md:flex-none px-5 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl font-bold transition-all shadow-sm flex items-center justify-center gap-2 text-sm"
+                >
+                  {isParticipating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Preparing Workspace...
+                    </>
+                  ) : existingWorkspaceId ? (
+                    <>
+                      <Rocket className="w-4 h-4" /> Open Workspace
+                    </>
+                  ) : (
+                    <>
+                      <Rocket className="w-4 h-4" /> I'm Participating
+                    </>
+                  )}
+                </button>
+              )}
 
               <button 
                 onClick={toggleSave}

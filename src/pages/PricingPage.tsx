@@ -233,7 +233,7 @@ export default function PricingPage() {
                 <span className="text-slate-500 font-medium">/ month</span>
               </div>
               <p className="text-slate-600 mb-8 leading-relaxed">
-                Unlock more power for your hackathon journey with advanced AI tools and extended limits.
+                Get more AI generations, more workspaces, more resumes, more certificates, and priority access to help you build and win.
               </p>
               
               <ul className="space-y-4 text-sm text-slate-700 mb-8">

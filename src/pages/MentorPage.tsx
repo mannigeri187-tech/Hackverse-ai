@@ -1,3 +1,4 @@
+import ProUpgradePrompt from '../components/ProUpgradePrompt';
 import ReactMarkdown from 'react-markdown';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
@@ -446,7 +447,9 @@ export default function MentorPage() {
       clearTimeout(timeoutId);
 
       if (!res.ok) {
-        throw new Error('AI Mentor is temporarily unavailable. Please try again.');
+        // we need to read json error
+        let errJson: any = {}; try { errJson = await res.json(); } catch(e){}
+        throw new Error(errJson.error === 'FEATURE_LIMIT_REACHED' ? 'FEATURE_LIMIT_REACHED' : 'AI Mentor is temporarily unavailable. Please try again.');
       }
 
       let completeReply = '';
@@ -545,7 +548,7 @@ export default function MentorPage() {
     } catch (err: any) {
       clearTimeout(timeoutId);
       console.error('Error contacting AI Mentor:', err);
-      const displayError = 'AI Mentor is temporarily unavailable. Please try again.';
+      const displayError = err.message === 'FEATURE_LIMIT_REACHED' ? 'FEATURE_LIMIT_REACHED' : (err.message || 'AI Mentor is temporarily unavailable. Please try again.');
       setChatError(displayError);
       setMessages((prev) => {
         const cleaned = prev.filter((m) => m.text && m.text.trim().length > 0);
@@ -765,7 +768,14 @@ export default function MentorPage() {
 
           {/* Chat Input Bar */}
           <div className="p-4 bg-slate-50 border-t border-slate-200">
-            {chatError && (
+            {chatError === 'FEATURE_LIMIT_REACHED' ? (
+              <div className="mb-2">
+                <ProUpgradePrompt 
+                  title="You've reached your AI Mentor limit" 
+                  message="Upgrade to HackVerse Pro to continue chatting with your AI Mentor and get higher limits across the platform." 
+                />
+              </div>
+            ) : chatError && (
               <div className="mb-2 p-2.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
                 <span>{chatError}</span>

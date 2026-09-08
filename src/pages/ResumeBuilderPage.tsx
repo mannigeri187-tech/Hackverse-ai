@@ -219,7 +219,7 @@ export default function ResumeBuilderPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          {message && (
+          {message && message.text !== 'RESOURCE_LIMIT_REACHED' && (
             <span className={`text-sm font-medium ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
               {message.text}
             </span>

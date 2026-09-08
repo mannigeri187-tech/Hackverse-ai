@@ -1,3 +1,4 @@
+import ProUpgradePrompt from '../components/ProUpgradePrompt';
 import { useState } from 'react';
 import { Sparkles, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -11,6 +12,7 @@ interface ResumeFormProps {
 export default function ResumeForm({ content, onChange }: ResumeFormProps) {
   const [activeSection, setActiveSection] = useState<string>('personal');
   const [isImproving, setIsImproving] = useState<string | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const updateField = (field: keyof ResumeContent, value: any) => {
     onChange({ ...content, [field]: value });
@@ -18,6 +20,7 @@ export default function ResumeForm({ content, onChange }: ResumeFormProps) {
 
   const handleAIImprove = async (section: string, text: string, onUpdate: (improved: string) => void) => {
     if (!text.trim()) return;
+    setAiError(null);
     setIsImproving(section);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -47,7 +50,7 @@ export default function ResumeForm({ content, onChange }: ResumeFormProps) {
       }
     } catch (err: any) {
       console.error('AI Improvement error:', err);
-      alert(err.message || 'An error occurred during AI improvement.');
+      setAiError(err.message || 'An error occurred during AI improvement.');
     } finally {
       setIsImproving(null);
     }
@@ -78,6 +81,20 @@ export default function ResumeForm({ content, onChange }: ResumeFormProps) {
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden h-full flex flex-col">
+      {aiError && (
+        <div className="p-4 border-b border-slate-200">
+          {aiError === 'FEATURE_LIMIT_REACHED' ? (
+            <ProUpgradePrompt 
+              title="You've reached your AI generation limit" 
+              message="Upgrade to HackVerse Pro to unlock more AI resume improvements and get higher limits across the platform." 
+            />
+          ) : (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 flex items-center gap-3">
+              <span>{aiError}</span>
+            </div>
+          )}
+        </div>
+      )}
       <div className="p-4 bg-slate-800 text-white font-semibold">
         Editor
       </div>
