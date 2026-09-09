@@ -125,7 +125,7 @@ export default function PricingPage() {
       }
     } catch (err: any) {
       console.error('Checkout error:', err);
-      setError(err.message || 'Unable to start checkout process. Please try again.');
+      setError('We couldn\'t start your Pro checkout. Please try again.');
       setCheckoutLoading(false);
     }
   };
@@ -280,7 +280,7 @@ export default function PricingPage() {
                   {checkoutLoading ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      Redirecting...
+                      Starting checkout...
                     </>
                   ) : (
                     <>

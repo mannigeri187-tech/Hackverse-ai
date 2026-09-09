@@ -62,7 +62,7 @@ export default async function handler(req, res) {
       const customerParams = { metadata: { user_id: userId } };
       if (userEmail) customerParams.email = userEmail;
       
-      const idempotencyKey = "customer_create_$userId";
+      const idempotencyKey = `customer_create_${userId}`;
       const newCustomer = await stripe.customers.create(customerParams, { idempotencyKey });
       stripeCustomerId = newCustomer.id;
 
