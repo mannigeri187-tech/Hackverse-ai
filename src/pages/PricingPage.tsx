@@ -90,7 +90,7 @@ export default function PricingPage() {
     };
   }, [user, authLoading, isSyncing]);
 
-  const handleUpgrade = async () => {
+    const handleUpgrade = async () => {
     if (!user) {
       navigate('/login?redirectTo=/pricing');
       return;
@@ -100,32 +100,12 @@ export default function PricingPage() {
     setError(null);
 
     try {
-      const { data: sessionData, error: _sessionError } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-      
-      if (!token) throw new Error('Authentication required');
-
-      const res = await fetch('/api/payments/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to initialize checkout');
-      }
-
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error('Invalid response from server');
-      }
+      // Safely simulate checkout wait to avoid jumpy UI, then show the temporary warning.
+      await new Promise(r => setTimeout(r, 800));
+      throw new Error('Payment processing is currently being upgraded. Please check back later.');
     } catch (err: any) {
       console.error('Checkout error:', err);
-      setError('We couldn\'t start your Pro checkout. Please try again.');
+      setError(err.message || 'Payment processing is currently being upgraded. Please check back later.');
       setCheckoutLoading(false);
     }
   };
@@ -297,7 +277,7 @@ export default function PricingPage() {
         <div className="mt-16 border-t border-slate-200 pt-8 max-w-2xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-12 text-sm text-slate-500">
           <div className="flex items-center gap-2.5">
             <Shield className="w-5 h-5 text-slate-400" />
-            <span>Secure checkout powered by <strong>Stripe</strong></span>
+            <span>Secure checkout processing</span>
           </div>
           <div className="flex items-center gap-2.5">
             <CheckCircle2 className="w-5 h-5 text-slate-400" />
