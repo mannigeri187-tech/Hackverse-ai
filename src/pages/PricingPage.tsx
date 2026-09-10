@@ -90,7 +90,7 @@ export default function PricingPage() {
     };
   }, [user, authLoading, isSyncing]);
 
-    const handleUpgrade = async () => {
+  const handleUpgrade = async () => {
     if (!user) {
       navigate('/login?redirectTo=/pricing');
       return;
@@ -100,12 +100,104 @@ export default function PricingPage() {
     setError(null);
 
     try {
-      // Safely simulate checkout wait to avoid jumpy UI, then show the temporary warning.
-      await new Promise(r => setTimeout(r, 800));
-      throw new Error('Payment processing is currently being upgraded. Please check back later.');
+      // 1. Get Supabase session token for server authentication
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) throw new Error('Authentication required. Please log in again.');
+
+      // 2. Create a Razorpay order on the backend
+      const orderRes = await fetch('/api/payments/create-order', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      const orderData = await orderRes.json();
+
+      if (!orderRes.ok) {
+        throw new Error(orderData.error || 'Failed to create payment order.');
+      }
+
+      const { order_id, amount, currency } = orderData;
+
+      // 3. Dynamically load Razorpay checkout.js (avoids adding a global script tag)
+      await new Promise<void>((resolve, reject) => {
+        if ((window as any).Razorpay) { resolve(); return; }
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error('Failed to load payment gateway.'));
+        document.body.appendChild(script);
+      });
+
+      // 4. Open Razorpay payment modal
+      await new Promise<void>((resolve, reject) => {
+        const options = {
+          key:         import.meta.env.VITE_RAZORPAY_KEY_ID,
+          amount,
+          currency,
+          name:        'HackVerse AI',
+          description: 'HackVerse Pro — Monthly Subscription',
+          order_id,
+          prefill: {
+            email: user.email || ''
+          },
+          theme: { color: '#0ea5e9' },
+          modal: {
+            ondismiss: () => reject(new Error('Payment was cancelled.'))
+          },
+          handler: async (response: {
+            razorpay_payment_id: string;
+            razorpay_order_id:   string;
+            razorpay_signature:  string;
+          }) => {
+            try {
+              // 5. Verify payment signature on the backend
+              const verifyRes = await fetch('/api/payments/verify-payment', {
+                method:  'POST',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type':  'application/json'
+                },
+                body: JSON.stringify({
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_order_id:   response.razorpay_order_id,
+                  razorpay_signature:  response.razorpay_signature
+                })
+              });
+
+              const verifyData = await verifyRes.json();
+
+              if (!verifyRes.ok) {
+                reject(new Error(verifyData.error || 'Payment verification failed.'));
+                return;
+              }
+
+              // 6. Payment verified — begin subscription sync polling
+              setSuccessMessage("Your payment was received. We're confirming your subscription...");
+              setIsSyncing(true);
+              resolve();
+            } catch (verifyErr: any) {
+              reject(verifyErr);
+            }
+          }
+        };
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.on('payment.failed', (response: any) => {
+          reject(new Error(
+            response?.error?.description || 'Payment failed. Please try again.'
+          ));
+        });
+        rzp.open();
+      });
+
     } catch (err: any) {
-      console.error('Checkout error:', err);
-      setError(err.message || 'Payment processing is currently being upgraded. Please check back later.');
+      const msg = err?.message || 'Something went wrong. Please try again.';
+      // Don't show "cancelled" as an error — it's user-initiated
+      if (msg !== 'Payment was cancelled.') {
+        setError(msg);
+      }
+    } finally {
       setCheckoutLoading(false);
     }
   };
