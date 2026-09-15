@@ -8,23 +8,14 @@ import {
   generate6DigitOTP,
   hashOtp,
   generateAccessToken,
-  rateLimiter,
+  authRateLimiter,
+  publicRateLimiter,
+  apiRateLimiter,
+  aiRateLimiter,
   authenticateToken,
   TokenPayload,
 } from './security';
-import { sendVerificationEmail } from './emailService';
-
-const app = express();
-const PORT = process.env.PORT || 4000;
-
-app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
-
-// 1. POST /api/auth/signup - Enterprise Production Registration & Verification Flow
-app.post('/api/auth/signup', rateLimiter(5, 15 * 60 * 1000), async (req: Request, res: Response) => {
-  try {
-    const { email, password, fullName, phone, role } = req.body;
-
+import paymentsRouter from './routes/payments';
     if (!email || !password || !fullName) {
       return res.status(400).json({
         success: false,
@@ -126,7 +117,7 @@ app.post('/api/auth/signup', rateLimiter(5, 15 * 60 * 1000), async (req: Request
 });
 
 // 2. POST /api/auth/verify-email - Secure Server OTP Verification Handler
-app.post('/api/auth/verify-email', rateLimiter(10, 15 * 60 * 1000), async (req: Request, res: Response) => {
+app.post('/api/auth/verify-email', authRateLimiter, async (req: Request, res: Response) => {
   try {
     const { email, code } = req.body;
 
@@ -231,7 +222,7 @@ app.post('/api/auth/verify-email', rateLimiter(10, 15 * 60 * 1000), async (req: 
 });
 
 // 3. POST /api/auth/resend-verification - Resend OTP with Cooldown & Attempt Reset
-app.post('/api/auth/resend-verification', rateLimiter(5, 15 * 60 * 1000), async (req: Request, res: Response) => {
+app.post('/api/auth/resend-verification', authRateLimiter, async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
     if (!email) {
@@ -307,7 +298,7 @@ app.post('/api/auth/resend-verification', rateLimiter(5, 15 * 60 * 1000), async 
 });
 
 // 4. POST /api/auth/login - Production Login Endpoint
-app.post('/api/auth/login', rateLimiter(5, 15 * 60 * 1000), async (req: Request, res: Response) => {
+app.post('/api/auth/login', authRateLimiter, async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
@@ -369,7 +360,7 @@ app.post('/api/auth/login', rateLimiter(5, 15 * 60 * 1000), async (req: Request,
 });
 
 // 5. POST /api/auth/google - Google OAuth Verification Endpoint
-app.post('/api/auth/google', rateLimiter(10, 15 * 60 * 1000), async (req: Request, res: Response) => {
+app.post('/api/auth/google', authRateLimiter, async (req: Request, res: Response) => {
   try {
     const { email, name, avatar, role } = req.body;
 
@@ -451,6 +442,7 @@ app.get('/api/auth/me', authenticateToken, (req: Request & { user?: TokenPayload
     },
   });
 });
+app.use('/api/payments', paymentsRouter);
 
 app.listen(PORT, () => {
   console.log(`\n======================================================`);
