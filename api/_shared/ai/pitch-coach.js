@@ -100,7 +100,7 @@ PROJECT CONTEXT:
 
     // 3. Fast Flash Models prioritized for high speed and generous token headroom
     const genAI = new GoogleGenerativeAI(apiKey);
-    const activeModels = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-flash-latest'];
+    const activeModels = ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-1.5-flash', 'gemini-flash-latest'];
 
     // Helper to call Gemini with adequate tokens and timeout
     const callGemini = async (prompt, maxTokens = 4096) => {

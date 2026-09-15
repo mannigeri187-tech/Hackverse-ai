@@ -250,7 +250,7 @@ JSON SCHEMA:
 
     // 5. Generate with active Gemini models
     const genAI = new GoogleGenerativeAI(apiKey);
-    const activeModels = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-flash-latest'];
+    const activeModels = ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-1.5-flash', 'gemini-flash-latest'];
     let rawText = '';
     let lastError = null;
 

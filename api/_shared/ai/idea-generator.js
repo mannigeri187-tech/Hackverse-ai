@@ -46,7 +46,7 @@ function getIdeaModel(apiKey) {
     cachedGenAI = new GoogleGenerativeAI(apiKey);
     cachedApiKey = apiKey;
     cachedIdeaModel = cachedGenAI.getGenerativeModel({ 
-      model: 'gemini-3.5-flash-lite',
+      model: 'gemini-1.5-flash',
       generationConfig: {
         responseMimeType: "application/json",
         responseSchema: IDEA_RESPONSE_SCHEMA,
@@ -177,7 +177,7 @@ Requirements:
     // 5. Generate with Gemini using fastest flash-lite model & singleton client
     const tGeminiStart = performance.now();
     const model = getIdeaModel(apiKey);
-    const modelName = 'gemini-3.5-flash-lite';
+    const modelName = 'gemini-1.5-flash';
     let text = '';
 
     const result = await model.generateContent(prompt);
