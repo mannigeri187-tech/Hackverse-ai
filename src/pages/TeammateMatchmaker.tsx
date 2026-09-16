@@ -133,7 +133,7 @@ const callGemini = async (prompt: string): Promise<string> => {
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: { temperature: 0.7, maxOutputTokens: 1500 }
       })
-    }
+    });
   const data = await res.json();
   if (data.error) {
     console.warn("Gemini API Error (falling back to mock data):", data.error);

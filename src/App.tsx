@@ -1,144 +1,100 @@
-import { Routes, Route } from 'react-router-dom'
-import { lazy, Suspense } from 'react'
-import { AnimatePresence } from 'framer-motion'
+import { Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import AppLayout from './layouts/AppLayout';
+import { AuthProvider } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import { Loader2 } from 'lucide-react';
 
-// Public & Auth Pages
-const Landing = lazy(() => import('./pages/Landing'))
-const Login = lazy(() => import('./pages/Login'))
-const Signup = lazy(() => import('./pages/Signup'))
-const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
-const VerifyEmail = lazy(() => import('./pages/VerifyEmail'))
+// Eagerly loaded primary public pages
+import LandingPage from './pages/LandingPage';
+import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
 
-// Dedicated Role Access Logins
-const OrganizerLogin = lazy(() => import('./pages/OrganizerLogin'))
-const AdminLogin = lazy(() => import('./pages/AdminLogin'))
+// Lazy-loaded authentication & password recovery
+const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
+const VerifyResetCodePage = lazy(() => import('./pages/VerifyResetCodePage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 
-// Dedicated Layouts & Route Protection
-const DashboardLayout = lazy(() => import('./components/layout/DashboardLayout'))
-const OrganizerLayout = lazy(() => import('./components/layout/OrganizerLayout'))
-const AdminLayout = lazy(() => import('./components/layout/AdminLayout'))
+// Lazy-loaded core protected dashboard & hackathon pages
+const PricingPage = lazy(() => import('./pages/PricingPage'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const HackathonsPage = lazy(() => import('./pages/HackathonsPage'));
+const HackathonDetailsPage = lazy(() => import('./pages/HackathonDetailsPage'));
+const WorkspacePage = lazy(() => import('./pages/WorkspacePage'));
+const SavedHackathonsPage = lazy(() => import('./pages/SavedHackathonsPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const PublicProfilePage = lazy(() => import('./pages/PublicProfilePage'));
+const ResumeBuilderPage = lazy(() => import('./pages/ResumeBuilderPage'));
+const TeamFinderPage = lazy(() => import('./pages/TeamFinderPage'));
 
-// Feature Pages
-const Dashboard = lazy(() => import('./pages/Dashboard'))
-const HackathonDiscovery = lazy(() => import('./pages/HackathonDiscovery'))
-const HackathonDetail = lazy(() => import('./pages/HackathonDetail'))
-const AIMentor = lazy(() => import('./pages/AIMentor'))
-const LearningCenter = lazy(() => import('./pages/LearningCenter'))
-const CourseDetail = lazy(() => import('./pages/CourseDetail'))
-const MockHackathon = lazy(() => import('./pages/MockHackathon'))
-const SkillGapAnalysis = lazy(() => import('./pages/SkillGapAnalysis'))
-const ResumeBuilder = lazy(() => import('./pages/ResumeBuilder'))
-const ResumeReview = lazy(() => import('./pages/ResumeReview'))
-const ProjectGenerator = lazy(() => import('./pages/ProjectGenerator'))
-const ProgressAnalytics = lazy(() => import('./pages/ProgressAnalytics'))
-const Community = lazy(() => import('./pages/Community'))
-const TeamFinder = lazy(() => import('./pages/TeamFinder'))
-const Leaderboard = lazy(() => import('./pages/Leaderboard'))
-const InterviewPrep = lazy(() => import('./pages/InterviewPrep'))
-const Notifications = lazy(() => import('./pages/Notifications'))
-const Profile = lazy(() => import('./pages/Profile'))
-const OrganizerDashboard = lazy(() => import('./pages/OrganizerDashboard'))
-const AdminPanel = lazy(() => import('./pages/AdminPanel'))
-const TeammateMatchmaker = lazy(() => import('./pages/TeammateMatchmaker'))
-const LiveOps = lazy(() => import('./pages/LiveOps'))
-const JudgingHub = lazy(() => import('./pages/JudgingHub'))
-const SponsorHub = lazy(() => import('./pages/SponsorHub'))
+// Lazy-loaded AI-heavy feature pages (Chunk split to reduce initial bundle from 814kB to <200kB)
+const IdeaGeneratorPage = lazy(() => import('./pages/IdeaGeneratorPage'));
+const PitchCoachPage = lazy(() => import('./pages/PitchCoachPage'));
+const GitHubAnalyzerPage = lazy(() => import('./pages/GitHubAnalyzerPage'));
+const WinningReadinessPage = lazy(() => import('./pages/WinningReadinessPage'));
+const CertificateVaultPage = lazy(() => import('./pages/CertificateVaultPage'));
+const HackathonPortfolioPage = lazy(() => import('./pages/HackathonPortfolioPage'));
+const MentorPage = lazy(() => import('./pages/MentorPage'));
+const SkillGapPage = lazy(() => import('./pages/SkillGapPage'));
+const AdminSettingsPage = lazy(() => import('./pages/AdminSettingsPage'));
 
-// AI Tools Pages
-const PlagiarismScanner = lazy(() => import('./pages/tools/PlagiarismScanner'))
-const SponsorIntel = lazy(() => import('./pages/tools/SponsorIntel'))
-const TrendPredictor = lazy(() => import('./pages/tools/TrendPredictor'))
-
-function LoadingScreen() {
+function PageLoader() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center space-y-4">
-        <div className="relative w-16 h-16 mx-auto">
-          <div className="absolute inset-0 rounded-full border-4 border-primary/20 animate-ping" />
-          <div className="relative w-16 h-16 rounded-full border-4 border-t-primary border-r-transparent border-b-primary/50 border-l-transparent animate-spin flex items-center justify-center">
-            <span className="font-extrabold text-xl text-primary">H</span>
-          </div>
-        </div>
-        <p className="text-sm font-medium text-muted-foreground animate-pulse">Loading HackVerse AI...</p>
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex flex-col items-center gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+        <span className="text-xs font-semibold text-slate-500">Loading page...</span>
       </div>
     </div>
-  )
+  );
 }
 
-import { ChatProvider } from './context/ChatContext'
-
-export default function App() {
+function App() {
   return (
-    <ChatProvider>
-      <AnimatePresence mode="wait">
-        <Suspense fallback={<LoadingScreen />}>
-        <Routes>
-          {/* Public & Student Authentication Routes */}
-          <Route path="/" element={<Landing />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-
-          {/* Dedicated Separate Portal Logins */}
-          <Route path="/organizer/login" element={<OrganizerLogin />} />
-          <Route path="/admin/login" element={<AdminLogin />} />
-
-          {/* Dedicated Organizer Portal Layout */}
-          <Route element={<OrganizerLayout />}>
-            <Route path="/organizer" element={<OrganizerDashboard />} />
-            <Route path="/organizer/dashboard" element={<OrganizerDashboard />} />
-          </Route>
-
-          {/* Dedicated Admin Control Center Layout */}
-          <Route element={<AdminLayout />}>
-            <Route path="/admin" element={<AdminPanel />} />
-            <Route path="/admin/dashboard" element={<AdminPanel />} />
-          </Route>
-
-          {/* Student & Ecosystem Application Routes */}
-          <Route element={<DashboardLayout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/hackathons" element={<HackathonDiscovery />} />
-            <Route path="/hackathons/:id" element={<HackathonDetail />} />
-            <Route path="/ai-mentor" element={<AIMentor />} />
-            <Route path="/learning" element={<LearningCenter />} />
-            <Route path="/learning/:courseId" element={<CourseDetail />} />
-            <Route path="/mock-hackathon" element={<MockHackathon />} />
-            <Route path="/skill-analysis" element={<SkillGapAnalysis />} />
-            <Route path="/resume-builder" element={<ResumeBuilder />} />
-            <Route path="/resume-review" element={<ResumeReview />} />
-            <Route path="/project-generator" element={<ProjectGenerator />} />
-            <Route path="/analytics" element={<ProgressAnalytics />} />
-            <Route path="/community" element={<Community />} />
-            <Route path="/team-finder" element={<TeamFinder />} />
-            <Route path="/leaderboard" element={<Leaderboard />} />
-            <Route path="/interview-prep" element={<InterviewPrep />} />
-            <Route path="/notifications" element={<Notifications />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/teammate-matchmaker" element={<TeammateMatchmaker />} />
-            <Route path="/live-ops" element={<LiveOps />} />
-            <Route path="/judging-hub" element={<JudgingHub />} />
-            <Route path="/sponsor-hub" element={<SponsorHub />} />
-            {/* AI Tools Routes */}
-            <Route path="/ai-tools/plagiarism" element={<PlagiarismScanner />} />
-            <Route path="/ai-tools/sponsor-intel" element={<SponsorIntel />} />
-            <Route path="/ai-tools/trend-predictor" element={<TrendPredictor />} />
-          </Route>
-
-          {/* 404 */}
-          <Route path="*" element={
-            <div className="min-h-screen flex items-center justify-center bg-background">
-              <div className="text-center space-y-4">
-                <h1 className="text-8xl font-bold gradient-text">404</h1>
-                <p className="text-xl text-muted-foreground">Page not found</p>
-                <a href="/" className="btn-primary inline-block">Go Home</a>
-              </div>
-            </div>
-          } />
-        </Routes>
-      </Suspense>
-    </AnimatePresence>
-    </ChatProvider>
-  )
+    <AuthProvider>
+      <BrowserRouter>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            {/* Public Layout */}
+            <Route path="/" element={<AppLayout />}>
+              <Route index element={<LandingPage />} />
+              <Route path="pricing" element={<PricingPage />} />
+              <Route path="success" element={<PricingPage />} />
+              <Route path="login" element={<LoginPage />} />
+              <Route path="signup" element={<SignupPage />} />
+              <Route path="verify-email" element={<VerifyEmailPage />} />
+              <Route path="forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="verify-reset-code" element={<VerifyResetCodePage />} />
+              <Route path="reset-password" element={<ResetPasswordPage />} />
+              
+              {/* Protected Routes */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="dashboard" element={<DashboardPage />} />
+                <Route path="hackathons" element={<HackathonsPage />} />
+                <Route path="hackathons/:id" element={<HackathonDetailsPage />} />
+                <Route path="workspace/:id" element={<WorkspacePage />} />
+                <Route path="idea-generator" element={<IdeaGeneratorPage />} />
+                <Route path="pitch-coach" element={<PitchCoachPage />} />
+                <Route path="github-analyzer" element={<GitHubAnalyzerPage />} />
+                <Route path="winning-readiness" element={<WinningReadinessPage />} />
+                <Route path="certificates" element={<CertificateVaultPage />} />
+                <Route path="portfolio" element={<HackathonPortfolioPage />} />
+                <Route path="mentor" element={<MentorPage />} />
+                <Route path="skill-gap" element={<SkillGapPage />} />
+                <Route path="saved" element={<SavedHackathonsPage />} />
+                <Route path="team-finder" element={<TeamFinderPage />} />
+                <Route path="profile" element={<ProfilePage />} />
+                <Route path="profile/:id" element={<PublicProfilePage />} />
+                <Route path="admin" element={<AdminSettingsPage />} />
+                <Route path="resume-builder" element={<ResumeBuilderPage />} />
+              </Route>
+            </Route>
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </AuthProvider>
+  );
 }
+
+export default App;

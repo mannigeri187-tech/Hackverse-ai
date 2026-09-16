@@ -1,206 +1,215 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 239 84% 67%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 239 84% 67%;
-    --radius: 0.75rem;
-  }
-
-  .dark {
-    --background: 222 47% 6%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 8%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 239 84% 67%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 50.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 239 84% 67%;
-  }
-
-  * {
-    border-color: hsl(var(--border));
-  }
-
-  body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
+@theme {
+  --color-primary-50: #f0fdf4;
+  --color-primary-100: #dcfce7;
+  --color-primary-500: #22c55e;
+  --color-primary-600: #16a34a;
+  --color-primary-900: #14532d;
+  --color-dark-100: #1e293b;
+  --color-dark-200: #0f172a;
+  --color-dark-300: #020617;
+  --font-sans: 'Inter', sans-serif;
 }
 
-@layer components {
-  .glass-card {
-    @apply bg-white/80 dark:bg-white/5 backdrop-blur-xl border border-gray-200/50 dark:border-white/10 rounded-2xl shadow-glass;
-  }
-
-  .glass-card-hover {
-    @apply glass-card transition-all duration-300 hover:shadow-glass-lg hover:border-brand-400/30 dark:hover:border-brand-400/30 hover:scale-[1.02];
-  }
-
-  .gradient-text {
-    @apply bg-gradient-to-r from-brand-400 via-cyber-purple to-cyber-pink bg-clip-text text-transparent;
-  }
-
-  .gradient-text-alt {
-    @apply bg-gradient-to-r from-cyber-cyan via-brand-400 to-cyber-purple bg-clip-text text-transparent;
-  }
-
-  .gradient-bg {
-    @apply bg-gradient-to-br from-brand-600 via-cyber-purple to-cyber-pink;
-  }
-
-  .gradient-bg-subtle {
-    @apply bg-gradient-to-br from-brand-50 via-purple-50 to-pink-50 dark:from-brand-950/50 dark:via-purple-950/30 dark:to-pink-950/20;
-  }
-
-  .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold text-white
-           bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700
-           shadow-glow hover:shadow-glow-lg transition-all duration-300 hover:scale-105
-           focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900;
-  }
-
-  .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold
-           bg-white/10 dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-white/10
-           text-gray-700 dark:text-gray-200 hover:bg-white/20 dark:hover:bg-white/10
-           transition-all duration-300 hover:scale-105;
-  }
-
-  .input-field {
-    @apply w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10
-           bg-white/50 dark:bg-white/5 backdrop-blur-sm
-           text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500
-           focus:outline-none focus:ring-2 focus:ring-brand-400/50 focus:border-brand-400
-           transition-all duration-200;
-  }
-
-  .section-title {
-    @apply text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight;
-  }
-
-  .section-subtitle {
-    @apply text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto;
-  }
-
-  .stat-card {
-    @apply glass-card p-6 text-center space-y-2;
-  }
-
-  .badge {
-    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium;
-  }
-
-  .badge-primary {
-    @apply badge bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300;
-  }
-
-  .badge-success {
-    @apply badge bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300;
-  }
-
-  .badge-warning {
-    @apply badge bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300;
-  }
-
-  .badge-danger {
-    @apply badge bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300;
-  }
+/* Futuristic AI Visual System Backgrounds */
+.bg-theme-hero {
+  background-image: linear-gradient(135deg, rgba(2, 6, 23, 0.88) 0%, rgba(15, 23, 42, 0.82) 50%, rgba(2, 6, 23, 0.94) 100%), url('/assets/themes/bg_hero_matrix.jpg') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-
-  .scrollbar-thin {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(99, 102, 241, 0.3) transparent;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: rgba(99, 102, 241, 0.3);
-    border-radius: 3px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background: rgba(99, 102, 241, 0.5);
-  }
-
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
+.bg-theme-brain {
+  background-image: linear-gradient(135deg, rgba(2, 6, 23, 0.90) 0%, rgba(30, 27, 75, 0.84) 50%, rgba(2, 6, 23, 0.92) 100%), url('/assets/themes/bg_ai_brain.jpg') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
 }
 
-/* Animated gradient background for hero/landing */
-.animated-gradient-bg {
-  background: linear-gradient(-45deg, #1e1b4b, #312e81, #4338ca, #6366f1, #8b5cf6, #a78bfa);
-  background-size: 400% 400%;
-  animation: gradient 15s ease infinite;
+.bg-theme-dsa-8k {
+  background-image: linear-gradient(105deg, rgba(2, 6, 23, 0.95) 0%, rgba(2, 6, 23, 0.84) 45%, rgba(15, 23, 42, 0.48) 75%, rgba(2, 6, 23, 0.90) 100%), url('/assets/themes/bg_dsa_practice_8k.jpg') !important;
+  background-size: cover !important;
+  background-position: right center !important;
+  background-repeat: no-repeat !important;
 }
 
-/* Grid pattern overlay */
-.grid-pattern {
-  background-image: 
-    linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
-  background-size: 60px 60px;
+.bg-theme-mentor-8k {
+  background-image: linear-gradient(105deg, rgba(2, 6, 23, 0.94) 0%, rgba(2, 6, 23, 0.82) 45%, rgba(15, 23, 42, 0.45) 75%, rgba(2, 6, 23, 0.88) 100%), url('/assets/themes/bg_ai_mentor_8k.jpg') !important;
+  background-size: cover !important;
+  background-position: right center !important;
+  background-repeat: no-repeat !important;
 }
 
-.dark .grid-pattern {
-  background-image: 
-    linear-gradient(rgba(99, 102, 241, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(99, 102, 241, 0.06) 1px, transparent 1px);
-  background-size: 60px 60px;
+.bg-theme-interview-8k {
+  background-image: linear-gradient(105deg, rgba(2, 6, 23, 0.95) 0%, rgba(2, 6, 23, 0.84) 45%, rgba(15, 23, 42, 0.48) 75%, rgba(2, 6, 23, 0.90) 100%), url('/assets/themes/bg_mock_interviews_8k.jpg') !important;
+  background-size: cover !important;
+  background-position: right center !important;
+  background-repeat: no-repeat !important;
 }
 
-/* Dot pattern */
-.dot-pattern {
-  background-image: radial-gradient(rgba(99, 102, 241, 0.1) 1px, transparent 1px);
-  background-size: 24px 24px;
+.bg-theme-pitch-stage-8k {
+  background-image: linear-gradient(105deg, rgba(2, 6, 23, 0.95) 0%, rgba(2, 6, 23, 0.84) 45%, rgba(30, 27, 75, 0.48) 75%, rgba(2, 6, 23, 0.90) 100%), url('/assets/themes/bg_pitch_stage_8k.jpg') !important;
+  background-size: cover !important;
+  background-position: right center !important;
+  background-repeat: no-repeat !important;
+}
+
+.bg-theme-portfolio-8k {
+  background-image: linear-gradient(105deg, rgba(2, 6, 23, 0.95) 0%, rgba(2, 6, 23, 0.84) 45%, rgba(15, 23, 42, 0.48) 75%, rgba(2, 6, 23, 0.90) 100%), url('/assets/themes/bg_portfolio_showcase_8k.jpg') !important;
+  background-size: cover !important;
+  background-position: right center !important;
+  background-repeat: no-repeat !important;
+}
+
+.bg-theme-workspace-8k {
+  background-image: linear-gradient(105deg, rgba(2, 6, 23, 0.95) 0%, rgba(2, 6, 23, 0.84) 45%, rgba(15, 23, 42, 0.48) 75%, rgba(2, 6, 23, 0.90) 100%), url('/assets/themes/bg_workspace_warroom_8k.jpg') !important;
+  background-size: cover !important;
+  background-position: right center !important;
+  background-repeat: no-repeat !important;
+}
+
+.bg-theme-dashboard-8k {
+  background-image: linear-gradient(105deg, rgba(2, 6, 23, 0.95) 0%, rgba(2, 6, 23, 0.84) 45%, rgba(15, 23, 42, 0.45) 75%, rgba(2, 6, 23, 0.90) 100%), url('/assets/themes/bg_dashboard_command_8k.jpg') !important;
+  background-size: cover !important;
+  background-position: right center !important;
+  background-repeat: no-repeat !important;
+}
+
+.bg-theme-auth-universe {
+  background-image: linear-gradient(135deg, rgba(2, 6, 23, 0.92) 0%, rgba(15, 23, 42, 0.85) 50%, rgba(30, 27, 75, 0.92) 100%), url('/assets/themes/bg_auth_universe_8k.jpg') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+.bg-theme-city {
+  background-image: linear-gradient(135deg, rgba(2, 6, 23, 0.88) 0%, rgba(15, 23, 42, 0.80) 50%, rgba(30, 27, 75, 0.92) 100%), url('/assets/themes/bg_builder_city.jpg') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+.bg-theme-team {
+  background-image: linear-gradient(135deg, rgba(2, 6, 23, 0.90) 0%, rgba(15, 23, 42, 0.82) 50%, rgba(2, 6, 23, 0.94) 100%), url('/assets/themes/bg_hackathon_team.jpg') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+.bg-theme-discovery-8k {
+  background-image: linear-gradient(105deg, rgba(2, 6, 23, 0.95) 0%, rgba(2, 6, 23, 0.84) 45%, rgba(15, 23, 42, 0.48) 75%, rgba(2, 6, 23, 0.90) 100%), url('/assets/themes/bg_hackathon_discovery_8k.jpg') !important;
+  background-size: cover !important;
+  background-position: right center !important;
+  background-repeat: no-repeat !important;
+}
+
+.bg-theme-shield {
+  background-image: linear-gradient(135deg, rgba(2, 6, 23, 0.90) 0%, rgba(8, 47, 73, 0.82) 50%, rgba(2, 6, 23, 0.94) 100%), url('/assets/themes/bg_cyber_shield.jpg') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+.bg-theme-cybersecurity-8k {
+  background-image: linear-gradient(105deg, rgba(2, 6, 23, 0.95) 0%, rgba(2, 6, 23, 0.84) 45%, rgba(8, 47, 73, 0.48) 75%, rgba(2, 6, 23, 0.90) 100%), url('/assets/themes/bg_cybersecurity_soc_8k.jpg') !important;
+  background-size: cover !important;
+  background-position: right center !important;
+  background-repeat: no-repeat !important;
+}
+
+.bg-theme-bulb {
+  background-image: linear-gradient(135deg, rgba(2, 6, 23, 0.88) 0%, rgba(15, 23, 42, 0.82) 50%, rgba(30, 27, 75, 0.92) 100%), url('/assets/themes/bg_idea_bulb.jpg') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+.bg-theme-idea-lab {
+  background-image: linear-gradient(105deg, rgba(2, 6, 23, 0.95) 0%, rgba(2, 6, 23, 0.84) 45%, rgba(15, 23, 42, 0.50) 75%, rgba(2, 6, 23, 0.90) 100%), url('/assets/themes/bg_idea_lab_8k.jpg') !important;
+  background-size: cover !important;
+  background-position: right center !important;
+  background-repeat: no-repeat !important;
+}
+
+.bg-theme-trophy {
+  background-image: linear-gradient(135deg, rgba(2, 6, 23, 0.88) 0%, rgba(49, 46, 129, 0.82) 50%, rgba(2, 6, 23, 0.94) 100%), url('/assets/themes/bg_trophy_victory.jpg') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+.bg-theme-readiness-8k {
+  background-image: linear-gradient(105deg, rgba(2, 6, 23, 0.95) 0%, rgba(2, 6, 23, 0.84) 45%, rgba(49, 46, 129, 0.48) 75%, rgba(2, 6, 23, 0.90) 100%), url('/assets/themes/bg_readiness_8k.jpg') !important;
+  background-size: cover !important;
+  background-position: right center !important;
+  background-repeat: no-repeat !important;
+}
+
+.bg-theme-vault-8k {
+  background-image: linear-gradient(105deg, rgba(2, 6, 23, 0.95) 0%, rgba(2, 6, 23, 0.84) 45%, rgba(30, 27, 75, 0.48) 75%, rgba(2, 6, 23, 0.90) 100%), url('/assets/themes/bg_vault_trophy_8k.jpg') !important;
+  background-size: cover !important;
+  background-position: right center !important;
+  background-repeat: no-repeat !important;
+}
+
+/* Cyber Glows & Accents */
+.glow-cyan {
+  box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.25);
+}
+
+.glow-purple {
+  box-shadow: 0 0 25px -5px rgba(168, 85, 247, 0.25);
+}
+
+.glow-blue {
+  box-shadow: 0 0 25px -5px rgba(59, 130, 246, 0.25);
+}
+
+/* Markdown AI Output Styling */
+.markdown-content {
+  line-height: 1.6;
+}
+.markdown-content p {
+  margin-bottom: 0.75rem;
+}
+.markdown-content p:last-child {
+  margin-bottom: 0;
+}
+.markdown-content ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+.markdown-content ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+.markdown-content li {
+  margin-bottom: 0.25rem;
+}
+.markdown-content strong {
+  font-weight: 700;
+  color: inherit;
+}
+.markdown-content code {
+  background-color: rgba(0,0,0,0.05);
+  padding: 0.1rem 0.25rem;
+  border-radius: 0.25rem;
+  font-family: monospace;
+  font-size: 0.875em;
+}
+.markdown-content pre {
+  background-color: #1e293b;
+  color: #f8fafc;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin-bottom: 0.75rem;
+}
+.markdown-content pre code {
+  background-color: transparent;
+  padding: 0;
+  color: inherit;
 }
