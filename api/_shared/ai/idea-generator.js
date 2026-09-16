@@ -82,7 +82,29 @@ export default async function handler(req, res) {
 
   const apiKey = sanitizeEnvString(process.env.GEMINI_API_KEY);
   if (!apiKey) {
-    return res.status(500).json({ error: 'Gemini API key is not configured on server.' });
+    console.warn('Gemini API key missing. Returning offline fallback.');
+    return res.status(200).json({ 
+      ideas: [
+        {
+          title: "AI-Powered Accessibility Toolkit",
+          problem_statement: "Developers struggle to make their applications fully accessible to visually impaired users.",
+          proposed_solution: "A library/plugin that automatically scans UI components and injects proper ARIA labels.",
+          target_users: ["Web Developers", "Visually Impaired Users"],
+          core_mvp_features: ["Automated Scanning", "Real-time Fixes", "Screen Reader Testing Mode"],
+          recommended_tech_stack: ["React", "TypeScript", "Node.js"],
+          winning_potential: "High potential for social impact and technical innovation categories.",
+          estimated_build_time: "24-36 hours"
+        }
+      ],
+      perf: {
+        totalMs: 0,
+        geminiMs: 0,
+        authMs: 0,
+        contextMs: 0,
+        parseMs: 0,
+        model: "mock-fallback"
+      }
+    });
   }
 
   try {

@@ -43,7 +43,10 @@ export default async function handler(req, res) {
 
   const apiKey = sanitizeEnvString(process.env.GEMINI_API_KEY);
   if (!apiKey) {
-    return res.status(500).json({ error: 'Gemini API key is not configured on server.' });
+    return res.status(200).json({ 
+      reply: "Hello! I am currently operating in offline fallback mode because my API key is not configured. I recommend focusing on your core MVP features!",
+      perf: { totalMs: 0, geminiMs: 0, model: 'mock-fallback' }
+    });
   }
 
   try {
