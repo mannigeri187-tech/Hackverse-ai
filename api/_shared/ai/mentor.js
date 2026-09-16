@@ -220,16 +220,17 @@ ${contextParts || 'General Hackathon Guidance'}`;
         console.error('Gemini Stream Error:', streamErr?.message);
       }
 
-        if (!streamedSuccess) {
-          // FALLBACK IF API CALL FAILS
-          const fallbackChunk = JSON.stringify({ chunk: "Hello! I am currently operating in offline fallback mode due to a temporary AI connection issue (API Key Quota Exceeded/Invalid). I recommend focusing on your core MVP features!" });
-          res.write(`data: ${fallbackChunk}\n\n`);
-          res.write(`data: ${JSON.stringify({ done: true, perf: { totalMs: 0, ttftMs: 0, model: 'mock-fallback' } })}\n\n`);
-          if (typeof res.flush === 'function') {
-            res.flush();
-          }
-          res.end();
+      if (!streamedSuccess) {
+        // FALLBACK IF API CALL FAILS
+        const errorMsg = lastStreamError?.message?.replace(/"/g, "'") || "Unknown connection error";
+        const fallbackChunk = JSON.stringify({ chunk: `[Google API Error: ${errorMsg}]\n\nI am operating in offline fallback mode because Google rejected the API key. Please check your Google AI Studio quota.` });
+        res.write(`data: ${fallbackChunk}\n\n`);
+        res.write(`data: ${JSON.stringify({ done: true, perf: { totalMs: 0, ttftMs: 0, model: 'mock-fallback' } })}\n\n`);
+        if (typeof res.flush === 'function') {
+          res.flush();
         }
+        res.end();
+      }
       return;
     }
 
@@ -259,7 +260,7 @@ ${contextParts || 'General Hackathon Guidance'}`;
   } catch (err) {
     console.error('AI Mentor Error:', err?.message || err);
     return res.status(200).json({ 
-      reply: "Hello! I am currently operating in offline fallback mode due to a temporary AI connection issue. I recommend focusing on your core MVP features and testing them thoroughly!",
+      reply: `[Google API Error: ${err?.message || "Unknown error"}]\n\nI am operating in offline fallback mode because Google rejected the API key.`,
       perf: {
         totalMs: 0,
         geminiMs: 0,
