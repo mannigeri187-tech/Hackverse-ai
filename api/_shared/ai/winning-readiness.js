@@ -22,15 +22,32 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
+  const fallbackJson = {
+    overall_score: 75,
+    readiness_tier: "Strong Readiness",
+    categories: [
+      { name: "Hackathon Alignment", key: "hackathon_alignment", score: 15, maxScore: 20, status: "Good", explanation: "Offline mode fallback." },
+      { name: "Project Completeness", key: "project_completeness", score: 12, maxScore: 15, status: "Good", explanation: "Offline mode fallback." },
+      { name: "Technical Readiness", key: "technical_readiness", score: 10, maxScore: 15, status: "Moderate", explanation: "Offline mode fallback." },
+      { name: "Team Readiness", key: "team_readiness", score: 12, maxScore: 15, status: "Good", explanation: "Offline mode fallback." },
+      { name: "Skill Readiness", key: "skill_readiness", score: 8, maxScore: 10, status: "Good", explanation: "Offline mode fallback." },
+      { name: "GitHub Quality", key: "github_quality", score: 8, maxScore: 10, status: "Good", explanation: "Offline mode fallback." },
+      { name: "Pitch Readiness", key: "pitch_readiness", score: 6, maxScore: 10, status: "Moderate", explanation: "Offline mode fallback." },
+      { name: "Submission Readiness", key: "submission_readiness", score: 4, maxScore: 5, status: "Good", explanation: "Offline mode fallback." }
+    ],
+    strengths: ["Strong backend architecture", "Clear problem definition", "Solid team roles"],
+    gaps: [
+      { priority: "High", gap: "UI/UX needs refinement", action: "Conduct user testing" },
+      { priority: "Medium", gap: "Missing README", action: "Add setup instructions" },
+      { priority: "Low", gap: "Pitch deck lacks financials", action: "Add business model slide" }
+    ],
+    action_checklist: ["Fix UI bugs", "Complete README", "Rehearse Pitch"],
+    explanation: "Offline mode: You have a solid technical foundation, but focus heavily on polishing your core user experience."
+  };
+
   const apiKey = sanitizeEnvString(process.env.GEMINI_API_KEY);
   if (!apiKey) {
-    return res.status(200).json({ 
-      overall_score: 75,
-      strategic_summary: "Offline mode: You have a solid technical foundation, but focus heavily on polishing your core user experience.",
-      key_strengths: ["Strong backend architecture", "Clear problem definition"],
-      critical_weaknesses: ["UI/UX needs more refinement"],
-      actionable_steps: ["Conduct a quick user test"]
-    });
+    return res.status(200).json(fallbackJson);
   }
 
   try {
@@ -191,14 +208,12 @@ Return STRICTLY valid JSON matching this schema exactly:
 
     return res.status(200).json(aiResponse);
   } catch (err) {
+
+    if (!aiResponse) throw lastError || new Error('Failed to generate strategic explanation');
+
+    return res.status(200).json(aiResponse);
+  } catch (err) {
     console.error('Winning Readiness Advisor Error:', err?.message || err);
-    return res.status(200).json({ 
-      overall_score: 75,
-      strategic_summary: "You have a solid technical foundation, but to secure a win, focus heavily on polishing your core user experience and ensuring your presentation highlights the business value or social impact of your project.",
-      key_strengths: ["Strong backend architecture", "Clear problem definition"],
-      critical_weaknesses: ["UI/UX needs more refinement", "Missing competitive analysis"],
-      actionable_steps: ["Conduct a quick user test to simplify navigation", "Add a slide comparing your solution to existing alternatives"]
-    });
+    return res.status(200).json(fallbackJson);
   }
 }
-

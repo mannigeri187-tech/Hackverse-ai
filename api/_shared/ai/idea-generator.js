@@ -82,7 +82,7 @@ export default async function handler(req, res) {
 
   const apiKey = sanitizeEnvString(process.env.GEMINI_API_KEY);
   if (!apiKey) {
-    console.warn('Gemini API key missing. Returning offline fallback.');
+    console.warn('Gemini API key missing or failed. Returning offline fallback.');
     return res.status(200).json({ 
       ideas: [
         {
@@ -94,6 +94,26 @@ export default async function handler(req, res) {
           recommended_tech_stack: ["React", "TypeScript", "Node.js"],
           winning_potential: "High potential for social impact and technical innovation categories.",
           estimated_build_time: "24-36 hours"
+        },
+        {
+          title: "Smart Study Scheduler",
+          problem_statement: "Students often feel overwhelmed and fail to organize their study time effectively before exams.",
+          proposed_solution: "An intelligent app that breaks down syllabuses and creates adaptive, optimized study schedules.",
+          target_users: ["College Students", "High School Students"],
+          core_mvp_features: ["Calendar Integration", "Pomodoro Timer", "Adaptive Rescheduling"],
+          recommended_tech_stack: ["Flutter", "Firebase", "Python (FastAPI)"],
+          winning_potential: "Strong in ed-tech and productivity categories.",
+          estimated_build_time: "36-48 hours"
+        },
+        {
+          title: "Local Farm-to-Table Marketplace",
+          problem_statement: "Consumers want fresh local produce but struggle to connect directly with nearby independent farmers.",
+          proposed_solution: "A hyper-local marketplace app connecting farmers directly with neighborhood buyers to reduce food miles.",
+          target_users: ["Local Farmers", "Eco-conscious Consumers"],
+          core_mvp_features: ["Geo-location Search", "In-app Payments", "Inventory Management"],
+          recommended_tech_stack: ["React Native", "Supabase", "Stripe API"],
+          winning_potential: "High potential for sustainability and community impact.",
+          estimated_build_time: "48 hours"
         }
       ],
       perf: {
@@ -262,13 +282,51 @@ Requirements:
       ideas: [
         {
           title: "AI-Powered Accessibility Toolkit",
-          problem_statement: "Developers often struggle to make their applications fully accessible to visually impaired users.",
-          proposed_solution: "A library/plugin that automatically scans UI components and injects proper ARIA labels, color contrast fixes, and keyboard navigation.",
+        contextMs: 0,
+        parseMs: 0,
+        model: "mock-fallback"
+      }
+    });
+  }
+}
+
+
+
+
+  } catch (err) {
+    console.error('Idea Generator API Error:', err?.message || err);
+    // FALLBACK IF GEMINI FAILS
+    return res.status(200).json({ 
+      ideas: [
+        {
+          title: "AI-Powered Accessibility Toolkit",
+          problem_statement: "Developers struggle to make their applications fully accessible to visually impaired users.",
+          proposed_solution: "A library/plugin that automatically scans UI components and injects proper ARIA labels.",
           target_users: ["Web Developers", "Visually Impaired Users"],
           core_mvp_features: ["Automated Scanning", "Real-time Fixes", "Screen Reader Testing Mode"],
           recommended_tech_stack: ["React", "TypeScript", "Node.js"],
           winning_potential: "High potential for social impact and technical innovation categories.",
           estimated_build_time: "24-36 hours"
+        },
+        {
+          title: "Smart Study Scheduler",
+          problem_statement: "Students often feel overwhelmed and fail to organize their study time effectively before exams.",
+          proposed_solution: "An intelligent app that breaks down syllabuses and creates adaptive, optimized study schedules.",
+          target_users: ["College Students", "High School Students"],
+          core_mvp_features: ["Calendar Integration", "Pomodoro Timer", "Adaptive Rescheduling"],
+          recommended_tech_stack: ["Flutter", "Firebase", "Python (FastAPI)"],
+          winning_potential: "Strong in ed-tech and productivity categories.",
+          estimated_build_time: "36-48 hours"
+        },
+        {
+          title: "Local Farm-to-Table Marketplace",
+          problem_statement: "Consumers want fresh local produce but struggle to connect directly with nearby independent farmers.",
+          proposed_solution: "A hyper-local marketplace app connecting farmers directly with neighborhood buyers to reduce food miles.",
+          target_users: ["Local Farmers", "Eco-conscious Consumers"],
+          core_mvp_features: ["Geo-location Search", "In-app Payments", "Inventory Management"],
+          recommended_tech_stack: ["React Native", "Supabase", "Stripe API"],
+          winning_potential: "High potential for sustainability and community impact.",
+          estimated_build_time: "48 hours"
         }
       ],
       perf: {
@@ -282,7 +340,3 @@ Requirements:
     });
   }
 }
-
-
-
-
