@@ -43,6 +43,12 @@ export default async function handler(req, res) {
 
   const apiKey = sanitizeEnvString(process.env.GEMINI_API_KEY);
   if (!apiKey) {
+    if (req.body?.stream === true || req.headers?.accept?.includes('text/event-stream')) {
+      res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
+      res.write(`data: ${JSON.stringify({ chunk: "Hello! I am currently operating in offline fallback mode because my API key is not configured. I recommend focusing on your core MVP features!" })}\n\n`);
+      res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+      return res.end();
+    }
     return res.status(200).json({ 
       reply: "Hello! I am currently operating in offline fallback mode because my API key is not configured. I recommend focusing on your core MVP features!",
       perf: { totalMs: 0, geminiMs: 0, model: 'mock-fallback' }
@@ -216,7 +222,7 @@ ${contextParts || 'General Hackathon Guidance'}`;
 
         if (!streamedSuccess) {
           // FALLBACK IF API CALL FAILS
-          const fallbackChunk = JSON.stringify({ text: "Hello! I am currently operating in offline fallback mode due to a temporary AI connection issue (API Key Quota Exceeded/Invalid). I recommend focusing on your core MVP features!" });
+          const fallbackChunk = JSON.stringify({ chunk: "Hello! I am currently operating in offline fallback mode due to a temporary AI connection issue (API Key Quota Exceeded/Invalid). I recommend focusing on your core MVP features!" });
           res.write(`data: ${fallbackChunk}\n\n`);
           res.write(`data: ${JSON.stringify({ done: true, perf: { totalMs: 0, ttftMs: 0, model: 'mock-fallback' } })}\n\n`);
           if (typeof res.flush === 'function') {
