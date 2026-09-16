@@ -82,10 +82,10 @@ export default async function handler(req, res) {
 
   const apiKey = sanitizeEnvString(process.env.GEMINI_API_KEY);
   if (!apiKey) {
-    console.warn('Gemini API key missing or failed. Returning offline fallback.');
+    console.warn('Gemini API key missing. Returning offline fallback.');
     return res.status(200).json({ 
       ideas: [
-        {
+                {
           title: "AI-Powered Accessibility Toolkit",
           problem_statement: "Developers struggle to make their applications fully accessible to visually impaired users.",
           proposed_solution: "A library/plugin that automatically scans UI components and injects proper ARIA labels.",
@@ -280,25 +280,7 @@ Requirements:
     // FALLBACK IF GEMINI FAILS
     return res.status(200).json({ 
       ideas: [
-        {
-          title: "AI-Powered Accessibility Toolkit",
-        contextMs: 0,
-        parseMs: 0,
-        model: "mock-fallback"
-      }
-    });
-  }
-}
-
-
-
-
-  } catch (err) {
-    console.error('Idea Generator API Error:', err?.message || err);
-    // FALLBACK IF GEMINI FAILS
-    return res.status(200).json({ 
-      ideas: [
-        {
+                {
           title: "AI-Powered Accessibility Toolkit",
           problem_statement: "Developers struggle to make their applications fully accessible to visually impaired users.",
           proposed_solution: "A library/plugin that automatically scans UI components and injects proper ARIA labels.",
@@ -340,3 +322,7 @@ Requirements:
     });
   }
 }
+
+
+
+
