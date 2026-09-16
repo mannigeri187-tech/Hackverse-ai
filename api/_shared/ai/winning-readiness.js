@@ -126,10 +126,10 @@ Team Members Count: ${teamMembers ? teamMembers.length : 0}
 User Skills: ${JSON.stringify(userSkills || [])}
 
 SCORING RULES & GIBBERISH DETECTION:
-1. Meaning Matters: Detect random characters (e.g., "asdf"), repeated words, keyboard smashing, or generic placeholders. If the input is gibberish or lacks semantic meaning, score it near zero and explicitly mention this in the gaps/explanation.
-2. Meaningful short input (e.g. "Students can't find hackathons") is better than long gibberish.
-3. Tech Stack Validation: Do NOT award points just because there are multiple items. Check if they are REAL technologies, relevant to the proposed solution, and compatible. ["apple", "banana"] gets 0 points.
-4. GitHub Validation: Just because a URL contains "github.com" does NOT mean it's valid. Treat it as unverified unless the "GitHub Analyzer Score" is present.
+1. Problem-Solution Fit (CRITICAL): You MUST critically evaluate if the "Solution" actually solves the "Problem Statement". Are they logically connected? Will this solution actually work in the real world? If they are unrelated, disjointed, or the solution is completely unrealistic, severely penalize the "Project Completeness" and "Hackathon Alignment" scores.
+2. Global Hackathon Standards: Judge this strictly on standard global hackathon criteria (Devpost/MLH standards): Impact, Feasibility, and Innovation. Compare it against typical winning projects.
+3. Meaning Matters: Detect random characters (e.g., "asdf"), repeated words, keyboard smashing, or generic placeholders. If the input lacks semantic meaning, score it near zero.
+4. Tech Stack Validation: Check if they are REAL technologies, relevant to the proposed solution, and logically compatible. ["apple", "banana"] gets 0 points.
 5. Evidence-Based: Every score must be justified by the provided text.
 
 TASK:
