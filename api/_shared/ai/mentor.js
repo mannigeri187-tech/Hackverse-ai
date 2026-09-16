@@ -214,13 +214,16 @@ ${contextParts || 'General Hackathon Guidance'}`;
         console.error('Gemini Stream Error:', streamErr?.message);
       }
 
-      if (!streamedSuccess) {
-        res.write(`data: ${JSON.stringify({ error: 'AI Mentor is temporarily unavailable. Please try again.' })}\n\n`);
-        if (typeof res.flush === 'function') {
-          res.flush();
+        if (!streamedSuccess) {
+          // FALLBACK IF API CALL FAILS
+          const fallbackChunk = JSON.stringify({ text: "Hello! I am currently operating in offline fallback mode due to a temporary AI connection issue (API Key Quota Exceeded/Invalid). I recommend focusing on your core MVP features!" });
+          res.write(`data: ${fallbackChunk}\n\n`);
+          res.write(`data: ${JSON.stringify({ done: true, perf: { totalMs: 0, ttftMs: 0, model: 'mock-fallback' } })}\n\n`);
+          if (typeof res.flush === 'function') {
+            res.flush();
+          }
+          res.end();
         }
-        res.end();
-      }
       return;
     }
 
