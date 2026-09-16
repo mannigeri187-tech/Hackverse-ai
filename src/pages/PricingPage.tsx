@@ -144,19 +144,8 @@ export default function PricingPage() {
           amount,
           currency,
           name:        'HackVerse AI',
-          description: 'HackVerse Pro — Monthly Subscription',
+          description: 'HackVerse Pro - Monthly Subscription',
           order_id,
-          config: {
-            display: {
-              blocks: {
-                upi: {
-                  name: "Pay via UPI",
-                  instruments: [{ method: "upi" }]
-                }
-              },
-              sequence: ["block.upi"]
-            }
-          },
           prefill: {
             email: user.email || ''
           },
