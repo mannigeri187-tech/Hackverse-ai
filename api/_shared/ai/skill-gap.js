@@ -139,7 +139,7 @@ Return ONLY raw valid JSON. Do NOT wrap with markdown fences or extra commentary
 
     // 4. Call Gemini with cascading active models
     const genAI = new GoogleGenerativeAI(apiKey);
-    const activeModels = ['gemini-pro', 'gemini-pro-8b', 'gemini-pro', 'gemini-flash-latest'];
+    const activeModels = ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-1.5-flash', 'gemini-flash-latest'];
     let responseText = '';
     let lastError = null;
 
