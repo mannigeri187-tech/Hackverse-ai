@@ -115,7 +115,7 @@ export default async function handler(req, res) {
       if (apiKey) {
         try {
           const genAI = new GoogleGenerativeAI(apiKey);
-          const activeModels = ['gemini-1.5-flash', 'gemini-1.5-flash-8b'];
+          const activeModels = ['gemini-pro', 'gemini-pro-8b'];
           const prompt = `You are a Daily AI Coach for a college student/hacker participating in hackathons.
 Based on the following user context, generate exactly 3 to 5 realistic, actionable daily tasks (15-60 mins each).
 

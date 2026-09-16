@@ -13,7 +13,7 @@ function getMentorModel(apiKey) {
     cachedGenAI = new GoogleGenerativeAI(apiKey);
     cachedApiKey = apiKey;
     cachedModel = cachedGenAI.getGenerativeModel({ 
-      model: 'gemini-1.5-flash',
+      model: 'gemini-pro',
       generationConfig: {
         temperature: 0.6,
         maxOutputTokens: 800,
@@ -179,7 +179,7 @@ ${contextParts || 'General Hackathon Guidance'}`;
 
       const tGeminiStart = performance.now();
       const model = getMentorModel(apiKey);
-      const modelName = 'gemini-1.5-flash';
+      const modelName = 'gemini-pro';
       
       let streamedSuccess = false;
       let lastStreamError = null;
@@ -237,7 +237,7 @@ ${contextParts || 'General Hackathon Guidance'}`;
     // 8. Fast JSON Response Fallback
     const tGeminiStart = performance.now();
     const model = getMentorModel(apiKey);
-    const modelName = 'gemini-1.5-flash';
+    const modelName = 'gemini-pro';
 
     const result = await model.generateContent(fullPrompt);
     const response = await result.response;

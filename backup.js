@@ -22,30 +22,32 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
+  const fallbackJson = {
+    overall_score: 75,
+    readiness_tier: "Strong Readiness",
+    categories: [
+      { name: "Hackathon Alignment", key: "hackathon_alignment", score: 15, maxScore: 20, status: "Good", explanation: "Offline mode fallback." },
+      { name: "Project Completeness", key: "project_completeness", score: 12, maxScore: 15, status: "Good", explanation: "Offline mode fallback." },
+      { name: "Technical Readiness", key: "technical_readiness", score: 10, maxScore: 15, status: "Moderate", explanation: "Offline mode fallback." },
+      { name: "Team Readiness", key: "team_readiness", score: 12, maxScore: 15, status: "Good", explanation: "Offline mode fallback." },
+      { name: "Skill Readiness", key: "skill_readiness", score: 8, maxScore: 10, status: "Good", explanation: "Offline mode fallback." },
+      { name: "GitHub Quality", key: "github_quality", score: 8, maxScore: 10, status: "Good", explanation: "Offline mode fallback." },
+      { name: "Pitch Readiness", key: "pitch_readiness", score: 6, maxScore: 10, status: "Moderate", explanation: "Offline mode fallback." },
+      { name: "Submission Readiness", key: "submission_readiness", score: 4, maxScore: 5, status: "Good", explanation: "Offline mode fallback." }
+    ],
+    strengths: ["Strong backend architecture", "Clear problem definition", "Solid team roles"],
+    gaps: [
+      { priority: "High", gap: "UI/UX needs refinement", action: "Conduct user testing" },
+      { priority: "Medium", gap: "Missing README", action: "Add setup instructions" },
+      { priority: "Low", gap: "Pitch deck lacks financials", action: "Add business model slide" }
+    ],
+    action_checklist: ["Fix UI bugs", "Complete README", "Rehearse Pitch"],
+    explanation: "Offline mode: You have a solid technical foundation, but focus heavily on polishing your core user experience."
+  };
+
   const apiKey = sanitizeEnvString(process.env.GEMINI_API_KEY);
   if (!apiKey) {
-    return res.status(200).json({ 
-      overall_score: 75,
-      readiness_tier: "Strong Readiness",
-      categories: [
-        { name: "Hackathon Alignment", key: "hackathon_alignment", score: 15, maxScore: 20, status: "Good", explanation: "Offline mode fallback." },
-        { name: "Project Completeness", key: "project_completeness", score: 12, maxScore: 15, status: "Good", explanation: "Offline mode fallback." },
-        { name: "Technical Readiness", key: "technical_readiness", score: 10, maxScore: 15, status: "Moderate", explanation: "Offline mode fallback." },
-        { name: "Team Readiness", key: "team_readiness", score: 12, maxScore: 15, status: "Good", explanation: "Offline mode fallback." },
-        { name: "Skill Readiness", key: "skill_readiness", score: 8, maxScore: 10, status: "Good", explanation: "Offline mode fallback." },
-        { name: "GitHub Quality", key: "github_quality", score: 8, maxScore: 10, status: "Good", explanation: "Offline mode fallback." },
-        { name: "Pitch Readiness", key: "pitch_readiness", score: 6, maxScore: 10, status: "Moderate", explanation: "Offline mode fallback." },
-        { name: "Submission Readiness", key: "submission_readiness", score: 4, maxScore: 5, status: "Good", explanation: "Offline mode fallback." }
-      ],
-      strengths: ["Strong backend architecture", "Clear problem definition", "Solid team roles"],
-      gaps: [
-        { priority: "High", gap: "UI/UX needs refinement", action: "Conduct user testing" },
-        { priority: "Medium", gap: "Missing README", action: "Add setup instructions" },
-        { priority: "Low", gap: "Pitch deck lacks financials", action: "Add business model slide" }
-      ],
-      action_checklist: ["Fix UI bugs", "Complete README", "Rehearse Pitch"],
-      explanation: "Offline mode: You have a solid technical foundation, but focus heavily on polishing your core user experience."
-    });
+    return res.status(200).json(fallbackJson);
   }
 
   try {
@@ -126,10 +128,10 @@ Team Members Count: ${teamMembers ? teamMembers.length : 0}
 User Skills: ${JSON.stringify(userSkills || [])}
 
 SCORING RULES & GIBBERISH DETECTION:
-1. Problem-Solution Fit (CRITICAL): You MUST critically evaluate if the "Solution" actually solves the "Problem Statement". Are they logically connected? Will this solution actually work in the real world? If they are unrelated, disjointed, or the solution is completely unrealistic, severely penalize the "Project Completeness" and "Hackathon Alignment" scores.
-2. Global Hackathon Standards: Judge this strictly on standard global hackathon criteria (Devpost/MLH standards): Impact, Feasibility, and Innovation. Compare it against typical winning projects.
-3. Meaning Matters: Detect random characters (e.g., "asdf"), repeated words, keyboard smashing, or generic placeholders. If the input lacks semantic meaning, score it near zero.
-4. Tech Stack Validation: Check if they are REAL technologies, relevant to the proposed solution, and logically compatible. ["apple", "banana"] gets 0 points.
+1. Meaning Matters: Detect random characters (e.g., "asdf"), repeated words, keyboard smashing, or generic placeholders. If the input is gibberish or lacks semantic meaning, score it near zero and explicitly mention this in the gaps/explanation.
+2. Meaningful short input (e.g. "Students can't find hackathons") is better than long gibberish.
+3. Tech Stack Validation: Do NOT award points just because there are multiple items. Check if they are REAL technologies, relevant to the proposed solution, and compatible. ["apple", "banana"] gets 0 points.
+4. GitHub Validation: Just because a URL contains "github.com" does NOT mean it's valid. Treat it as unverified unless the "GitHub Analyzer Score" is present.
 5. Evidence-Based: Every score must be justified by the provided text.
 
 TASK:
@@ -170,7 +172,7 @@ Return STRICTLY valid JSON matching this schema exactly:
 }`;
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const activeModels = ['gemini-pro', 'gemini-pro-8b', 'gemini-pro', 'gemini-flash-latest'];
+    const activeModels = ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-1.5-flash', 'gemini-flash-latest'];
     let aiResponse = null;
     let lastError = null;
 
@@ -206,29 +208,4 @@ Return STRICTLY valid JSON matching this schema exactly:
 
     return res.status(200).json(aiResponse);
   } catch (err) {
-    console.error('Winning Readiness Advisor Error:', err?.message || err);
-    return res.status(200).json({ 
-      overall_score: 75,
-      readiness_tier: "Strong Readiness",
-      categories: [
-        { name: "Hackathon Alignment", key: "hackathon_alignment", score: 15, maxScore: 20, status: "Good", explanation: "Offline mode fallback." },
-        { name: "Project Completeness", key: "project_completeness", score: 12, maxScore: 15, status: "Good", explanation: "Offline mode fallback." },
-        { name: "Technical Readiness", key: "technical_readiness", score: 10, maxScore: 15, status: "Moderate", explanation: "Offline mode fallback." },
-        { name: "Team Readiness", key: "team_readiness", score: 12, maxScore: 15, status: "Good", explanation: "Offline mode fallback." },
-        { name: "Skill Readiness", key: "skill_readiness", score: 8, maxScore: 10, status: "Good", explanation: "Offline mode fallback." },
-        { name: "GitHub Quality", key: "github_quality", score: 8, maxScore: 10, status: "Good", explanation: "Offline mode fallback." },
-        { name: "Pitch Readiness", key: "pitch_readiness", score: 6, maxScore: 10, status: "Moderate", explanation: "Offline mode fallback." },
-        { name: "Submission Readiness", key: "submission_readiness", score: 4, maxScore: 5, status: "Good", explanation: "Offline mode fallback." }
-      ],
-      strengths: ["Strong backend architecture", "Clear problem definition", "Solid team roles"],
-      gaps: [
-        { priority: "High", gap: "UI/UX needs refinement", action: "Conduct user testing" },
-        { priority: "Medium", gap: "Missing README", action: "Add setup instructions" },
-        { priority: "Low", gap: "Pitch deck lacks financials", action: "Add business model slide" }
-      ],
-      action_checklist: ["Fix UI bugs", "Complete README", "Rehearse Pitch"],
-      explanation: "Offline mode: You have a solid technical foundation, but focus heavily on polishing your core user experience."
-    });
-  }
-}
 
