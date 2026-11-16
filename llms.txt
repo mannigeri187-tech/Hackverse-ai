@@ -1,0 +1,17 @@
+# DatingZen
+
+> Peaceful dating without the noise. Intentional matchmaking with 24-hour sparks and max 3 active chats.
+
+## Overview
+DatingZen (https://datingzen.online) is a mindful dating platform designed to eliminate swipe fatigue, ghosting, and endless superficial matching.
+
+## Core Features
+- 3 Active Chats Limit: Encourages real human conversation and prevents endless superficial hoarding of matches.
+- 24-Hour Spark Clock: Ensures timely, meaningful responses and eliminates ghosting.
+- AI Icebreakers: Contextual conversation starters to break the initial awkwardness.
+- 100% Free Mutual Chat: Direct connection without paywalls on basic communication.
+
+## Official Links
+- Website: https://datingzen.online
+- Privacy Policy: https://datingzen.online/privacy.html
+- Terms of Service: https://datingzen.online/terms.html
